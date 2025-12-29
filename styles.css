@@ -927,6 +927,8 @@ img {
     color: var(--text-light);
     letter-spacing: 0.2px;
     transition: all 0.2s ease;
+    margin-top: auto;
+    flex-shrink: 0;
 }
 
 .nav-item.active .nav-icon {
