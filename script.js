@@ -194,8 +194,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Bottom Navigation - Smooth active state transition with iOS support
+    // Bottom Navigation - Smooth sliding background animation
     const navItems = document.querySelectorAll('.nav-item');
+    const navSliderBg = document.querySelector('.nav-slider-bg');
+    const bottomNav = document.querySelector('.bottom-nav');
+    
+    function updateSliderPosition(activeItem) {
+        if (!navSliderBg || !activeItem) return;
+        
+        const navRect = bottomNav.getBoundingClientRect();
+        const itemRect = activeItem.getBoundingClientRect();
+        const sliderWidth = 52;
+        const itemCenterX = itemRect.left + itemRect.width / 2 - navRect.left;
+        const sliderLeft = itemCenterX - sliderWidth / 2;
+        
+        navSliderBg.style.transform = `translate(${sliderLeft}px, -50%)`;
+    }
     
     function handleNavClick(item) {
         // Remove active class from all items
@@ -204,20 +218,28 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add active class to clicked item
         item.classList.add('active');
         
+        // Update slider position
+        updateSliderPosition(item);
+        
         const navType = item.getAttribute('data-nav');
         console.log('Navigated to:', navType);
         // Add navigation functionality here
     }
     
-    navItems.forEach(item => {
+    // Initialize slider position for active item
+    const activeItem = document.querySelector('.nav-item.active');
+    if (activeItem) {
+        updateSliderPosition(activeItem);
+    }
+    
+    navItems.forEach((item, index) => {
         // Handle click events
         item.addEventListener('click', function(e) {
-            e.preventDefault();
             e.stopPropagation();
             handleNavClick(this);
         });
         
-        // Handle touch events for iOS
+        // Handle touch events for iOS - simplified
         let touchStartTime = 0;
         let touchStartX = 0;
         let touchStartY = 0;
@@ -238,16 +260,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const yDiff = Math.abs(touchEndY - touchStartY);
             
             // Only trigger if it's a quick tap (not a swipe)
-            if (timeDiff < 300 && xDiff < 10 && yDiff < 10) {
+            if (timeDiff < 300 && xDiff < 15 && yDiff < 15) {
                 e.preventDefault();
                 e.stopPropagation();
                 handleNavClick(this);
             }
-        });
-        
-        // Prevent any default button behaviors on mousedown
-        item.addEventListener('mousedown', function(e) {
-            e.preventDefault();
-        });
+        }, { passive: false });
+    });
+    
+    // Update slider on window resize
+    window.addEventListener('resize', () => {
+        const activeItem = document.querySelector('.nav-item.active');
+        if (activeItem) {
+            updateSliderPosition(activeItem);
+        }
     });
 });
