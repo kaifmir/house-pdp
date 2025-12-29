@@ -204,9 +204,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const navRect = bottomNav.getBoundingClientRect();
         const itemRect = activeItem.getBoundingClientRect();
+        const iconWrapper = activeItem.querySelector('.nav-icon-wrapper');
+        
+        if (!iconWrapper) return;
+        
+        const iconRect = iconWrapper.getBoundingClientRect();
         const sliderWidth = 52;
-        const itemCenterX = itemRect.left + itemRect.width / 2 - navRect.left;
-        const sliderLeft = itemCenterX - sliderWidth / 2;
+        const iconCenterX = iconRect.left + iconRect.width / 2 - navRect.left;
+        const sliderLeft = iconCenterX - sliderWidth / 2;
         
         navSliderBg.style.transform = `translate(${sliderLeft}px, -50%)`;
     }
