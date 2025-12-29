@@ -934,7 +934,11 @@ img {
 }
 
 .nav-item[data-nav="chat"] .nav-label {
-    bottom: calc(12px + env(safe-area-inset-bottom));
+    margin-top: 4px;
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
 }
 
 .nav-item.active .nav-icon {
