@@ -889,8 +889,8 @@ img {
 }
 
 .nav-icon-img {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     object-fit: contain;
     opacity: 1;
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
