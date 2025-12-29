@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const navSliderBg = document.querySelector('.nav-slider-bg');
     const bottomNav = document.querySelector('.bottom-nav');
     
-    function updateSliderPosition(activeItem) {
+    function updateSliderPosition(activeItem, animate = true) {
         if (!navSliderBg || !activeItem) return;
         
         const navRect = bottomNav.getBoundingClientRect();
@@ -219,7 +219,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const iconCenterY = iconRect.top + iconRect.height / 2 - navRect.top;
         const sliderTop = iconCenterY - sliderHeight / 2;
         
+        // Disable transition for initial load
+        if (!animate) {
+            navSliderBg.style.transition = 'none';
+        }
+        
         navSliderBg.style.transform = `translate(${sliderLeft}px, ${sliderTop}px)`;
+        
+        // Re-enable transition after initial positioning
+        if (!animate) {
+            // Use requestAnimationFrame to ensure the position is set first
+            requestAnimationFrame(() => {
+                navSliderBg.style.transition = '';
+            });
+        }
     }
     
     function handleNavClick(item) {
@@ -229,18 +242,28 @@ document.addEventListener('DOMContentLoaded', function() {
         // Add active class to clicked item
         item.classList.add('active');
         
-        // Update slider position
-        updateSliderPosition(item);
+        // Update slider position with animation
+        updateSliderPosition(item, true);
         
         const navType = item.getAttribute('data-nav');
         console.log('Navigated to:', navType);
         // Add navigation functionality here
     }
     
-    // Initialize slider position for active item
+    // Initialize slider position for active item without animation
     const activeItem = document.querySelector('.nav-item.active');
     if (activeItem) {
-        updateSliderPosition(activeItem);
+        // Wait for layout to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                updateSliderPosition(activeItem, false);
+            });
+        } else {
+            // Use setTimeout to ensure layout is complete
+            setTimeout(() => {
+                updateSliderPosition(activeItem, false);
+            }, 0);
+        }
     }
     
     navItems.forEach((item, index) => {
