@@ -203,17 +203,23 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!navSliderBg || !activeItem) return;
         
         const navRect = bottomNav.getBoundingClientRect();
-        const itemRect = activeItem.getBoundingClientRect();
         const iconWrapper = activeItem.querySelector('.nav-icon-wrapper');
         
         if (!iconWrapper) return;
         
         const iconRect = iconWrapper.getBoundingClientRect();
         const sliderWidth = 52;
+        const sliderHeight = 36;
+        
+        // Calculate X position: center of icon relative to nav container
         const iconCenterX = iconRect.left + iconRect.width / 2 - navRect.left;
         const sliderLeft = iconCenterX - sliderWidth / 2;
         
-        navSliderBg.style.transform = `translate(${sliderLeft}px, -50%)`;
+        // Calculate Y position: center of icon relative to nav container
+        const iconCenterY = iconRect.top + iconRect.height / 2 - navRect.top;
+        const sliderTop = iconCenterY - sliderHeight / 2;
+        
+        navSliderBg.style.transform = `translate(${sliderLeft}px, ${sliderTop}px)`;
     }
     
     function handleNavClick(item) {
