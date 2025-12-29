@@ -194,15 +194,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Bottom Navigation
+    // Bottom Navigation - Smooth active state transition
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Remove active class from all items
             navItems.forEach(nav => nav.classList.remove('active'));
+            
+            // Add active class to clicked item
             this.classList.add('active');
+            
             const navType = this.getAttribute('data-nav');
             console.log('Navigated to:', navType);
             // Add navigation functionality here
+        });
+        
+        // Prevent any default button behaviors
+        item.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+        });
+        
+        item.addEventListener('touchstart', function(e) {
+            e.preventDefault();
         });
     });
 });
