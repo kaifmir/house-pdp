@@ -882,15 +882,27 @@ img {
     width: 22px;
     height: 22px;
     stroke: var(--text-light);
-    transition: stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1), stroke-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: stroke 0.3s cubic-bezier(0.4, 0, 0.2, 1), stroke-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     stroke-width: 2;
     position: relative;
     z-index: 1;
 }
 
+.nav-icon-img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    opacity: 0.6;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .nav-item.active .nav-icon {
     stroke: var(--primary-purple);
     stroke-width: 2.5;
+}
+
+.nav-item.active .nav-icon-img {
+    opacity: 1;
 }
 
 .nav-label {
