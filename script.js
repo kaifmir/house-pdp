@@ -194,30 +194,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Bottom Navigation - Smooth active state transition
+    // Bottom Navigation - Smooth active state transition with iOS support
     const navItems = document.querySelectorAll('.nav-item');
+    
+    function handleNavClick(item) {
+        // Remove active class from all items
+        navItems.forEach(nav => nav.classList.remove('active'));
+        
+        // Add active class to clicked item
+        item.classList.add('active');
+        
+        const navType = item.getAttribute('data-nav');
+        console.log('Navigated to:', navType);
+        // Add navigation functionality here
+    }
+    
     navItems.forEach(item => {
+        // Handle click events
         item.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            
-            // Remove active class from all items
-            navItems.forEach(nav => nav.classList.remove('active'));
-            
-            // Add active class to clicked item
-            this.classList.add('active');
-            
-            const navType = this.getAttribute('data-nav');
-            console.log('Navigated to:', navType);
-            // Add navigation functionality here
+            handleNavClick(this);
         });
         
-        // Prevent any default button behaviors
-        item.addEventListener('mousedown', function(e) {
-            e.preventDefault();
-        });
+        // Handle touch events for iOS
+        let touchStartTime = 0;
+        let touchStartX = 0;
+        let touchStartY = 0;
         
         item.addEventListener('touchstart', function(e) {
+            touchStartTime = Date.now();
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+        
+        item.addEventListener('touchend', function(e) {
+            const touchEndTime = Date.now();
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            const timeDiff = touchEndTime - touchStartTime;
+            const xDiff = Math.abs(touchEndX - touchStartX);
+            const yDiff = Math.abs(touchEndY - touchStartY);
+            
+            // Only trigger if it's a quick tap (not a swipe)
+            if (timeDiff < 300 && xDiff < 10 && yDiff < 10) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleNavClick(this);
+            }
+        });
+        
+        // Prevent any default button behaviors on mousedown
+        item.addEventListener('mousedown', function(e) {
             e.preventDefault();
         });
     });
