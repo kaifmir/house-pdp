@@ -933,12 +933,8 @@ img {
     margin: 0;
 }
 
-.nav-item[data-nav="chat"] .nav-label {
-    margin-top: 4px;
-    position: relative;
-    bottom: auto;
-    left: auto;
-    transform: none;
+.nav-item[data-nav="chat"] .nav-icon-wrapper {
+    margin-bottom: 4px;
 }
 
 .nav-item.active .nav-icon {
