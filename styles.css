@@ -843,7 +843,7 @@ img {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 4px;
     background: none;
     border: none;
@@ -861,6 +861,11 @@ img {
     touch-action: manipulation;
     -webkit-touch-callout: none;
     z-index: 1;
+}
+
+.nav-item[data-nav="chat"] {
+    justify-content: flex-start;
+    align-items: center;
 }
 
 .nav-item:active {
