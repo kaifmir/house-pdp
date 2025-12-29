@@ -933,6 +933,10 @@ img {
     margin: 0;
 }
 
+.nav-item[data-nav="chat"] .nav-label {
+    bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
 .nav-item.active .nav-icon {
     stroke: var(--primary-purple);
     stroke-width: 2.5;
