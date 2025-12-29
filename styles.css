@@ -889,11 +889,12 @@ img {
 }
 
 .nav-icon-img {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     object-fit: contain;
-    opacity: 0.6;
+    opacity: 0.8;
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: brightness(0.7) saturate(1.2);
 }
 
 .nav-item.active .nav-icon {
@@ -903,6 +904,7 @@ img {
 
 .nav-item.active .nav-icon-img {
     opacity: 1;
+    filter: brightness(1) saturate(1.3);
 }
 
 .nav-label {
