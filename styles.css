@@ -887,8 +887,8 @@ img {
 .nav-item[data-nav="chat"] .nav-icon-wrapper {
     width: auto;
     height: auto;
-    min-width: 50px;
-    min-height: 50px;
+    min-width: 28px;
+    min-height: 28px;
 }
 
 .nav-icon {
@@ -902,8 +902,8 @@ img {
 }
 
 .nav-icon-img {
-    width: 50px !important;
-    height: 50px !important;
+    width: 28px !important;
+    height: 28px !important;
     object-fit: contain;
     opacity: 1;
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
