@@ -893,19 +893,20 @@ img {
     width: 22px;
     height: 22px;
     object-fit: contain;
-    opacity: 0.6;
+    opacity: 1;
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-icon-rotate {
-    animation: constantRotate 3s linear infinite;
+    animation: constantRotate 4s linear infinite;
+    will-change: transform;
 }
 
 @keyframes constantRotate {
-    0% {
+    from {
         transform: rotate(0deg);
     }
-    100% {
+    to {
         transform: rotate(360deg);
     }
 }
