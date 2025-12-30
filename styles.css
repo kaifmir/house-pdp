@@ -820,7 +820,7 @@ img {
     display: flex;
     justify-content: space-around;
     align-items: center;
-    padding: 8px 16px;
+    padding: 8px 12px;
     padding-bottom: calc(8px + env(safe-area-inset-bottom));
     z-index: 1000;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
@@ -847,7 +847,7 @@ img {
     gap: 4px;
     background: none;
     border: none;
-    padding: 6px 12px;
+    padding: 6px 8px;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     flex: 1;
@@ -861,6 +861,7 @@ img {
     touch-action: manipulation;
     -webkit-touch-callout: none;
     z-index: 1;
+    min-width: 0;
 }
 
 .nav-item:active {
