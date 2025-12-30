@@ -898,18 +898,15 @@ img {
 }
 
 .nav-icon-rotate {
-    animation: gentleRotate 3s ease-in-out infinite;
+    animation: constantRotate 3s linear infinite;
 }
 
-@keyframes gentleRotate {
-    0%, 100% {
+@keyframes constantRotate {
+    0% {
         transform: rotate(0deg);
     }
-    25% {
-        transform: rotate(5deg);
-    }
-    75% {
-        transform: rotate(-5deg);
+    100% {
+        transform: rotate(360deg);
     }
 }
 
