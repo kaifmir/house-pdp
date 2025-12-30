@@ -994,6 +994,31 @@ button, .property-type-card {
     .recommendations-section {
         padding: 0 12px;
     }
+    
+    .bottom-nav {
+        padding: 8px 8px;
+        padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    }
+    
+    .nav-item {
+        padding: 6px 4px;
+    }
+    
+    .nav-icon {
+        width: 22px;
+        height: 22px;
+    }
+    
+    .nav-icon-img {
+        width: 22px;
+        height: 22px;
+        max-width: 22px;
+        max-height: 22px;
+    }
+    
+    .nav-label {
+        font-size: 9px;
+    }
 }
 
 @media (min-width: 361px) and (max-width: 414px) {
