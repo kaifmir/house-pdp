@@ -916,7 +916,7 @@ img {
 }
 
 .nav-icon-rotate {
-    animation: constantRotate 6s linear infinite;
+    animation: constantRotate 10s ease-in-out infinite;
     will-change: transform;
 }
 
