@@ -69,6 +69,10 @@ body {
     .mobile-container {
         display: none !important;
     }
+    
+    .bottom-nav {
+        display: none !important;
+    }
 }
 
 /* Mobile Container */
