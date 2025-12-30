@@ -889,9 +889,37 @@ img {
     z-index: 1;
 }
 
+.nav-icon-img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    opacity: 0.6;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-icon-rotate {
+    animation: gentleRotate 3s ease-in-out infinite;
+}
+
+@keyframes gentleRotate {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(5deg);
+    }
+    75% {
+        transform: rotate(-5deg);
+    }
+}
+
 .nav-item.active .nav-icon {
     stroke: var(--primary-purple);
     stroke-width: 2.5;
+}
+
+.nav-item.active .nav-icon-img {
+    opacity: 1;
 }
 
 .nav-label {
