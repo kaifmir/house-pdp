@@ -905,18 +905,18 @@ img {
 
 .nav-icon-face {
     position: absolute;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     object-fit: contain;
     top: 50%;
-    left: 50%;
+    left: calc(50% - 1px);
     transform: translate(-50%, -50%);
     z-index: 2;
     pointer-events: none;
 }
 
 .nav-icon-rotate {
-    animation: constantRotate 5s linear infinite;
+    animation: constantRotate 6s linear infinite;
     will-change: transform;
 }
 
