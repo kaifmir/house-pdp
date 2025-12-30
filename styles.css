@@ -907,10 +907,10 @@ img {
 
 .nav-icon-face {
     position: absolute;
-    width: 11px;
-    height: 11px;
-    max-width: 11px;
-    max-height: 11px;
+    width: 12px;
+    height: 12px;
+    max-width: 12px;
+    max-height: 12px;
     object-fit: contain;
     top: 50%;
     left: calc(50% - 1px);
