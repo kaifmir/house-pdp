@@ -1216,10 +1216,10 @@ button, .property-type-card {
 }
 
 .scouty-chat-bot-icon {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
     object-fit: contain;
-    filter: saturate(0.7);
+    filter: saturate(0.7) brightness(0.85);
     z-index: 1;
     animation: constantRotate 12s linear infinite;
     will-change: transform;
