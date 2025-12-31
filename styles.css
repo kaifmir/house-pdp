@@ -1162,6 +1162,92 @@ button, .property-type-card {
     align-items: center;
     justify-content: center;
     animation: fadeInUp 0.6s ease-out 0.1s both;
+    overflow: visible;
+}
+
+.geometric-clouds {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.cloud {
+    position: absolute;
+    background: linear-gradient(135deg, rgba(200, 200, 200, 0.15) 0%, rgba(240, 240, 240, 0.25) 50%, rgba(255, 255, 255, 0.2) 100%);
+    border-radius: 50%;
+    opacity: 0.6;
+}
+
+.cloud-1 {
+    width: 40px;
+    height: 30px;
+    top: 10px;
+    left: 20px;
+    animation: floatCloud1 8s ease-in-out infinite;
+}
+
+.cloud-2 {
+    width: 35px;
+    height: 25px;
+    top: 50px;
+    right: 15px;
+    animation: floatCloud2 10s ease-in-out infinite;
+}
+
+.cloud-3 {
+    width: 30px;
+    height: 22px;
+    bottom: 20px;
+    left: 30px;
+    animation: floatCloud3 9s ease-in-out infinite;
+}
+
+.cloud-4 {
+    width: 28px;
+    height: 20px;
+    top: 30px;
+    left: 50px;
+    animation: floatCloud4 11s ease-in-out infinite;
+}
+
+@keyframes floatCloud1 {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(8px, -6px) scale(1.05);
+    }
+}
+
+@keyframes floatCloud2 {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(-6px, 8px) scale(1.08);
+    }
+}
+
+@keyframes floatCloud3 {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(6px, -4px) scale(1.06);
+    }
+}
+
+@keyframes floatCloud4 {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(-4px, 6px) scale(1.07);
+    }
 }
 
 .scouty-chat-bot-icon {
@@ -1169,7 +1255,8 @@ button, .property-type-card {
     height: 100px;
     object-fit: contain;
     filter: saturate(0.7);
-    z-index: 1;
+    z-index: 2;
+    position: relative;
     animation: constantRotate 12s linear infinite;
     will-change: transform;
 }
@@ -1182,7 +1269,7 @@ button, .property-type-card {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    z-index: 2;
+    z-index: 3;
     pointer-events: none;
 }
 
