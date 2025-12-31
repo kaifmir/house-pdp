@@ -1080,7 +1080,10 @@ button, .property-type-card {
     flex-direction: column;
     box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
     overflow: hidden;
-    position: relative;
+}
+
+.bottom-sheet.active .bottom-sheet-content {
+    transform: translateY(0);
 }
 
 .bottom-sheet-gradient-bg {
@@ -1095,6 +1098,21 @@ button, .property-type-card {
     z-index: 0;
 }
 
+.bottom-sheet-gradient-bg::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, transparent 1px, transparent 2px, rgba(0, 0, 0, 0.03) 3px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, transparent 1px, transparent 2px, rgba(0, 0, 0, 0.03) 3px);
+    background-size: 20px 20px;
+    opacity: 0.4;
+    pointer-events: none;
+}
+
 @keyframes gradientMove {
     0%, 100% {
         background-position: 0% 50%;
@@ -1102,10 +1120,6 @@ button, .property-type-card {
     50% {
         background-position: 100% 50%;
     }
-}
-
-.bottom-sheet.active .bottom-sheet-content {
-    transform: translateY(0);
 }
 
 .bottom-sheet-handle {
