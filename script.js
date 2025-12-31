@@ -248,12 +248,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         span.style.fontWeight = '500';
                     }
                     scoutyGreetingText.appendChild(span);
+                    
+                    // Add blur fade-in animation with stagger
+                    setTimeout(() => {
+                        span.classList.add('visible');
+                    }, 50);
+                    
                     charIndex++;
-                    setTimeout(typeChar, 40);
+                    setTimeout(typeChar, 60);
                 } else {
                     partIndex++;
                     charIndex = 0;
-                    setTimeout(typeChar, 40);
+                    setTimeout(typeChar, 80);
                 }
             }
         }
