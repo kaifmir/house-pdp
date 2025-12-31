@@ -1164,15 +1164,27 @@ button, .property-type-card {
     animation: fadeInUp 0.6s ease-out 0.1s both;
 }
 
+.scouty-chat-bot-icon-morph {
+    width: 100px;
+    height: 100px;
+    position: absolute;
+    object-fit: contain;
+    filter: saturate(0.7);
+    z-index: 1;
+    animation: fadeOutToShape 16s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
 .scouty-morphing-shape {
     width: 100px;
     height: 100px;
     position: absolute;
     background: var(--primary-purple);
     filter: saturate(0.7);
+    z-index: 1;
+    opacity: 0;
     animation: morphAndRotate 16s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    will-change: transform, clip-path;
-    transition: clip-path 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, border-radius, opacity;
+    transition: border-radius 2s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease;
 }
 
 .scouty-face-overlay {
@@ -1187,30 +1199,67 @@ button, .property-type-card {
     pointer-events: none;
 }
 
-@keyframes morphAndRotate {
-    0% {
+@keyframes fadeOutToShape {
+    0%, 15% {
+        opacity: 1;
         transform: rotate(0deg);
-        clip-path: polygon(50% 5%, 80% 20%, 95% 50%, 80% 80%, 50% 95%, 20% 80%, 5% 50%, 20% 20%);
     }
     20% {
-        transform: rotate(72deg);
-        clip-path: polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%);
+        opacity: 0;
+    }
+    20.1%, 100% {
+        opacity: 0;
+    }
+}
+
+@keyframes morphAndRotate {
+    0% {
+        opacity: 0;
+        transform: rotate(0deg);
+        border-radius: 0;
+    }
+    15% {
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+        transform: rotate(0deg);
+        border-radius: 20px;
+    }
+    33.33% {
+        opacity: 1;
+        transform: rotate(120deg);
+        border-radius: 20px;
     }
     40% {
-        transform: rotate(144deg);
-        clip-path: polygon(50% 0%, 93% 25%, 100% 50%, 93% 75%, 50% 100%, 7% 75%, 0% 50%, 7% 25%);
+        opacity: 1;
+        transform: rotate(120deg);
+        border-radius: 50%;
+    }
+    53.33% {
+        opacity: 1;
+        transform: rotate(240deg);
+        border-radius: 50%;
     }
     60% {
-        transform: rotate(216deg);
-        clip-path: polygon(50% 0%, 90% 10%, 100% 35%, 95% 65%, 75% 100%, 50% 100%, 25% 100%, 5% 65%, 0% 35%, 10% 10%);
+        opacity: 1;
+        transform: rotate(240deg);
+        border-radius: 20px 20px 20px 20px / 35px 35px 20px 20px;
+    }
+    73.33% {
+        opacity: 1;
+        transform: rotate(360deg);
+        border-radius: 20px 20px 20px 20px / 35px 35px 20px 20px;
     }
     80% {
-        transform: rotate(288deg);
-        clip-path: polygon(50% 0%, 85% 8%, 100% 30%, 98% 55%, 90% 85%, 70% 100%, 50% 100%, 30% 100%, 10% 85%, 2% 55%, 0% 30%, 15% 8%);
+        opacity: 1;
+        transform: rotate(360deg);
+        border-radius: 20px;
     }
     100% {
+        opacity: 1;
         transform: rotate(360deg);
-        clip-path: polygon(50% 5%, 80% 20%, 95% 50%, 80% 80%, 50% 95%, 20% 80%, 5% 50%, 20% 20%);
+        border-radius: 20px;
     }
 }
 
