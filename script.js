@@ -213,6 +213,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         bottomSheet.classList.add('active');
         document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
         
         // Animate text character by character
         setTimeout(() => {
@@ -227,6 +230,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         bottomSheet.classList.remove('active');
         document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
         scoutyGreetingText.innerHTML = '';
         
         if (scoutyCTA) {
