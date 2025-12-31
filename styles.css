@@ -1238,10 +1238,10 @@ button, .property-type-card {
 
 @keyframes gentleGlow {
     0%, 100% {
-        filter: drop-shadow(0 0 4px rgba(94, 35, 220, 0.04)) drop-shadow(0 0 6px rgba(94, 35, 220, 0.025)) drop-shadow(0 0 8px rgba(74, 27, 168, 0.02));
+        filter: drop-shadow(0 0 4px rgba(94, 35, 220, 0.01)) drop-shadow(0 0 6px rgba(94, 35, 220, 0.008)) drop-shadow(0 0 8px rgba(74, 27, 168, 0.006));
     }
     50% {
-        filter: drop-shadow(0 0 5px rgba(94, 35, 220, 0.05)) drop-shadow(0 0 7px rgba(94, 35, 220, 0.04)) drop-shadow(0 0 10px rgba(74, 27, 168, 0.03));
+        filter: drop-shadow(0 0 5px rgba(94, 35, 220, 0.015)) drop-shadow(0 0 7px rgba(94, 35, 220, 0.012)) drop-shadow(0 0 10px rgba(74, 27, 168, 0.01));
     }
 }
 
