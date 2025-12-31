@@ -1146,7 +1146,7 @@ button, .property-type-card {
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     height: 100%;
     box-sizing: border-box;
     position: relative;
@@ -1224,7 +1224,7 @@ button, .property-type-card {
     color: #FFFFFF;
     border: none;
     border-radius: 16px;
-    padding: 18px 32px;
+    padding: 20px 32px;
     font-family: 'Space Grotesk', 'Inter', sans-serif;
     font-size: 18px;
     font-weight: 500;
@@ -1238,6 +1238,7 @@ button, .property-type-card {
     position: relative;
     width: 100%;
     box-sizing: border-box;
+    margin-top: auto;
 }
 
 .scouty-cta:active {
