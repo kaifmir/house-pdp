@@ -223,9 +223,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeBottomSheet() {
         if (!bottomSheet || !scoutyGreetingText) return;
         
+        const scoutyCTA = document.getElementById('scouty-cta');
+        
         bottomSheet.classList.remove('active');
         document.body.style.overflow = '';
         scoutyGreetingText.innerHTML = '';
+        
+        if (scoutyCTA) {
+            scoutyCTA.style.display = 'none';
+        }
     }
     
     function animateText() {
