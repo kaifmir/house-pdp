@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const greetingParts = [
         { text: "I am ", color: "var(--text-dark)" },
         { text: "Scóuty", color: "var(--primary-purple)", bold: true },
-        { text: ", here to help you find that dream house", color: "var(--text-dark)" }
+        { text: ", here to help you find that dream house!", color: "var(--text-dark)" }
     ];
     
     function openBottomSheet() {
