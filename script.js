@@ -258,6 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!bottomSheet || !scoutyGreetingText) return;
         
         const scoutyCTA = document.getElementById('scouty-cta');
+        const bottomSheetContent = document.querySelector('.bottom-sheet-content');
         
         bottomSheet.classList.remove('active');
         document.body.style.overflow = '';
@@ -265,6 +266,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.position = '';
         document.body.style.width = '';
         scoutyGreetingText.innerHTML = '';
+        
+        // Force reset transform to ensure it starts from bottom on next open
+        if (bottomSheetContent) {
+            bottomSheetContent.style.transform = 'translateY(100%)';
+        }
         
         if (scoutyCTA) {
             scoutyCTA.style.display = 'none';
