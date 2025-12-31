@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const greetingParts = [
         { text: "Hi, I am ", color: "var(--text-dark)" },
-        { text: "Scouty", color: "var(--primary-purple)", bold: true },
+        { text: "Scóuty", color: "var(--primary-purple)", bold: true },
         { text: ", here to help you find that dream house", color: "var(--text-dark)" }
     ];
     
