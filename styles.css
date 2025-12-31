@@ -1183,8 +1183,8 @@ button, .property-type-card {
     z-index: 1;
     opacity: 0;
     animation: morphAndRotate 16s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    will-change: transform, border-radius, opacity;
-    transition: border-radius 2s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease;
+    will-change: transform, border-radius, clip-path, opacity;
+    transition: border-radius 2s cubic-bezier(0.4, 0, 0.2, 1), clip-path 2s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease;
 }
 
 .scouty-face-overlay {
@@ -1224,12 +1224,12 @@ button, .property-type-card {
     20% {
         opacity: 1;
         transform: rotate(0deg);
-        border-radius: 20px;
+        border-radius: 24px;
     }
     33.33% {
         opacity: 1;
         transform: rotate(120deg);
-        border-radius: 20px;
+        border-radius: 24px;
     }
     40% {
         opacity: 1;
@@ -1244,22 +1244,25 @@ button, .property-type-card {
     60% {
         opacity: 1;
         transform: rotate(240deg);
-        border-radius: 20px 20px 20px 20px / 35px 35px 20px 20px;
+        clip-path: polygon(50% 8%, 85% 25%, 85% 75%, 50% 92%, 15% 75%, 15% 25%);
+        border-radius: 0;
     }
     73.33% {
         opacity: 1;
         transform: rotate(360deg);
-        border-radius: 20px 20px 20px 20px / 35px 35px 20px 20px;
+        clip-path: polygon(50% 8%, 85% 25%, 85% 75%, 50% 92%, 15% 75%, 15% 25%);
+        border-radius: 0;
     }
     80% {
         opacity: 1;
         transform: rotate(360deg);
-        border-radius: 20px;
+        clip-path: none;
+        border-radius: 24px;
     }
     100% {
         opacity: 1;
         transform: rotate(360deg);
-        border-radius: 20px;
+        border-radius: 24px;
     }
 }
 
