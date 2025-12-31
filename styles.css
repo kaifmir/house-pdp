@@ -1118,11 +1118,6 @@ button, .property-type-card {
     margin: 0;
 }
 
-.scouty-greeting-text::first-line {
-    color: var(--primary-purple);
-    font-weight: 500;
-}
-
 @keyframes fadeInUp {
     from {
         opacity: 0;
