@@ -1,27 +1,71 @@
+// Constants
+const MOBILE_REGEX = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+const DESKTOP_BREAKPOINT = 768;
+const SLIDER_WIDTH = 52;
+const SLIDER_HEIGHT = 36;
+const DRAG_CLOSE_THRESHOLD = 80;
+const TOP_AREA_THRESHOLD = 100;
+const TAP_THRESHOLD = 15;
+const TAP_TIME_THRESHOLD = 300;
+
+// DOM element cache
+let desktopBlocker, mobileContainer, bottomSheet, bottomSheetContent, bottomSheetOverlay;
+let bottomSheetHandle, bottomSheetBody, scoutyGreetingText, scoutyCTA;
+let navItems, navSliderBg, bottomNav;
+
 // Mobile-only check
 function checkMobileDevice() {
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const isSmallScreen = window.innerWidth < 768;
+    const isMobile = MOBILE_REGEX.test(navigator.userAgent);
+    const isSmallScreen = window.innerWidth < DESKTOP_BREAKPOINT;
     
     if (!isMobile && !isSmallScreen) {
-        document.querySelector('.desktop-blocker').style.display = 'flex';
-        document.querySelector('.mobile-container').style.display = 'none';
+        if (desktopBlocker) desktopBlocker.style.display = 'flex';
+        if (mobileContainer) mobileContainer.style.display = 'none';
     }
 }
 
-// Check on load and resize
+// Debounce utility
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Initialize DOM cache
+function initDOMCache() {
+    desktopBlocker = document.querySelector('.desktop-blocker');
+    mobileContainer = document.querySelector('.mobile-container');
+    bottomSheet = document.getElementById('bottom-sheet');
+    bottomSheetContent = document.querySelector('.bottom-sheet-content');
+    bottomSheetOverlay = document.querySelector('.bottom-sheet-overlay');
+    bottomSheetHandle = document.querySelector('.bottom-sheet-handle');
+    bottomSheetBody = document.querySelector('.bottom-sheet-body');
+    scoutyGreetingText = document.getElementById('scouty-greeting-text');
+    scoutyCTA = document.getElementById('scouty-cta');
+    navItems = document.querySelectorAll('.nav-item');
+    navSliderBg = document.querySelector('.nav-slider-bg');
+    bottomNav = document.querySelector('.bottom-nav');
+}
+
+// Check on load and resize (debounced)
 window.addEventListener('load', checkMobileDevice);
-window.addEventListener('resize', checkMobileDevice);
+window.addEventListener('resize', debounce(checkMobileDevice, 150));
 
 // Property type selection
 document.addEventListener('DOMContentLoaded', function() {
+    initDOMCache();
+    
     const propertyTypeCards = document.querySelectorAll('.property-type-card');
     
     propertyTypeCards.forEach(card => {
         card.addEventListener('click', function() {
-            // Remove active class from all cards
             propertyTypeCards.forEach(c => c.classList.remove('active'));
-            // Add active class to clicked card
             this.classList.add('active');
         });
     });
@@ -31,9 +75,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     scrollContainers.forEach(container => {
         let isDown = false;
-        let startX;
-        let scrollLeft;
+        let startX, scrollLeft;
+        let touchStartX = 0;
+        let touchScrollLeft = 0;
 
+        // Mouse events
         container.addEventListener('mousedown', (e) => {
             isDown = true;
             container.style.cursor = 'grabbing';
@@ -55,32 +101,26 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!isDown) return;
             e.preventDefault();
             const x = e.pageX - container.offsetLeft;
-            const walk = (x - startX) * 2;
-            container.scrollLeft = scrollLeft - walk;
+            container.scrollLeft = scrollLeft - (x - startX) * 2;
         });
 
-        // Touch events for mobile
-        let touchStartX = 0;
-        let touchScrollLeft = 0;
-
+        // Touch events
         container.addEventListener('touchstart', (e) => {
             touchStartX = e.touches[0].pageX - container.offsetLeft;
             touchScrollLeft = container.scrollLeft;
-        });
+        }, { passive: true });
 
         container.addEventListener('touchmove', (e) => {
             if (!touchStartX) return;
             const x = e.touches[0].pageX - container.offsetLeft;
-            const walk = (x - touchStartX) * 1.5;
-            container.scrollLeft = touchScrollLeft - walk;
-        });
+            container.scrollLeft = touchScrollLeft - (x - touchStartX) * 1.5;
+        }, { passive: true });
     });
 
-    // Search input focus and animated placeholder with typing effect
+    // Search input placeholder animation
     const searchInput = document.getElementById('search-input');
     const searchButton = document.querySelector('.search-button');
     
-    // Property search placeholder examples
     const placeholderTexts = [
         'Search city, locality, landmark...',
         '3 BHK in Vasant Kunj',
@@ -98,14 +138,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let placeholderIndex = 0;
     let typingTimeout = null;
     let isFocused = false;
-    let isTyping = false;
-    let currentText = '';
     let currentCharIndex = 0;
     let isDeleting = false;
     
     if (searchInput) {
-        // Set initial placeholder
-        currentText = placeholderTexts[0];
         searchInput.placeholder = '';
         
         function typePlaceholder() {
@@ -114,35 +150,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetText = placeholderTexts[placeholderIndex];
             
             if (!isDeleting && currentCharIndex < targetText.length) {
-                // Typing
-                currentText = targetText.substring(0, currentCharIndex + 1);
-                searchInput.placeholder = currentText;
+                searchInput.placeholder = targetText.substring(0, currentCharIndex + 1);
                 currentCharIndex++;
                 typingTimeout = setTimeout(typePlaceholder, 80);
             } else if (!isDeleting && currentCharIndex >= targetText.length) {
-                // Finished typing, wait then start deleting
                 isDeleting = true;
                 typingTimeout = setTimeout(typePlaceholder, 2000);
             } else if (isDeleting && currentCharIndex > 0) {
-                // Deleting
                 currentCharIndex--;
-                currentText = targetText.substring(0, currentCharIndex);
-                searchInput.placeholder = currentText;
+                searchInput.placeholder = targetText.substring(0, currentCharIndex);
                 typingTimeout = setTimeout(typePlaceholder, 50);
             } else {
-                // Finished deleting, move to next text
                 isDeleting = false;
                 placeholderIndex = (placeholderIndex + 1) % placeholderTexts.length;
                 currentCharIndex = 0;
-                currentText = '';
                 typingTimeout = setTimeout(typePlaceholder, 300);
             }
         }
         
-        // Start typing animation
         typingTimeout = setTimeout(typePlaceholder, 500);
         
-        // Stop animation on focus
         searchInput.addEventListener('focus', () => {
             isFocused = true;
             if (typingTimeout) {
@@ -150,19 +177,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 typingTimeout = null;
             }
             if (!searchInput.value) {
-                searchInput.placeholder = 'Search city, locality, landmark...';
+                searchInput.placeholder = placeholderTexts[0];
             }
-            // Force caret to be visible
             searchInput.style.caretColor = 'var(--primary-purple)';
         });
         
-        // Resume animation on blur if empty
         searchInput.addEventListener('blur', () => {
             isFocused = false;
             if (!searchInput.value.trim()) {
                 placeholderIndex = 0;
                 currentCharIndex = 0;
-                currentText = '';
                 isDeleting = false;
                 searchInput.placeholder = '';
                 if (!typingTimeout) {
@@ -171,7 +195,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Ensure caret is visible on click
         searchInput.addEventListener('click', () => {
             searchInput.focus();
             searchInput.style.caretColor = 'var(--primary-purple)';
@@ -179,25 +202,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (searchInput && searchButton) {
-        searchButton.addEventListener('click', () => {
+        const handleSearch = () => {
             if (searchInput.value.trim()) {
                 console.log('Searching for:', searchInput.value);
-                // Add search functionality here
             }
-        });
-
+        };
+        
+        searchButton.addEventListener('click', handleSearch);
         searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && searchInput.value.trim()) {
-                console.log('Searching for:', searchInput.value);
-                // Add search functionality here
-            }
+            if (e.key === 'Enter') handleSearch();
         });
     }
 
-    // Bottom Sheet functionality - define first so it's available in navItems loop
-    const bottomSheet = document.getElementById('bottom-sheet');
-    const bottomSheetOverlay = document.querySelector('.bottom-sheet-overlay');
-    const scoutyGreetingText = document.getElementById('scouty-greeting-text');
+    // Bottom Sheet functionality
     let hasAnimated = false;
     
     const greetingParts = [
@@ -206,47 +223,16 @@ document.addEventListener('DOMContentLoaded', function() {
         { text: ", here to help you find that dream house!", color: "var(--text-dark)" }
     ];
     
-    function openBottomSheet() {
-        if (!bottomSheet || !scoutyGreetingText) {
-            console.error('Bottom sheet elements not found');
-            return;
-        }
-        
-        const bottomSheetContent = document.querySelector('.bottom-sheet-content');
-        
-        // Ensure transform is reset before opening
-        if (bottomSheetContent) {
-            bottomSheetContent.style.transform = 'translateY(100%)';
-            bottomSheetContent.style.transition = 'none';
-        }
-        
-        bottomSheet.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
-        document.body.style.position = 'fixed';
-        document.body.style.width = '100%';
-        
-        // Re-enable transition and force transform update
-        requestAnimationFrame(() => {
-            if (bottomSheetContent) {
-                bottomSheetContent.style.transition = '';
-                bottomSheetContent.style.transform = 'translateY(0)';
-            }
-        });
-        
-        // If animation has already played, show text immediately
-        if (hasAnimated) {
-            showTextImmediately();
-            const scoutyCTA = document.getElementById('scouty-cta');
-            if (scoutyCTA) {
-                scoutyCTA.style.display = 'flex';
-            }
+    function createTextSpan(char, part) {
+        const span = document.createElement('span');
+        span.textContent = char;
+        if (part.bold) {
+            span.style.fontWeight = '700';
+            span.classList.add('scouty-name');
         } else {
-            // Animate text character by character
-            setTimeout(() => {
-                animateText();
-            }, 300);
+            span.style.color = part.color;
         }
+        return span;
     }
     
     function showTextImmediately() {
@@ -255,26 +241,40 @@ document.addEventListener('DOMContentLoaded', function() {
         scoutyGreetingText.innerHTML = '';
         greetingParts.forEach(part => {
             for (let i = 0; i < part.text.length; i++) {
-                const char = part.text[i];
-                const span = document.createElement('span');
-                span.textContent = char;
-                if (part.bold) {
-                    span.style.fontWeight = '700';
-                    span.classList.add('scouty-name');
-                } else {
-                    span.style.color = part.color;
-                }
+                const span = createTextSpan(part.text[i], part);
                 span.classList.add('visible');
                 scoutyGreetingText.appendChild(span);
             }
         });
     }
     
+    function openBottomSheet() {
+        if (!bottomSheet || !scoutyGreetingText || !bottomSheetContent) return;
+        
+        bottomSheetContent.style.transform = 'translateY(100%)';
+        bottomSheetContent.style.transition = 'none';
+        
+        bottomSheet.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        
+        requestAnimationFrame(() => {
+            bottomSheetContent.style.transition = '';
+            bottomSheetContent.style.transform = 'translateY(0)';
+        });
+        
+        if (hasAnimated) {
+            showTextImmediately();
+            if (scoutyCTA) scoutyCTA.style.display = 'flex';
+        } else {
+            setTimeout(animateText, 300);
+        }
+    }
+    
     function closeBottomSheet() {
         if (!bottomSheet || !scoutyGreetingText) return;
-        
-        const scoutyCTA = document.getElementById('scouty-cta');
-        const bottomSheetContent = document.querySelector('.bottom-sheet-content');
         
         bottomSheet.classList.remove('active');
         document.body.style.overflow = '';
@@ -283,7 +283,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.width = '';
         scoutyGreetingText.innerHTML = '';
         
-        // Force reset transform after transition completes
         setTimeout(() => {
             if (bottomSheetContent) {
                 bottomSheetContent.style.transform = 'translateY(100%)';
@@ -291,52 +290,27 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 400);
         
-        if (scoutyCTA) {
-            scoutyCTA.style.display = 'none';
-        }
+        if (scoutyCTA) scoutyCTA.style.display = 'none';
     }
     
     function animateText() {
         if (!scoutyGreetingText) return;
         
-        const scoutyCTA = document.getElementById('scouty-cta');
-        
         scoutyGreetingText.innerHTML = '';
         let partIndex = 0;
         let charIndex = 0;
-        let totalChars = 0;
-        let totalCharsCounted = false;
-        
-        // Count total characters
-        if (!totalCharsCounted) {
-            greetingParts.forEach(part => {
-                totalChars += part.text.length;
-            });
-            totalCharsCounted = true;
-        }
         
         function typeChar() {
             if (partIndex < greetingParts.length) {
                 const part = greetingParts[partIndex];
                 
                 if (charIndex < part.text.length) {
-                    const char = part.text[charIndex];
-                    const span = document.createElement('span');
-                    // Use regular space, not non-breaking space, but keep words together
-                    span.textContent = char;
-                    if (part.bold) {
-                        span.style.fontWeight = '700';
-                        span.classList.add('scouty-name');
-                    } else {
-                        span.style.color = part.color;
-                    }
+                    const span = createTextSpan(part.text[charIndex], part);
                     scoutyGreetingText.appendChild(span);
                     
-                    // Smooth blur fade-in animation
                     requestAnimationFrame(() => {
                         span.classList.add('visible');
                     });
-                    
                     
                     charIndex++;
                     setTimeout(typeChar, 50);
@@ -346,12 +320,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(typeChar, 60);
                 }
             } else {
-                // Text animation complete, show CTA and mark as animated
                 hasAnimated = true;
                 setTimeout(() => {
-                    if (scoutyCTA) {
-                        scoutyCTA.style.display = 'flex';
-                    }
+                    if (scoutyCTA) scoutyCTA.style.display = 'flex';
                 }, 300);
             }
         }
@@ -359,41 +330,28 @@ document.addEventListener('DOMContentLoaded', function() {
         typeChar();
     }
 
-    // Bottom Navigation - Smooth sliding background animation
-    const navItems = document.querySelectorAll('.nav-item');
-    const navSliderBg = document.querySelector('.nav-slider-bg');
-    const bottomNav = document.querySelector('.bottom-nav');
-    
+    // Bottom Navigation
     function updateSliderPosition(activeItem, animate = true) {
-        if (!navSliderBg || !activeItem) return;
+        if (!navSliderBg || !activeItem || !bottomNav) return;
         
-        const navRect = bottomNav.getBoundingClientRect();
         const iconWrapper = activeItem.querySelector('.nav-icon-wrapper');
-        
         if (!iconWrapper) return;
         
+        const navRect = bottomNav.getBoundingClientRect();
         const iconRect = iconWrapper.getBoundingClientRect();
-        const sliderWidth = 52;
-        const sliderHeight = 36;
         
-        // Calculate X position: center of icon relative to nav container
         const iconCenterX = iconRect.left + iconRect.width / 2 - navRect.left;
-        const sliderLeft = iconCenterX - sliderWidth / 2;
-        
-        // Calculate Y position: center of icon relative to nav container
         const iconCenterY = iconRect.top + iconRect.height / 2 - navRect.top;
-        const sliderTop = iconCenterY - sliderHeight / 2;
+        const sliderLeft = iconCenterX - SLIDER_WIDTH / 2;
+        const sliderTop = iconCenterY - SLIDER_HEIGHT / 2;
         
-        // Disable transition for initial load
         if (!animate) {
             navSliderBg.style.transition = 'none';
         }
         
         navSliderBg.style.transform = `translate(${sliderLeft}px, ${sliderTop}px)`;
         
-        // Re-enable transition after initial positioning
         if (!animate) {
-            // Use requestAnimationFrame to ensure the position is set first
             requestAnimationFrame(() => {
                 navSliderBg.style.transition = '';
             });
@@ -401,58 +359,47 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function handleNavClick(item) {
-        // Remove active class from all items
         navItems.forEach(nav => nav.classList.remove('active'));
-        
-        // Add active class to clicked item
         item.classList.add('active');
-        
-        // Update slider position with animation
         updateSliderPosition(item, true);
         
         const navType = item.getAttribute('data-nav');
         console.log('Navigated to:', navType);
-        // Add navigation functionality here
     }
     
-    // Initialize slider position for active item without animation
+    // Initialize slider position
     const activeItem = document.querySelector('.nav-item.active');
     if (activeItem) {
-        // Wait for layout to be ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 updateSliderPosition(activeItem, false);
             });
         } else {
-            // Use setTimeout to ensure layout is complete
             setTimeout(() => {
                 updateSliderPosition(activeItem, false);
             }, 0);
         }
     }
     
-    navItems.forEach((item, index) => {
+    // Nav item event handlers
+    navItems.forEach((item) => {
         const navType = item.getAttribute('data-nav');
-        
-        // Handle click events
-        item.addEventListener('click', function(e) {
-            e.stopPropagation();
-            
-            // Special handling for chat/Scouty
-            if (navType === 'chat') {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Chat clicked, opening bottom sheet');
-                openBottomSheet();
-            } else {
-                handleNavClick(this);
-            }
-        });
-        
-        // Handle touch events for iOS - simplified
         let touchStartTime = 0;
         let touchStartX = 0;
         let touchStartY = 0;
+        
+        const handleNavAction = () => {
+            if (navType === 'chat') {
+                openBottomSheet();
+            } else {
+                handleNavClick(item);
+            }
+        };
+        
+        item.addEventListener('click', function(e) {
+            e.stopPropagation();
+            handleNavAction();
+        });
         
         item.addEventListener('touchstart', function(e) {
             touchStartTime = Date.now();
@@ -461,66 +408,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }, { passive: true });
         
         item.addEventListener('touchend', function(e) {
-            const touchEndTime = Date.now();
-            const touchEndX = e.changedTouches[0].clientX;
-            const touchEndY = e.changedTouches[0].clientY;
+            const timeDiff = Date.now() - touchStartTime;
+            const xDiff = Math.abs(e.changedTouches[0].clientX - touchStartX);
+            const yDiff = Math.abs(e.changedTouches[0].clientY - touchStartY);
             
-            const timeDiff = touchEndTime - touchStartTime;
-            const xDiff = Math.abs(touchEndX - touchStartX);
-            const yDiff = Math.abs(touchEndY - touchStartY);
-            
-            // Only trigger if it's a quick tap (not a swipe)
-            if (timeDiff < 300 && xDiff < 15 && yDiff < 15) {
+            if (timeDiff < TAP_TIME_THRESHOLD && xDiff < TAP_THRESHOLD && yDiff < TAP_THRESHOLD) {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                // Special handling for chat/Scouty
-                if (navType === 'chat') {
-                    console.log('Chat touched, opening bottom sheet');
-                    openBottomSheet();
-                } else {
-                    handleNavClick(this);
-                }
+                handleNavAction();
             }
         }, { passive: false });
     });
     
-    // Update slider on window resize
-    window.addEventListener('resize', () => {
+    // Debounced resize handler
+    window.addEventListener('resize', debounce(() => {
         const activeItem = document.querySelector('.nav-item.active');
-        if (activeItem) {
-            updateSliderPosition(activeItem);
-        }
-    });
+        if (activeItem) updateSliderPosition(activeItem);
+    }, 150));
 
-    // Bottom Sheet overlay click handler
+    // Bottom Sheet overlay
     if (bottomSheetOverlay) {
         bottomSheetOverlay.addEventListener('click', closeBottomSheet);
     }
     
-    // Drag to close functionality - only on handle and downward swipes
-    const bottomSheetContent = document.querySelector('.bottom-sheet-content');
-    const bottomSheetHandle = document.querySelector('.bottom-sheet-handle');
-    const bottomSheetBody = document.querySelector('.bottom-sheet-body');
+    // Drag to close functionality
     let dragStartY = 0;
     let dragStartX = 0;
     let isDragging = false;
     let hasMovedDown = false;
     
+    function isDragStartValid(touchY, target) {
+        if (!bottomSheetContent) return false;
+        const isHandle = target === bottomSheetHandle || target.closest('.bottom-sheet-handle');
+        const contentRect = bottomSheetContent.getBoundingClientRect();
+        const isTopArea = touchY < contentRect.top + TOP_AREA_THRESHOLD;
+        return isHandle || isTopArea;
+    }
+    
     function handleDragStart(e) {
-        // Only allow drag from handle or top area
         const touchY = e.touches ? e.touches[0].clientY : e.clientY;
         const touchX = e.touches ? e.touches[0].clientX : e.clientX;
-        const target = e.target;
         
-        // Only allow drag if starting from handle or top 100px of content
-        const isHandle = target === bottomSheetHandle || target.closest('.bottom-sheet-handle');
-        const contentRect = bottomSheetContent ? bottomSheetContent.getBoundingClientRect() : null;
-        const isTopArea = contentRect && touchY < contentRect.top + 100;
-        
-        if (!isHandle && !isTopArea) {
-            return;
-        }
+        if (!isDragStartValid(touchY, e.target)) return;
         
         isDragging = true;
         hasMovedDown = false;
@@ -531,67 +460,53 @@ document.addEventListener('DOMContentLoaded', function() {
             bottomSheetContent.style.transition = 'none';
         }
         
-        // Prevent default to stop scrolling
-        if (e.preventDefault) {
-            e.preventDefault();
-        }
+        if (e.preventDefault) e.preventDefault();
     }
     
     function handleDragMove(e) {
-        if (!isDragging) return;
+        if (!isDragging || !bottomSheetContent) return;
         
         const currentY = e.touches ? e.touches[0].clientY : e.clientY;
         const currentX = e.touches ? e.touches[0].clientX : e.clientX;
         const deltaY = currentY - dragStartY;
         const deltaX = Math.abs(currentX - dragStartX);
         
-        // Only allow downward drag (deltaY > 0) and ensure it's more vertical than horizontal
         if (deltaY > 0 && deltaY > deltaX * 1.5) {
             hasMovedDown = true;
-            if (bottomSheetContent) {
-                bottomSheetContent.style.transform = `translateY(${deltaY}px)`;
-            }
-            // Prevent scrolling
-            if (e.preventDefault) {
-                e.preventDefault();
-            }
+            bottomSheetContent.style.transform = `translateY(${deltaY}px)`;
+            if (e.preventDefault) e.preventDefault();
         }
     }
     
     function handleDragEnd(e) {
-        if (!isDragging) return;
+        if (!isDragging || !bottomSheetContent) return;
         isDragging = false;
         
         const currentY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
         const deltaY = currentY - dragStartY;
         
-        if (bottomSheetContent) {
-            bottomSheetContent.style.transition = '';
-            
-            // Only close if it was a clear downward swipe (more than 80px down)
-            if (hasMovedDown && deltaY > 80) {
-                closeBottomSheet();
-            } else {
-                bottomSheetContent.style.transform = 'translateY(0)';
-            }
+        bottomSheetContent.style.transition = '';
+        
+        if (hasMovedDown && deltaY > DRAG_CLOSE_THRESHOLD) {
+            closeBottomSheet();
+        } else {
+            bottomSheetContent.style.transform = 'translateY(0)';
         }
         
         hasMovedDown = false;
     }
     
-    // Only attach drag handlers to handle
     if (bottomSheetHandle) {
         bottomSheetHandle.addEventListener('touchstart', handleDragStart, { passive: false });
         bottomSheetHandle.addEventListener('touchmove', handleDragMove, { passive: false });
         bottomSheetHandle.addEventListener('touchend', handleDragEnd, { passive: false });
-        
         bottomSheetHandle.addEventListener('mousedown', handleDragStart);
         document.addEventListener('mousemove', handleDragMove);
         document.addEventListener('mouseup', handleDragEnd);
     }
     
-    // Prevent scrolling on body - only allow if it's a clear downward swipe from top
-    if (bottomSheetBody) {
+    // Prevent scrolling on body
+    if (bottomSheetBody && bottomSheetContent) {
         let bodyTouchStartY = 0;
         let bodyTouchStartX = 0;
         
@@ -605,28 +520,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const currentX = e.touches[0].clientX;
             const deltaY = currentY - bodyTouchStartY;
             const deltaX = Math.abs(currentX - bodyTouchStartX);
-            
-            // Only prevent if trying to scroll up (negative delta) or if it's not a clear downward swipe
-            // Allow downward swipes from top area to close
-            const contentRect = bottomSheetContent ? bottomSheetContent.getBoundingClientRect() : null;
-            const isTopArea = contentRect && bodyTouchStartY < contentRect.top + 100;
+            const contentRect = bottomSheetContent.getBoundingClientRect();
+            const isTopArea = bodyTouchStartY < contentRect.top + TOP_AREA_THRESHOLD;
             
             if (deltaY < 0 || (!isTopArea && deltaY < 50)) {
-                // Prevent upward scrolling or small movements
                 e.preventDefault();
             } else if (isTopArea && deltaY > 0 && deltaY > deltaX * 1.5) {
-                // Allow downward swipe from top to trigger drag
                 e.preventDefault();
             }
         }, { passive: false });
     }
     
     // CTA click handler
-    const scoutyCTA = document.getElementById('scouty-cta');
     if (scoutyCTA) {
         scoutyCTA.addEventListener('click', () => {
             console.log('CTA clicked - Get Started');
-            // Add navigation functionality here
         });
     }
 });
