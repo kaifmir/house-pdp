@@ -1096,7 +1096,7 @@ button, .property-type-card {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    opacity: 0.85;
+    opacity: 0.4;
     z-index: 0;
 }
 
@@ -1224,9 +1224,9 @@ button, .property-type-card {
     color: #FFFFFF;
     border: none;
     border-radius: 16px;
-    padding: 16px 32px;
+    padding: 18px 32px;
     font-family: 'Space Grotesk', 'Inter', sans-serif;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 500;
     cursor: pointer;
     box-shadow: 
@@ -1236,6 +1236,8 @@ button, .property-type-card {
     animation: fadeInUp 0.5s ease-out both;
     z-index: 2;
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .scouty-cta:active {
