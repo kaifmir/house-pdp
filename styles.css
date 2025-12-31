@@ -1227,52 +1227,11 @@ button, .property-type-card {
 
 .scouty-greeting-text span.scouty-name {
     font-weight: 700;
-    display: inline-block;
-    animation: gentleWave 2s ease-in-out infinite;
-    transform-origin: center bottom;
-}
-
-.scouty-greeting-text span.scouty-name:nth-child(1) {
-    animation-delay: 0s;
-}
-
-.scouty-greeting-text span.scouty-name:nth-child(2) {
-    animation-delay: 0.1s;
-}
-
-.scouty-greeting-text span.scouty-name:nth-child(3) {
-    animation-delay: 0.2s;
-}
-
-.scouty-greeting-text span.scouty-name:nth-child(4) {
-    animation-delay: 0.3s;
-}
-
-.scouty-greeting-text span.scouty-name:nth-child(5) {
-    animation-delay: 0.4s;
-}
-
-.scouty-greeting-text span.scouty-name:nth-child(6) {
-    animation-delay: 0.5s;
-}
-
-.scouty-greeting-text span.scouty-name:nth-child(7) {
-    animation-delay: 0.6s;
-}
-
-@keyframes gentleWave {
-    0%, 100% {
-        transform: translateY(0) rotate(0deg);
-    }
-    25% {
-        transform: translateY(-3px) rotate(-1deg);
-    }
-    50% {
-        transform: translateY(0) rotate(0deg);
-    }
-    75% {
-        transform: translateY(-2px) rotate(1deg);
-    }
+    background: linear-gradient(135deg, #4A1BA8 0%, #6B2BC7 50%, #8B3FE6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
 }
 
 .scouty-cta {

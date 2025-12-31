@@ -262,10 +262,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     const span = document.createElement('span');
                     // Use regular space, not non-breaking space, but keep words together
                     span.textContent = char;
-                    span.style.color = part.color;
                     if (part.bold) {
                         span.style.fontWeight = '700';
                         span.classList.add('scouty-name');
+                    } else {
+                        span.style.color = part.color;
                     }
                     scoutyGreetingText.appendChild(span);
                     
