@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const scoutyGreetingText = document.getElementById('scouty-greeting-text');
     
     const greetingParts = [
-        { text: "Hi, I am ", color: "var(--text-dark)" },
+        { text: "I am ", color: "var(--text-dark)" },
         { text: "Scóuty", color: "var(--primary-purple)", bold: true },
         { text: ", here to help you find that dream house", color: "var(--text-dark)" }
     ];
@@ -274,21 +274,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         span.classList.add('visible');
                     });
                     
-                    // Add hi.gif right after "Hi" is typed
-                    if (partIndex === 0 && charIndex === 1 && part.text.substring(0, charIndex + 1) === "Hi") {
-                        setTimeout(() => {
-                            const gif = document.createElement('img');
-                            gif.src = 'hi.gif';
-                            gif.alt = 'Hi';
-                            gif.className = 'scouty-hi-gif';
-                            gif.style.opacity = '0';
-                            scoutyGreetingText.appendChild(gif);
-                            requestAnimationFrame(() => {
-                                gif.style.transition = 'opacity 0.4s ease-out';
-                                gif.style.opacity = '1';
-                            });
-                        }, 100);
-                    }
                     
                     charIndex++;
                     setTimeout(typeChar, 50);

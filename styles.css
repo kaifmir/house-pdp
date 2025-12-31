@@ -1164,25 +1164,67 @@ button, .property-type-card {
     animation: fadeInUp 0.6s ease-out 0.1s both;
 }
 
-.scouty-chat-bot-icon {
+.scouty-geometric-shapes {
     width: 120px;
     height: 120px;
-    object-fit: contain;
-    filter: saturate(0.7);
-    z-index: 1;
+    position: relative;
     animation: constantRotate 12s linear infinite;
     will-change: transform;
 }
 
-.scouty-face-overlay {
+.scouty-shape {
     position: absolute;
-    width: 50px;
-    height: 50px;
-    object-fit: contain;
-    top: 50%;
+    background: var(--primary-purple);
+    filter: saturate(0.7);
+}
+
+.scouty-shape-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    top: 10px;
     left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 2;
+    transform: translateX(-50%);
+}
+
+.scouty-shape-square {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+}
+
+.scouty-shape-triangle {
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-bottom: 20px solid var(--primary-purple);
+    background: none;
+    filter: saturate(0.7);
+    bottom: 20px;
+    left: 20px;
+}
+
+.scouty-shape-star {
+    width: 20px;
+    height: 20px;
+    background: var(--primary-purple);
+    filter: saturate(0.7);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    top: 50%;
+    left: 15px;
+    transform: translateY(-50%);
+}
+
+.scouty-shape-rounded {
+    width: 28px;
+    height: 18px;
+    border-radius: 14px;
+    bottom: 15px;
+    right: 20px;
 }
 
 .scouty-greeting-text {
@@ -1191,7 +1233,7 @@ button, .property-type-card {
     font-weight: 500;
     line-height: 1.3;
     color: #000000;
-    margin: 0 0 8px 0;
+    margin: 0 0 40px 0;
     text-align: center;
     width: 100%;
     max-width: 320px;
@@ -1246,13 +1288,22 @@ button, .property-type-card {
     z-index: 2;
     position: relative;
     width: 100%;
-    max-width: 320px;
     box-sizing: border-box;
     margin-top: auto;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+}
+
+.scouty-cta span {
+    display: flex;
+    align-items: center;
+}
+
+.scouty-cta svg {
+    display: flex;
+    align-items: center;
 }
 
 .scouty-cta:active {
