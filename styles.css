@@ -1187,16 +1187,13 @@ button, .property-type-card {
     font-family: 'Space Grotesk', 'Inter', sans-serif;
     font-size: 28px;
     font-weight: 400;
-    line-height: 1.5;
+    line-height: 1.2;
     color: #000000;
     margin: 0 0 32px 0;
     text-align: center;
     width: 100%;
     max-width: 320px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
+    display: block;
     min-height: 100px;
 }
 
@@ -1205,7 +1202,7 @@ button, .property-type-card {
     animation: blurFadeIn 0.8s ease-out both;
     filter: blur(6px);
     opacity: 0;
-    white-space: normal;
+    white-space: pre;
     word-spacing: 0.15em;
 }
 
@@ -1213,6 +1210,7 @@ button, .property-type-card {
     filter: blur(0);
     opacity: 1;
     animation: blurFadeIn 0.8s ease-out both;
+    white-space: pre;
 }
 
 .scouty-cta {
