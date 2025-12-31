@@ -309,4 +309,75 @@ document.addEventListener('DOMContentLoaded', function() {
             updateSliderPosition(activeItem);
         }
     });
+
+    // Bottom Sheet functionality
+    const bottomSheet = document.getElementById('bottom-sheet');
+    const chatNavItem = document.querySelector('.nav-item[data-nav="chat"]');
+    const bottomSheetOverlay = document.querySelector('.bottom-sheet-overlay');
+    const scoutyGreetingText = document.getElementById('scouty-greeting-text');
+    
+    const greetingText = "Hi, I am Scouty, here to help you find that dream house";
+    
+    function openBottomSheet() {
+        bottomSheet.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Animate text character by character
+        setTimeout(() => {
+            animateText();
+        }, 300);
+    }
+    
+    function closeBottomSheet() {
+        bottomSheet.classList.remove('active');
+        document.body.style.overflow = '';
+        scoutyGreetingText.textContent = '';
+    }
+    
+    function animateText() {
+        let index = 0;
+        scoutyGreetingText.textContent = '';
+        
+        function typeChar() {
+            if (index < greetingText.length) {
+                scoutyGreetingText.textContent += greetingText[index];
+                index++;
+                setTimeout(typeChar, 50);
+            }
+        }
+        
+        typeChar();
+    }
+    
+    if (chatNavItem) {
+        chatNavItem.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openBottomSheet();
+        });
+    }
+    
+    if (bottomSheetOverlay) {
+        bottomSheetOverlay.addEventListener('click', closeBottomSheet);
+    }
+    
+    // Close on swipe down
+    let touchStartY = 0;
+    let touchEndY = 0;
+    
+    if (bottomSheet) {
+        bottomSheet.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+        
+        bottomSheet.addEventListener('touchmove', (e) => {
+            touchEndY = e.touches[0].clientY;
+        }, { passive: true });
+        
+        bottomSheet.addEventListener('touchend', () => {
+            const swipeDistance = touchEndY - touchStartY;
+            if (swipeDistance > 100) {
+                closeBottomSheet();
+            }
+        });
+    }
 });
