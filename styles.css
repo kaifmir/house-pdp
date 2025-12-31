@@ -1164,15 +1164,14 @@ button, .property-type-card {
     animation: fadeInUp 0.6s ease-out 0.1s both;
 }
 
-.scouty-morphing-shape {
+.scouty-chat-bot-icon {
     width: 100px;
     height: 100px;
-    position: absolute;
-    background: #6B2BC7;
+    object-fit: contain;
+    filter: saturate(0.7);
     z-index: 1;
-    animation: morphAndRotate 16s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    will-change: transform, border-radius, clip-path;
-    transition: border-radius 2.5s cubic-bezier(0.4, 0, 0.2, 1), clip-path 2.5s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: constantRotate 12s linear infinite;
+    will-change: transform;
 }
 
 .scouty-face-overlay {
@@ -1185,44 +1184,6 @@ button, .property-type-card {
     transform: translate(-50%, -50%);
     z-index: 2;
     pointer-events: none;
-}
-
-@keyframes morphAndRotate {
-    0% {
-        transform: rotate(0deg);
-        border-radius: 30% 70% 60% 40% / 50% 40% 60% 50%;
-        clip-path: none;
-    }
-    16.66% {
-        transform: rotate(60deg);
-        border-radius: 24px;
-        clip-path: none;
-    }
-    33.33% {
-        transform: rotate(120deg);
-        border-radius: 24px;
-        clip-path: none;
-    }
-    50% {
-        transform: rotate(180deg);
-        border-radius: 50%;
-        clip-path: none;
-    }
-    66.66% {
-        transform: rotate(240deg);
-        border-radius: 50%;
-        clip-path: none;
-    }
-    83.33% {
-        transform: rotate(300deg);
-        border-radius: 20px 20px 20px 20px / 30px 30px 20px 20px;
-        clip-path: polygon(50% 10%, 80% 30%, 80% 70%, 50% 90%, 20% 70%, 20% 30%);
-    }
-    100% {
-        transform: rotate(360deg);
-        border-radius: 30% 70% 60% 40% / 50% 40% 60% 50%;
-        clip-path: none;
-    }
 }
 
 .scouty-greeting-text {
