@@ -343,10 +343,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Special handling for chat/Scouty
             if (navType === 'chat') {
                 e.preventDefault();
-                const bottomSheet = document.getElementById('bottom-sheet');
-                if (bottomSheet) {
-                    openBottomSheet();
-                }
+                e.stopPropagation();
+                console.log('Chat clicked, opening bottom sheet');
+                openBottomSheet();
             } else {
                 handleNavClick(this);
             }
@@ -379,6 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Special handling for chat/Scouty
                 if (navType === 'chat') {
+                    console.log('Chat touched, opening bottom sheet');
                     openBottomSheet();
                 } else {
                     handleNavClick(this);
