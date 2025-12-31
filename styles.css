@@ -1114,6 +1114,17 @@ button, .property-type-card {
     background-repeat: no-repeat;
     opacity: 0.2;
     z-index: 0;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    will-change: transform;
+}
+
+/* Optimize background image loading */
+@media (max-width: 768px) {
+    .bottom-sheet-gradient-bg {
+        background-size: 100% auto;
+        background-attachment: scroll;
+    }
 }
 
 .bottom-sheet-gradient-bg::after {
