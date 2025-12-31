@@ -1329,11 +1329,12 @@ button, .property-type-card {
     position: absolute;
     top: 0;
     left: -100%;
-    width: 30%;
+    width: 15%;
     height: 100%;
-    background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 45%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.1) 55%, transparent 100%);
+    background: linear-gradient(135deg, transparent 0%, transparent 30%, rgba(255, 255, 255, 0.08) 45%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.08) 55%, transparent 70%, transparent 100%);
     animation: diagonalShine 5s ease-in-out infinite;
     pointer-events: none;
+    filter: blur(1px);
 }
 
 @keyframes diagonalShine {
