@@ -498,17 +498,42 @@ document.addEventListener('DOMContentLoaded', function() {
         bottomSheetOverlay.addEventListener('click', closeBottomSheet);
     }
     
-    // Drag to close functionality
+    // Drag to close functionality - only on handle and downward swipes
     const bottomSheetContent = document.querySelector('.bottom-sheet-content');
     const bottomSheetHandle = document.querySelector('.bottom-sheet-handle');
+    const bottomSheetBody = document.querySelector('.bottom-sheet-body');
     let dragStartY = 0;
+    let dragStartX = 0;
     let isDragging = false;
+    let hasMovedDown = false;
     
     function handleDragStart(e) {
+        // Only allow drag from handle or top area
+        const touchY = e.touches ? e.touches[0].clientY : e.clientY;
+        const touchX = e.touches ? e.touches[0].clientX : e.clientX;
+        const target = e.target;
+        
+        // Only allow drag if starting from handle or top 100px of content
+        const isHandle = target === bottomSheetHandle || target.closest('.bottom-sheet-handle');
+        const contentRect = bottomSheetContent ? bottomSheetContent.getBoundingClientRect() : null;
+        const isTopArea = contentRect && touchY < contentRect.top + 100;
+        
+        if (!isHandle && !isTopArea) {
+            return;
+        }
+        
         isDragging = true;
-        dragStartY = e.touches ? e.touches[0].clientY : e.clientY;
+        hasMovedDown = false;
+        dragStartY = touchY;
+        dragStartX = touchX;
+        
         if (bottomSheetContent) {
             bottomSheetContent.style.transition = 'none';
+        }
+        
+        // Prevent default to stop scrolling
+        if (e.preventDefault) {
+            e.preventDefault();
         }
     }
     
@@ -516,10 +541,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isDragging) return;
         
         const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+        const currentX = e.touches ? e.touches[0].clientX : e.clientX;
         const deltaY = currentY - dragStartY;
+        const deltaX = Math.abs(currentX - dragStartX);
         
-        if (deltaY > 0 && bottomSheetContent) {
-            bottomSheetContent.style.transform = `translateY(${deltaY}px)`;
+        // Only allow downward drag (deltaY > 0) and ensure it's more vertical than horizontal
+        if (deltaY > 0 && deltaY > deltaX * 1.5) {
+            hasMovedDown = true;
+            if (bottomSheetContent) {
+                bottomSheetContent.style.transform = `translateY(${deltaY}px)`;
+            }
+            // Prevent scrolling
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
         }
     }
     
@@ -533,28 +568,57 @@ document.addEventListener('DOMContentLoaded', function() {
         if (bottomSheetContent) {
             bottomSheetContent.style.transition = '';
             
-            if (deltaY > 100) {
+            // Only close if it was a clear downward swipe (more than 80px down)
+            if (hasMovedDown && deltaY > 80) {
                 closeBottomSheet();
             } else {
                 bottomSheetContent.style.transform = 'translateY(0)';
             }
         }
+        
+        hasMovedDown = false;
     }
     
+    // Only attach drag handlers to handle
     if (bottomSheetHandle) {
-        bottomSheetHandle.addEventListener('touchstart', handleDragStart, { passive: true });
-        bottomSheetHandle.addEventListener('touchmove', handleDragMove, { passive: true });
-        bottomSheetHandle.addEventListener('touchend', handleDragEnd);
+        bottomSheetHandle.addEventListener('touchstart', handleDragStart, { passive: false });
+        bottomSheetHandle.addEventListener('touchmove', handleDragMove, { passive: false });
+        bottomSheetHandle.addEventListener('touchend', handleDragEnd, { passive: false });
         
         bottomSheetHandle.addEventListener('mousedown', handleDragStart);
         document.addEventListener('mousemove', handleDragMove);
         document.addEventListener('mouseup', handleDragEnd);
     }
     
-    if (bottomSheetContent) {
-        bottomSheetContent.addEventListener('touchstart', handleDragStart, { passive: true });
-        bottomSheetContent.addEventListener('touchmove', handleDragMove, { passive: true });
-        bottomSheetContent.addEventListener('touchend', handleDragEnd);
+    // Prevent scrolling on body - only allow if it's a clear downward swipe from top
+    if (bottomSheetBody) {
+        let bodyTouchStartY = 0;
+        let bodyTouchStartX = 0;
+        
+        bottomSheetBody.addEventListener('touchstart', function(e) {
+            bodyTouchStartY = e.touches[0].clientY;
+            bodyTouchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        
+        bottomSheetBody.addEventListener('touchmove', function(e) {
+            const currentY = e.touches[0].clientY;
+            const currentX = e.touches[0].clientX;
+            const deltaY = currentY - bodyTouchStartY;
+            const deltaX = Math.abs(currentX - bodyTouchStartX);
+            
+            // Only prevent if trying to scroll up (negative delta) or if it's not a clear downward swipe
+            // Allow downward swipes from top area to close
+            const contentRect = bottomSheetContent ? bottomSheetContent.getBoundingClientRect() : null;
+            const isTopArea = contentRect && bodyTouchStartY < contentRect.top + 100;
+            
+            if (deltaY < 0 || (!isTopArea && deltaY < 50)) {
+                // Prevent upward scrolling or small movements
+                e.preventDefault();
+            } else if (isTopArea && deltaY > 0 && deltaY > deltaX * 1.5) {
+                // Allow downward swipe from top to trigger drag
+                e.preventDefault();
+            }
+        }, { passive: false });
     }
     
     // CTA click handler
