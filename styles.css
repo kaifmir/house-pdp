@@ -1079,7 +1079,11 @@ button, .property-type-card {
     display: flex;
     flex-direction: column;
     box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 @media (max-width: 375px) {
@@ -1183,11 +1187,14 @@ button, .property-type-card {
 .bottom-sheet-body {
     padding: 60px 24px 24px;
     overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     display: flex;
     flex-direction: column;
     align-items: center;
     height: 100%;
+    width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
     position: relative;
     z-index: 1;
