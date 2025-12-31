@@ -1115,15 +1115,25 @@ button, .property-type-card {
     opacity: 0.2;
     z-index: 0;
     image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
     will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
-/* Optimize background image loading */
+/* Optimize background image loading for mobile */
 @media (max-width: 768px) {
     .bottom-sheet-gradient-bg {
         background-size: 100% auto;
         background-attachment: scroll;
+        image-rendering: -webkit-optimize-contrast;
+    }
+}
+
+/* Reduce image quality hint for smaller screens */
+@media (max-width: 480px) {
+    .bottom-sheet-gradient-bg {
+        background-size: cover;
+        image-rendering: auto;
     }
 }
 
