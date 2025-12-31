@@ -264,7 +264,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     span.textContent = char;
                     span.style.color = part.color;
                     if (part.bold) {
-                        span.style.fontWeight = '500';
+                        span.style.fontWeight = '700';
+                        span.classList.add('scouty-name');
                     }
                     scoutyGreetingText.appendChild(span);
                     
