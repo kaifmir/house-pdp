@@ -194,6 +194,73 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Bottom Sheet functionality - define first so it's available in navItems loop
+    const bottomSheet = document.getElementById('bottom-sheet');
+    const bottomSheetOverlay = document.querySelector('.bottom-sheet-overlay');
+    const scoutyGreetingText = document.getElementById('scouty-greeting-text');
+    
+    const greetingParts = [
+        { text: "Hi, I am ", color: "var(--text-dark)" },
+        { text: "Scouty", color: "var(--primary-purple)", bold: true },
+        { text: ", here to help you find that dream house", color: "var(--text-dark)" }
+    ];
+    
+    function openBottomSheet() {
+        if (!bottomSheet || !scoutyGreetingText) {
+            console.error('Bottom sheet elements not found');
+            return;
+        }
+        
+        bottomSheet.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Animate text character by character
+        setTimeout(() => {
+            animateText();
+        }, 300);
+    }
+    
+    function closeBottomSheet() {
+        if (!bottomSheet || !scoutyGreetingText) return;
+        
+        bottomSheet.classList.remove('active');
+        document.body.style.overflow = '';
+        scoutyGreetingText.innerHTML = '';
+    }
+    
+    function animateText() {
+        if (!scoutyGreetingText) return;
+        
+        scoutyGreetingText.innerHTML = '';
+        let partIndex = 0;
+        let charIndex = 0;
+        
+        function typeChar() {
+            if (partIndex < greetingParts.length) {
+                const part = greetingParts[partIndex];
+                
+                if (charIndex < part.text.length) {
+                    const char = part.text[charIndex];
+                    const span = document.createElement('span');
+                    span.textContent = char;
+                    span.style.color = part.color;
+                    if (part.bold) {
+                        span.style.fontWeight = '500';
+                    }
+                    scoutyGreetingText.appendChild(span);
+                    charIndex++;
+                    setTimeout(typeChar, 40);
+                } else {
+                    partIndex++;
+                    charIndex = 0;
+                    setTimeout(typeChar, 40);
+                }
+            }
+        }
+        
+        typeChar();
+    }
+
     // Bottom Navigation - Smooth sliding background animation
     const navItems = document.querySelectorAll('.nav-item');
     const navSliderBg = document.querySelector('.nav-slider-bg');
