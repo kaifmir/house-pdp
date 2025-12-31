@@ -1164,67 +1164,59 @@ button, .property-type-card {
     animation: fadeInUp 0.6s ease-out 0.1s both;
 }
 
-.scouty-geometric-shapes {
-    width: 120px;
-    height: 120px;
-    position: relative;
-    animation: constantRotate 12s linear infinite;
-    will-change: transform;
-}
-
-.scouty-shape {
+.scouty-morphing-shape {
+    width: 80px;
+    height: 80px;
     position: absolute;
     background: var(--primary-purple);
     filter: saturate(0.7);
+    animation: morphAndRotate 8s linear infinite;
+    will-change: transform, border-radius, clip-path;
 }
 
-.scouty-shape-circle {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    top: 10px;
+.scouty-face-overlay {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    pointer-events: none;
 }
 
-.scouty-shape-square {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    top: 50%;
-    right: 15px;
-    transform: translateY(-50%);
-}
-
-.scouty-shape-triangle {
-    width: 0;
-    height: 0;
-    border-left: 12px solid transparent;
-    border-right: 12px solid transparent;
-    border-bottom: 20px solid var(--primary-purple);
-    background: none;
-    filter: saturate(0.7);
-    bottom: 20px;
-    left: 20px;
-}
-
-.scouty-shape-star {
-    width: 20px;
-    height: 20px;
-    background: var(--primary-purple);
-    filter: saturate(0.7);
-    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-    top: 50%;
-    left: 15px;
-    transform: translateY(-50%);
-}
-
-.scouty-shape-rounded {
-    width: 28px;
-    height: 18px;
-    border-radius: 14px;
-    bottom: 15px;
-    right: 20px;
+@keyframes morphAndRotate {
+    0% {
+        transform: rotate(0deg);
+        border-radius: 50%;
+        clip-path: none;
+    }
+    20% {
+        transform: rotate(72deg);
+        border-radius: 0;
+        clip-path: none;
+    }
+    40% {
+        transform: rotate(144deg);
+        border-radius: 0;
+        clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    }
+    60% {
+        transform: rotate(216deg);
+        border-radius: 20%;
+        clip-path: none;
+    }
+    80% {
+        transform: rotate(288deg);
+        border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+        clip-path: none;
+    }
+    100% {
+        transform: rotate(360deg);
+        border-radius: 50%;
+        clip-path: none;
+    }
 }
 
 .scouty-greeting-text {
