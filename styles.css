@@ -1042,6 +1042,10 @@ button, .property-type-card {
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.3s ease;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    width: 100%;
+    max-width: 100%;
 }
 
 .bottom-sheet.active {
