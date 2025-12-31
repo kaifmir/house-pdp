@@ -312,10 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Special handling for chat/Scouty
                 if (navType === 'chat') {
-                    const bottomSheet = document.getElementById('bottom-sheet');
-                    if (bottomSheet) {
-                        openBottomSheet();
-                    }
+                    openBottomSheet();
                 } else {
                     handleNavClick(this);
                 }
@@ -331,9 +328,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Bottom Sheet functionality
+    // Bottom Sheet functionality - define before navItems loop
     const bottomSheet = document.getElementById('bottom-sheet');
-    const chatNavItem = document.querySelector('.nav-item[data-nav="chat"]');
     const bottomSheetOverlay = document.querySelector('.bottom-sheet-overlay');
     const scoutyGreetingText = document.getElementById('scouty-greeting-text');
     
@@ -344,6 +340,11 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
     
     function openBottomSheet() {
+        if (!bottomSheet || !scoutyGreetingText) {
+            console.error('Bottom sheet elements not found');
+            return;
+        }
+        
         bottomSheet.classList.add('active');
         document.body.style.overflow = 'hidden';
         
@@ -354,12 +355,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function closeBottomSheet() {
+        if (!bottomSheet || !scoutyGreetingText) return;
+        
         bottomSheet.classList.remove('active');
         document.body.style.overflow = '';
         scoutyGreetingText.innerHTML = '';
     }
     
     function animateText() {
+        if (!scoutyGreetingText) return;
+        
         scoutyGreetingText.innerHTML = '';
         let partIndex = 0;
         let charIndex = 0;
