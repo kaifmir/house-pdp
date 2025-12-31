@@ -1227,11 +1227,22 @@ button, .property-type-card {
 
 .scouty-greeting-text span.scouty-name {
     font-weight: 700;
-    background: linear-gradient(135deg, #4A1BA8 0%, #6B2BC7 50%, #8B3FE6 100%);
+    background: linear-gradient(135deg, #3A0B88 0%, #4A1BA8 30%, #5E23DC 60%, #4A1BA8 100%);
+    background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
+    animation: gradientMove 4s ease-in-out infinite;
+}
+
+@keyframes gradientMove {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
 }
 
 .scouty-cta {
