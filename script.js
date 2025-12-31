@@ -267,10 +267,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     navItems.forEach((item, index) => {
+        const navType = item.getAttribute('data-nav');
+        
         // Handle click events
         item.addEventListener('click', function(e) {
             e.stopPropagation();
-            handleNavClick(this);
+            
+            // Special handling for chat/Scouty
+            if (navType === 'chat') {
+                e.preventDefault();
+                const bottomSheet = document.getElementById('bottom-sheet');
+                if (bottomSheet) {
+                    openBottomSheet();
+                }
+            } else {
+                handleNavClick(this);
+            }
         });
         
         // Handle touch events for iOS - simplified
@@ -297,7 +309,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (timeDiff < 300 && xDiff < 15 && yDiff < 15) {
                 e.preventDefault();
                 e.stopPropagation();
-                handleNavClick(this);
+                
+                // Special handling for chat/Scouty
+                if (navType === 'chat') {
+                    const bottomSheet = document.getElementById('bottom-sheet');
+                    if (bottomSheet) {
+                        openBottomSheet();
+                    }
+                } else {
+                    handleNavClick(this);
+                }
             }
         }, { passive: false });
     });
