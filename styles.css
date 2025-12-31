@@ -1088,6 +1088,8 @@ button, .property-type-card {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    touch-action: none;
+    overscroll-behavior: none;
 }
 
 @media (max-width: 375px) {
@@ -1190,7 +1192,7 @@ button, .property-type-card {
 
 .bottom-sheet-body {
     padding: 60px 24px 24px;
-    overflow-y: auto;
+    overflow-y: hidden;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     display: flex;
@@ -1202,6 +1204,8 @@ button, .property-type-card {
     box-sizing: border-box;
     position: relative;
     z-index: 1;
+    touch-action: none;
+    overscroll-behavior: none;
 }
 
 .scouty-icons-container {
