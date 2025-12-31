@@ -1118,6 +1118,9 @@ button, .property-type-card {
     will-change: transform;
     transform: translateZ(0);
     backface-visibility: hidden;
+    /* Optimize loading */
+    content-visibility: auto;
+    loading: lazy;
 }
 
 /* Optimize background image loading for mobile */
