@@ -1071,9 +1071,9 @@ button, .property-type-card {
     right: 0;
     background-color: #FAFAFA;
     border-radius: 32px 32px 0 0;
-    height: 70vh;
-    max-height: 70vh;
-    min-height: 70vh;
+    height: 60vh;
+    max-height: 60vh;
+    min-height: 60vh;
     transform: translateY(100%);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
