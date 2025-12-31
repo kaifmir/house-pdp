@@ -1080,6 +1080,7 @@ button, .property-type-card {
     flex-direction: column;
     box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
     overflow: hidden;
+    position: relative;
 }
 
 .bottom-sheet.active .bottom-sheet-content {
@@ -1096,47 +1097,52 @@ button, .property-type-card {
 }
 
 .bottom-sheet-body {
-    padding: 40px 24px 24px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    padding: 0;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    text-align: left;
     height: 100%;
     box-sizing: border-box;
+    position: relative;
 }
 
 .scouty-splash-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
-    display: flex;
-    justify-content: center;
-    margin-bottom: 32px;
-    animation: fadeInUp 0.6s ease-out 0.1s both;
+    height: 100%;
+    z-index: 1;
 }
 
 .splash-img {
     width: 100%;
-    max-width: 320px;
-    height: auto;
-    object-fit: contain;
-    border-radius: 16px;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .scouty-greeting-text {
     font-family: 'Inter', 'Playfair Display', serif;
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 400;
     line-height: 1.5;
-    color: var(--text-dark);
+    color: #FFFFFF;
     margin: 0;
     text-align: left;
     width: 100%;
-    min-height: 120px;
+    position: absolute;
+    bottom: 24px;
+    left: 16px;
+    right: 16px;
+    z-index: 2;
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: flex-end;
+    padding: 0;
 }
 
 .scouty-greeting-text span {
@@ -1144,7 +1150,8 @@ button, .property-type-card {
     animation: blurFadeIn 0.6s ease-out both;
     filter: blur(8px);
     opacity: 0;
-    white-space: pre-wrap;
+    white-space: normal;
+    word-spacing: 0.2em;
 }
 
 .scouty-greeting-text span.visible {
