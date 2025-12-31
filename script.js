@@ -260,14 +260,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (charIndex < part.text.length) {
                     const char = part.text[charIndex];
                     const span = document.createElement('span');
-                    span.textContent = char === ' ' ? ' ' : char;
+                    // Use regular space, not non-breaking space, but keep words together
+                    span.textContent = char;
                     span.style.color = part.color;
                     if (part.bold) {
                         span.style.fontWeight = '500';
-                    }
-                    // Keep words together - don't break on spaces
-                    if (char === ' ') {
-                        span.style.whiteSpace = 'pre';
                     }
                     scoutyGreetingText.appendChild(span);
                     
