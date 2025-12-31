@@ -483,6 +483,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let dragStartX = 0;
     let isDragging = false;
     let hasMovedDown = false;
+    let lastDeltaY = 0;
     
     function isDragStartValid(touchY, target) {
         if (!bottomSheetContent) return false;
@@ -500,6 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         isDragging = true;
         hasMovedDown = false;
+        lastDeltaY = 0;
         dragStartY = touchY;
         dragStartX = touchX;
         
@@ -518,29 +520,50 @@ document.addEventListener('DOMContentLoaded', function() {
         const deltaY = currentY - dragStartY;
         const deltaX = Math.abs(currentX - dragStartX);
         
+        // Allow downward drag (deltaY > 0) and ensure it's more vertical than horizontal
         if (deltaY > 0 && deltaY > deltaX * 1.5) {
             hasMovedDown = true;
+            lastDeltaY = deltaY;
             bottomSheetContent.style.transform = `translateY(${deltaY}px)`;
             if (e.preventDefault) e.preventDefault();
         }
     }
     
     function handleDragEnd(e) {
-        if (!isDragging || !bottomSheetContent) return;
+        if (!isDragging) {
+            // Reset state even if not dragging
+            isDragging = false;
+            hasMovedDown = false;
+            lastDeltaY = 0;
+            return;
+        }
+        
+        if (!bottomSheetContent) {
+            isDragging = false;
+            hasMovedDown = false;
+            lastDeltaY = 0;
+            return;
+        }
+        
         isDragging = false;
         
+        // Use lastDeltaY if available, otherwise calculate from end position
         const currentY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-        const deltaY = currentY - dragStartY;
+        const finalDeltaY = lastDeltaY > 0 ? lastDeltaY : (currentY - dragStartY);
         
-        bottomSheetContent.style.transition = '';
+        bottomSheetContent.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
         
-        if (hasMovedDown && deltaY > DRAG_CLOSE_THRESHOLD) {
+        // Close if moved down significantly (lower threshold for better reliability)
+        if (hasMovedDown && finalDeltaY > 60) {
             closeBottomSheet();
         } else {
+            // Snap back to original position
             bottomSheetContent.style.transform = 'translateY(0)';
         }
         
+        // Reset state
         hasMovedDown = false;
+        lastDeltaY = 0;
     }
     
     if (bottomSheetHandle) {
