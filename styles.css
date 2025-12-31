@@ -1231,7 +1231,7 @@ button, .property-type-card {
     height: 50px;
     object-fit: contain;
     top: 50%;
-    left: 50%;
+    left: calc(50% - 3px);
     transform: translate(-50%, -50%);
     z-index: 2;
     pointer-events: none;
