@@ -1321,16 +1321,16 @@ button, .property-type-card {
     justify-content: center;
     gap: 8px;
     flex-wrap: nowrap;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .scouty-cta::before {
     content: '';
     position: absolute;
-    top: -10%;
+    top: -20%;
     left: -100%;
     width: 15%;
-    height: 120%;
+    height: 140%;
     background: linear-gradient(135deg, transparent 0%, transparent 30%, rgba(255, 255, 255, 0.08) 45%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.08) 55%, transparent 70%, transparent 100%);
     animation: diagonalShine 3.5s ease-in-out infinite;
     pointer-events: none;
