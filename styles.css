@@ -1234,6 +1234,7 @@ button, .property-type-card {
     -webkit-text-fill-color: transparent;
     color: transparent;
     animation: gradientMove 4s ease-in-out infinite;
+    filter: drop-shadow(0 0 8px rgba(94, 35, 220, 0.4)) drop-shadow(0 0 12px rgba(94, 35, 220, 0.3)) drop-shadow(0 0 16px rgba(74, 27, 168, 0.2));
 }
 
 @keyframes gradientMove {
