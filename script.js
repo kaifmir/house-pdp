@@ -217,6 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Ensure transform is reset before opening
         if (bottomSheetContent) {
             bottomSheetContent.style.transform = 'translateY(100%)';
+            bottomSheetContent.style.transition = 'none';
         }
         
         bottomSheet.classList.add('active');
@@ -225,9 +226,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.position = 'fixed';
         document.body.style.width = '100%';
         
-        // Force transform update after a brief delay to ensure it slides up
+        // Re-enable transition and force transform update
         requestAnimationFrame(() => {
             if (bottomSheetContent) {
+                bottomSheetContent.style.transition = '';
                 bottomSheetContent.style.transform = 'translateY(0)';
             }
         });
@@ -281,10 +283,13 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.width = '';
         scoutyGreetingText.innerHTML = '';
         
-        // Force reset transform to ensure it starts from bottom on next open
-        if (bottomSheetContent) {
-            bottomSheetContent.style.transform = 'translateY(100%)';
-        }
+        // Force reset transform after transition completes
+        setTimeout(() => {
+            if (bottomSheetContent) {
+                bottomSheetContent.style.transform = 'translateY(100%)';
+                bottomSheetContent.style.transition = '';
+            }
+        }, 400);
         
         if (scoutyCTA) {
             scoutyCTA.style.display = 'none';
