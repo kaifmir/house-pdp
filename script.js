@@ -274,23 +274,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function closeBottomSheet() {
-        if (!bottomSheet || !scoutyGreetingText) return;
+        if (!bottomSheet || !scoutyGreetingText || !bottomSheetContent) return;
         
+        // Ensure transition is enabled for smooth slide-down
+        bottomSheetContent.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        
+        // Trigger slide-down animation by removing active class
         bottomSheet.classList.remove('active');
-        document.body.style.overflow = '';
-        document.documentElement.style.overflow = '';
-        document.body.style.position = '';
-        document.body.style.width = '';
-        scoutyGreetingText.innerHTML = '';
         
+        // Reset transform to trigger slide-down
+        requestAnimationFrame(() => {
+            bottomSheetContent.style.transform = 'translateY(100%)';
+        });
+        
+        // Clean up after animation completes
         setTimeout(() => {
-            if (bottomSheetContent) {
-                bottomSheetContent.style.transform = 'translateY(100%)';
-                bottomSheetContent.style.transition = '';
-            }
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+            scoutyGreetingText.innerHTML = '';
+            if (scoutyCTA) scoutyCTA.style.display = 'none';
         }, 400);
-        
-        if (scoutyCTA) scoutyCTA.style.display = 'none';
     }
     
     function animateText() {

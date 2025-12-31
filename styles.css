@@ -1098,6 +1098,10 @@ button, .property-type-card {
     transform: translateY(0);
 }
 
+.bottom-sheet:not(.active) .bottom-sheet-content {
+    transform: translateY(100%);
+}
+
 .bottom-sheet-gradient-bg {
     position: absolute;
     top: 0;
