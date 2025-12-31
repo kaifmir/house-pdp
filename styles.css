@@ -1233,8 +1233,16 @@ button, .property-type-card {
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
-    animation: gradientMove 4s ease-in-out infinite;
-    filter: drop-shadow(0 0 8px rgba(94, 35, 220, 0.4)) drop-shadow(0 0 12px rgba(94, 35, 220, 0.3)) drop-shadow(0 0 16px rgba(74, 27, 168, 0.2));
+    animation: gradientMove 4s ease-in-out infinite, gentleGlow 3s ease-in-out infinite;
+}
+
+@keyframes gentleGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 4px rgba(94, 35, 220, 0.15)) drop-shadow(0 0 6px rgba(94, 35, 220, 0.1)) drop-shadow(0 0 8px rgba(74, 27, 168, 0.08));
+    }
+    50% {
+        filter: drop-shadow(0 0 5px rgba(94, 35, 220, 0.2)) drop-shadow(0 0 7px rgba(94, 35, 220, 0.15)) drop-shadow(0 0 10px rgba(74, 27, 168, 0.12));
+    }
 }
 
 @keyframes gradientMove {
