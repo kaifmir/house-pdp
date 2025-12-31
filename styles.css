@@ -1280,22 +1280,25 @@ button, .property-type-card {
     z-index: 2;
     position: relative;
     width: 100%;
+    max-width: 320px;
     box-sizing: border-box;
     margin-top: auto;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    white-space: nowrap;
 }
 
 .scouty-cta span {
-    display: flex;
-    align-items: center;
+    display: inline;
+    flex-shrink: 0;
 }
 
 .scouty-cta svg {
-    display: flex;
-    align-items: center;
+    display: inline-block;
+    flex-shrink: 0;
+    vertical-align: middle;
 }
 
 .scouty-cta:active {
