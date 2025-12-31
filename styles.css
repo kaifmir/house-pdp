@@ -1164,27 +1164,15 @@ button, .property-type-card {
     animation: fadeInUp 0.6s ease-out 0.1s both;
 }
 
-.scouty-chat-bot-icon-morph {
-    width: 100px;
-    height: 100px;
-    position: absolute;
-    object-fit: contain;
-    filter: saturate(0.7);
-    z-index: 1;
-    animation: fadeOutToShape 16s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
 .scouty-morphing-shape {
     width: 100px;
     height: 100px;
     position: absolute;
-    background: var(--primary-purple);
-    filter: saturate(0.7);
+    background: #6B2BC7;
     z-index: 1;
-    opacity: 0;
     animation: morphAndRotate 16s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-    will-change: transform, border-radius, clip-path, opacity;
-    transition: border-radius 2s cubic-bezier(0.4, 0, 0.2, 1), clip-path 2s cubic-bezier(0.4, 0, 0.2, 1), opacity 1s ease;
+    will-change: transform, border-radius, clip-path;
+    transition: border-radius 2.5s cubic-bezier(0.4, 0, 0.2, 1), clip-path 2.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .scouty-face-overlay {
@@ -1199,70 +1187,41 @@ button, .property-type-card {
     pointer-events: none;
 }
 
-@keyframes fadeOutToShape {
-    0%, 15% {
-        opacity: 1;
-        transform: rotate(0deg);
-    }
-    20% {
-        opacity: 0;
-    }
-    20.1%, 100% {
-        opacity: 0;
-    }
-}
-
 @keyframes morphAndRotate {
     0% {
-        opacity: 0;
         transform: rotate(0deg);
-        border-radius: 0;
+        border-radius: 30% 70% 60% 40% / 50% 40% 60% 50%;
+        clip-path: none;
     }
-    15% {
-        opacity: 0;
-    }
-    20% {
-        opacity: 1;
-        transform: rotate(0deg);
+    16.66% {
+        transform: rotate(60deg);
         border-radius: 24px;
+        clip-path: none;
     }
     33.33% {
-        opacity: 1;
         transform: rotate(120deg);
         border-radius: 24px;
-    }
-    40% {
-        opacity: 1;
-        transform: rotate(120deg);
-        border-radius: 50%;
-    }
-    53.33% {
-        opacity: 1;
-        transform: rotate(240deg);
-        border-radius: 50%;
-    }
-    60% {
-        opacity: 1;
-        transform: rotate(240deg);
-        clip-path: polygon(50% 8%, 85% 25%, 85% 75%, 50% 92%, 15% 75%, 15% 25%);
-        border-radius: 0;
-    }
-    73.33% {
-        opacity: 1;
-        transform: rotate(360deg);
-        clip-path: polygon(50% 8%, 85% 25%, 85% 75%, 50% 92%, 15% 75%, 15% 25%);
-        border-radius: 0;
-    }
-    80% {
-        opacity: 1;
-        transform: rotate(360deg);
         clip-path: none;
-        border-radius: 24px;
+    }
+    50% {
+        transform: rotate(180deg);
+        border-radius: 50%;
+        clip-path: none;
+    }
+    66.66% {
+        transform: rotate(240deg);
+        border-radius: 50%;
+        clip-path: none;
+    }
+    83.33% {
+        transform: rotate(300deg);
+        border-radius: 20px 20px 20px 20px / 30px 30px 20px 20px;
+        clip-path: polygon(50% 10%, 80% 30%, 80% 70%, 50% 90%, 20% 70%, 20% 30%);
     }
     100% {
-        opacity: 1;
         transform: rotate(360deg);
-        border-radius: 24px;
+        border-radius: 30% 70% 60% 40% / 50% 40% 60% 50%;
+        clip-path: none;
     }
 }
 
