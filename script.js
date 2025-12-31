@@ -255,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function() {
         bottomSheetContent.style.transition = 'none';
         
         bottomSheet.classList.add('active');
-        document.body.classList.add('bottom-sheet-open');
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
@@ -290,7 +289,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Clean up after animation completes
         setTimeout(() => {
-            document.body.classList.remove('bottom-sheet-open');
             document.body.style.overflow = '';
             document.documentElement.style.overflow = '';
             document.body.style.position = '';

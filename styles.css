@@ -85,12 +85,6 @@ body {
     overflow-x: hidden;
     position: relative;
     overscroll-behavior-x: none;
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-origin: center center;
-}
-
-body.bottom-sheet-open .mobile-container {
-    transform: scale(0.96);
 }
 
 /* Header Section */
