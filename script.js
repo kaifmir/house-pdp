@@ -316,7 +316,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const bottomSheetOverlay = document.querySelector('.bottom-sheet-overlay');
     const scoutyGreetingText = document.getElementById('scouty-greeting-text');
     
-    const greetingText = "Hi, I am Scouty, here to help you find that dream house";
+    const greetingParts = [
+        { text: "Hi, I am ", color: "var(--text-dark)" },
+        { text: "Scouty", color: "var(--primary-purple)", bold: true },
+        { text: ", here to help you find that dream house", color: "var(--text-dark)" }
+    ];
     
     function openBottomSheet() {
         bottomSheet.classList.add('active');
@@ -331,18 +335,34 @@ document.addEventListener('DOMContentLoaded', function() {
     function closeBottomSheet() {
         bottomSheet.classList.remove('active');
         document.body.style.overflow = '';
-        scoutyGreetingText.textContent = '';
+        scoutyGreetingText.innerHTML = '';
     }
     
     function animateText() {
-        let index = 0;
-        scoutyGreetingText.textContent = '';
+        scoutyGreetingText.innerHTML = '';
+        let partIndex = 0;
+        let charIndex = 0;
         
         function typeChar() {
-            if (index < greetingText.length) {
-                scoutyGreetingText.textContent += greetingText[index];
-                index++;
-                setTimeout(typeChar, 50);
+            if (partIndex < greetingParts.length) {
+                const part = greetingParts[partIndex];
+                
+                if (charIndex < part.text.length) {
+                    const char = part.text[charIndex];
+                    const span = document.createElement('span');
+                    span.textContent = char;
+                    span.style.color = part.color;
+                    if (part.bold) {
+                        span.style.fontWeight = '500';
+                    }
+                    scoutyGreetingText.appendChild(span);
+                    charIndex++;
+                    setTimeout(typeChar, 40);
+                } else {
+                    partIndex++;
+                    charIndex = 0;
+                    setTimeout(typeChar, 40);
+                }
             }
         }
         
