@@ -1071,9 +1071,9 @@ button, .property-type-card {
     right: 0;
     background-color: #FAFAFA;
     border-radius: 32px 32px 0 0;
-    height: 55vh;
-    max-height: 55vh;
-    min-height: 55vh;
+    height: 65vh;
+    max-height: 65vh;
+    min-height: 65vh;
     transform: translateY(100%);
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
@@ -1157,7 +1157,7 @@ button, .property-type-card {
     position: relative;
     width: 120px;
     height: 120px;
-    margin-bottom: 40px;
+    margin-bottom: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1192,7 +1192,7 @@ button, .property-type-card {
     font-weight: 500;
     line-height: 1.3;
     color: #000000;
-    margin: 0 0 8px 0;
+    margin: 0 0 60px 0;
     text-align: center;
     width: 100%;
     max-width: 320px;
