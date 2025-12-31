@@ -212,11 +212,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        const bottomSheetContent = document.querySelector('.bottom-sheet-content');
+        
+        // Ensure transform is reset before opening
+        if (bottomSheetContent) {
+            bottomSheetContent.style.transform = 'translateY(100%)';
+        }
+        
         bottomSheet.classList.add('active');
         document.body.style.overflow = 'hidden';
         document.documentElement.style.overflow = 'hidden';
         document.body.style.position = 'fixed';
         document.body.style.width = '100%';
+        
+        // Force transform update after a brief delay to ensure it slides up
+        requestAnimationFrame(() => {
+            if (bottomSheetContent) {
+                bottomSheetContent.style.transform = 'translateY(0)';
+            }
+        });
         
         // If animation has already played, show text immediately
         if (hasAnimated) {
