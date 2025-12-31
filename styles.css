@@ -1096,7 +1096,7 @@ button, .property-type-card {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    opacity: 0.4;
+    opacity: 0.2;
     z-index: 0;
 }
 
@@ -1191,7 +1191,7 @@ button, .property-type-card {
     font-weight: 500;
     line-height: 1.3;
     color: #000000;
-    margin: 0 0 16px 0;
+    margin: 0 0 8px 0;
     text-align: center;
     width: 100%;
     max-width: 320px;
@@ -1199,6 +1199,15 @@ button, .property-type-card {
     min-height: 100px;
     word-wrap: break-word;
     overflow-wrap: break-word;
+}
+
+.scouty-hi-gif {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 4px;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
 }
 
 .scouty-greeting-text span {
