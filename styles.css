@@ -1324,7 +1324,7 @@ button, .property-type-card {
     z-index: 2;
     position: relative;
     width: 100%;
-    max-width: 320px;
+    max-width: 380px;
     box-sizing: border-box;
     margin-top: auto;
     display: flex;
