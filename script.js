@@ -321,10 +321,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     setTimeout(typeChar, 60);
                 }
             } else {
-                // Text animation complete, show CTA
+                // Text animation complete, show CTA and mark as animated
+                hasAnimated = true;
                 setTimeout(() => {
                     if (scoutyCTA) {
-                        scoutyCTA.style.display = 'block';
+                        scoutyCTA.style.display = 'flex';
                     }
                 }, 300);
             }
