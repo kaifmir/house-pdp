@@ -198,6 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const bottomSheet = document.getElementById('bottom-sheet');
     const bottomSheetOverlay = document.querySelector('.bottom-sheet-overlay');
     const scoutyGreetingText = document.getElementById('scouty-greeting-text');
+    let hasAnimated = false;
     
     const greetingParts = [
         { text: "I am ", color: "var(--text-dark)" },
@@ -217,10 +218,40 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.position = 'fixed';
         document.body.style.width = '100%';
         
-        // Animate text character by character
-        setTimeout(() => {
-            animateText();
-        }, 300);
+        // If animation has already played, show text immediately
+        if (hasAnimated) {
+            showTextImmediately();
+            const scoutyCTA = document.getElementById('scouty-cta');
+            if (scoutyCTA) {
+                scoutyCTA.style.display = 'flex';
+            }
+        } else {
+            // Animate text character by character
+            setTimeout(() => {
+                animateText();
+            }, 300);
+        }
+    }
+    
+    function showTextImmediately() {
+        if (!scoutyGreetingText) return;
+        
+        scoutyGreetingText.innerHTML = '';
+        greetingParts.forEach(part => {
+            for (let i = 0; i < part.text.length; i++) {
+                const char = part.text[i];
+                const span = document.createElement('span');
+                span.textContent = char;
+                if (part.bold) {
+                    span.style.fontWeight = '700';
+                    span.classList.add('scouty-name');
+                } else {
+                    span.style.color = part.color;
+                }
+                span.classList.add('visible');
+                scoutyGreetingText.appendChild(span);
+            }
+        });
     }
     
     function closeBottomSheet() {
