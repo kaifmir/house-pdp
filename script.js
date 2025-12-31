@@ -231,9 +231,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function animateText() {
         if (!scoutyGreetingText) return;
         
+        const scoutyCTA = document.getElementById('scouty-cta');
+        
         scoutyGreetingText.innerHTML = '';
         let partIndex = 0;
         let charIndex = 0;
+        let totalChars = 0;
+        let totalCharsCounted = false;
+        
+        // Count total characters
+        if (!totalCharsCounted) {
+            greetingParts.forEach(part => {
+                totalChars += part.text.length;
+            });
+            totalCharsCounted = true;
+        }
         
         function typeChar() {
             if (partIndex < greetingParts.length) {
@@ -249,18 +261,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     scoutyGreetingText.appendChild(span);
                     
-                    // Add blur fade-in animation with stagger
-                    setTimeout(() => {
+                    // Smooth blur fade-in animation
+                    requestAnimationFrame(() => {
                         span.classList.add('visible');
-                    }, 50);
+                    });
                     
                     charIndex++;
-                    setTimeout(typeChar, 60);
+                    setTimeout(typeChar, 50);
                 } else {
                     partIndex++;
                     charIndex = 0;
-                    setTimeout(typeChar, 80);
+                    setTimeout(typeChar, 60);
                 }
+            } else {
+                // Text animation complete, show CTA
+                setTimeout(() => {
+                    if (scoutyCTA) {
+                        scoutyCTA.style.display = 'block';
+                    }
+                }, 300);
             }
         }
         
@@ -406,24 +425,71 @@ document.addEventListener('DOMContentLoaded', function() {
         bottomSheetOverlay.addEventListener('click', closeBottomSheet);
     }
     
-    // Close on swipe down
-    let touchStartY = 0;
-    let touchEndY = 0;
+    // Drag to close functionality
+    const bottomSheetContent = document.querySelector('.bottom-sheet-content');
+    const bottomSheetHandle = document.querySelector('.bottom-sheet-handle');
+    let dragStartY = 0;
+    let isDragging = false;
     
-    if (bottomSheet) {
-        bottomSheet.addEventListener('touchstart', (e) => {
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
+    function handleDragStart(e) {
+        isDragging = true;
+        dragStartY = e.touches ? e.touches[0].clientY : e.clientY;
+        if (bottomSheetContent) {
+            bottomSheetContent.style.transition = 'none';
+        }
+    }
+    
+    function handleDragMove(e) {
+        if (!isDragging) return;
         
-        bottomSheet.addEventListener('touchmove', (e) => {
-            touchEndY = e.touches[0].clientY;
-        }, { passive: true });
+        const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+        const deltaY = currentY - dragStartY;
         
-        bottomSheet.addEventListener('touchend', () => {
-            const swipeDistance = touchEndY - touchStartY;
-            if (swipeDistance > 100) {
+        if (deltaY > 0 && bottomSheetContent) {
+            bottomSheetContent.style.transform = `translateY(${deltaY}px)`;
+        }
+    }
+    
+    function handleDragEnd(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        const currentY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        const deltaY = currentY - dragStartY;
+        
+        if (bottomSheetContent) {
+            bottomSheetContent.style.transition = '';
+            
+            if (deltaY > 100) {
                 closeBottomSheet();
+            } else {
+                bottomSheetContent.style.transform = 'translateY(0)';
             }
+        }
+    }
+    
+    if (bottomSheetHandle) {
+        bottomSheetHandle.addEventListener('touchstart', handleDragStart, { passive: true });
+        bottomSheetHandle.addEventListener('touchmove', handleDragMove, { passive: true });
+        bottomSheetHandle.addEventListener('touchend', handleDragEnd);
+        
+        bottomSheetHandle.addEventListener('mousedown', handleDragStart);
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('mouseup', handleDragEnd);
+    }
+    
+    if (bottomSheetContent) {
+        bottomSheetContent.addEventListener('touchstart', handleDragStart, { passive: true });
+        bottomSheetContent.addEventListener('touchmove', handleDragMove, { passive: true });
+        bottomSheetContent.addEventListener('touchend', handleDragEnd);
+    }
+    
+    // CTA click handler
+    const scoutyCTA = document.getElementById('scouty-cta');
+    if (scoutyCTA) {
+        scoutyCTA.addEventListener('click', () => {
+            console.log('CTA clicked - Get Started');
+            // Add navigation functionality here
         });
     }
 });
