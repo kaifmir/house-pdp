@@ -216,6 +216,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Bottom Sheet functionality
     let hasAnimated = false;
+    let animationTimeout = null;
+    let isAnimating = false;
     
     const greetingParts = [
         { text: "I am ", color: "var(--text-dark)" },
@@ -236,7 +238,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function showTextImmediately() {
-        if (!scoutyGreetingText) return;
+        if (!scoutyGreetingText || isAnimating) return;
+        
+        // Clear any ongoing animation
+        if (animationTimeout) {
+            clearTimeout(animationTimeout);
+            animationTimeout = null;
+        }
         
         scoutyGreetingText.innerHTML = '';
         greetingParts.forEach(part => {
@@ -250,6 +258,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function openBottomSheet() {
         if (!bottomSheet || !scoutyGreetingText || !bottomSheetContent) return;
+        
+        // Prevent multiple simultaneous opens
+        if (bottomSheet.classList.contains('active')) return;
         
         bottomSheetContent.style.transform = 'translateY(100%)';
         bottomSheetContent.style.transition = 'none';
@@ -269,12 +280,25 @@ document.addEventListener('DOMContentLoaded', function() {
             showTextImmediately();
             if (scoutyCTA) scoutyCTA.style.display = 'flex';
         } else {
-            setTimeout(animateText, 300);
+            // Clear any existing timeout
+            if (animationTimeout) {
+                clearTimeout(animationTimeout);
+            }
+            animationTimeout = setTimeout(() => {
+                animateText();
+            }, 300);
         }
     }
     
     function closeBottomSheet() {
         if (!bottomSheet || !scoutyGreetingText || !bottomSheetContent) return;
+        
+        // Clear any ongoing animation
+        if (animationTimeout) {
+            clearTimeout(animationTimeout);
+            animationTimeout = null;
+        }
+        isAnimating = false;
         
         // Ensure transition is enabled for smooth slide-down
         bottomSheetContent.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -299,13 +323,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function animateText() {
-        if (!scoutyGreetingText) return;
+        if (!scoutyGreetingText || isAnimating) return;
         
+        isAnimating = true;
+        
+        // Clear any existing content first
         scoutyGreetingText.innerHTML = '';
+        
         let partIndex = 0;
         let charIndex = 0;
+        let currentTimeout = null;
         
         function typeChar() {
+            // Check if animation was cancelled
+            if (!isAnimating || !bottomSheet.classList.contains('active')) {
+                if (currentTimeout) clearTimeout(currentTimeout);
+                isAnimating = false;
+                return;
+            }
+            
             if (partIndex < greetingParts.length) {
                 const part = greetingParts[partIndex];
                 
@@ -314,20 +350,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     scoutyGreetingText.appendChild(span);
                     
                     requestAnimationFrame(() => {
-                        span.classList.add('visible');
+                        if (isAnimating && bottomSheet.classList.contains('active')) {
+                            span.classList.add('visible');
+                        }
                     });
                     
                     charIndex++;
-                    setTimeout(typeChar, 50);
+                    currentTimeout = setTimeout(typeChar, 50);
                 } else {
                     partIndex++;
                     charIndex = 0;
-                    setTimeout(typeChar, 60);
+                    currentTimeout = setTimeout(typeChar, 60);
                 }
             } else {
+                // Animation complete
                 hasAnimated = true;
+                isAnimating = false;
                 setTimeout(() => {
-                    if (scoutyCTA) scoutyCTA.style.display = 'flex';
+                    if (scoutyCTA && bottomSheet.classList.contains('active')) {
+                        scoutyCTA.style.display = 'flex';
+                    }
                 }, 300);
             }
         }
