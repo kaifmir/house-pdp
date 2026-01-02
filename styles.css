@@ -1598,7 +1598,7 @@ button, .property-type-card {
     flex-direction: column;
     gap: 12px;
     width: max-content;
-    padding: 0 16px;
+    padding: 0;
     animation: scrollPills 25s linear infinite;
 }
 
@@ -1611,6 +1611,14 @@ button, .property-type-card {
     gap: 12px;
     flex-wrap: nowrap;
     width: max-content;
+}
+
+.chat-starter-pills-row:first-child {
+    padding-left: 0;
+}
+
+.chat-starter-pills-row:last-child {
+    padding-left: 24px;
 }
 
 @keyframes scrollPills {
