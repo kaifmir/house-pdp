@@ -804,7 +804,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const originalSet = track.querySelector('.chips-set');
         if (!originalSet) return null;
 
-        // Clone the set 2 more times (total 3 sets)
+        // Clone the set 2 more times (total 3 sets) - maintain 12px gap between sets
         const originalHTML = originalSet.outerHTML;
         track.innerHTML = originalHTML + originalHTML + originalHTML;
 

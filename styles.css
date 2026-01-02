@@ -1648,52 +1648,21 @@ html, body {
     box-sizing: border-box;
     position: relative;
     isolation: isolate;
+    /* Soft edge fade using mask */
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
 }
 
 .chips-rail::-webkit-scrollbar {
     display: none;
 }
 
-/* Edge fade overlays - soft opacity fade on left and right extreme edges */
-.chips-rail::before,
-.chips-rail::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 48px;
-    pointer-events: none;
-    z-index: 200;
-}
-
-.chips-rail::before {
-    left: 0;
-    background: linear-gradient(to right, 
-        #F5F5F5 0%, 
-        #F5F5F5 10%, 
-        rgba(245, 245, 245, 0.98) 25%, 
-        rgba(245, 245, 245, 0.90) 40%, 
-        rgba(245, 245, 245, 0.70) 60%, 
-        rgba(245, 245, 245, 0.40) 80%, 
-        rgba(245, 245, 245, 0) 100%);
-}
-
-.chips-rail::after {
-    right: 0;
-    background: linear-gradient(to left, 
-        #F5F5F5 0%, 
-        #F5F5F5 10%, 
-        rgba(245, 245, 245, 0.98) 25%, 
-        rgba(245, 245, 245, 0.90) 40%, 
-        rgba(245, 245, 245, 0.70) 60%, 
-        rgba(245, 245, 245, 0.40) 80%, 
-        rgba(245, 245, 245, 0) 100%);
-}
+/* Edge fade now handled by mask-image on .chips-rail */
 
 .chips-track {
     display: flex;
     flex-direction: row;
-    gap: 24px;
+    gap: 12px;
     padding: 0;
     margin: 0;
     width: max-content;
