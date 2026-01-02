@@ -1105,9 +1105,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const messages = document.querySelector('.chat-messages');
         if (!composer || !messages) return;
 
+        let baseViewportHeight = null;
+        let updateTimeout = null;
+
         function setComposerHeight() {
             const height = composer.getBoundingClientRect().height;
             root.style.setProperty('--composer-height', height + 'px');
+        }
+
+        function primeBaseHeight() {
+            if (window.visualViewport && baseViewportHeight === null) {
+                baseViewportHeight = window.visualViewport.height;
+            }
         }
 
         function update() {
@@ -1116,6 +1125,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!window.visualViewport) return;
 
             const vv = window.visualViewport;
+            
+            // Prime base height on first call
+            if (baseViewportHeight === null) {
+                baseViewportHeight = vv.height;
+            }
+
+            // Calculate keyboard height
             const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
 
             // Debug logging for iOS
@@ -1123,26 +1139,63 @@ document.addEventListener('DOMContentLoaded', function() {
                 innerHeight: window.innerHeight,
                 vvHeight: vv.height,
                 vvOffsetTop: vv.offsetTop,
-                keyboardHeight: keyboardHeight
+                keyboardHeight: keyboardHeight,
+                baseViewportHeight: baseViewportHeight
             });
 
             // Push composer above keyboard
             root.style.setProperty('--kb-offset', keyboardHeight + 'px');
             root.style.setProperty('--kb', keyboardHeight + 'px');
+
+            // Reset base height when keyboard closes (for next open)
+            if (keyboardHeight < 50) {
+                baseViewportHeight = vv.height;
+            }
         }
 
-        // Prime once + on every keyboard/viewport change
-        window.addEventListener('load', update);
-        window.addEventListener('resize', update);
+        function debouncedUpdate() {
+            if (updateTimeout) clearTimeout(updateTimeout);
+            updateTimeout = setTimeout(update, 10);
+        }
+
+        // Prime base height on user interaction
+        window.addEventListener('load', () => {
+            primeBaseHeight();
+            update();
+        });
+        window.addEventListener('touchstart', primeBaseHeight, { once: true, passive: true });
+        window.addEventListener('pointerdown', primeBaseHeight, { once: true, passive: true });
+
+        // Update on resize
+        window.addEventListener('resize', debouncedUpdate);
         if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', update);
-            window.visualViewport.addEventListener('scroll', update);
+            window.visualViewport.addEventListener('resize', debouncedUpdate);
+            window.visualViewport.addEventListener('scroll', debouncedUpdate);
         }
 
-        // Also update on focus (first-time bug fix)
+        // Also update on focus (first-time bug fix + subsequent opens)
         document.addEventListener('focusin', (e) => {
             if (e.target.matches('input, textarea')) {
+                // Reset base height before keyboard opens
+                if (window.visualViewport) {
+                    baseViewportHeight = window.visualViewport.height;
+                }
                 setTimeout(update, 50);
+                setTimeout(update, 150);
+                setTimeout(update, 300);
+            }
+        });
+
+        // Reset on blur (keyboard closes)
+        document.addEventListener('focusout', (e) => {
+            if (e.target.matches('input, textarea')) {
+                setTimeout(() => {
+                    // Reset base height when keyboard fully closes
+                    if (window.visualViewport) {
+                        baseViewportHeight = window.visualViewport.height;
+                    }
+                    update();
+                }, 100);
             }
         });
     })();
