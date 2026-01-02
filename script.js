@@ -1105,7 +1105,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const messages = document.querySelector('.chat-messages');
         if (!composer || !messages) return;
 
-        let baseViewportHeight = null;
         let updateTimeout = null;
 
         function setComposerHeight() {
@@ -1113,25 +1112,21 @@ document.addEventListener('DOMContentLoaded', function() {
             root.style.setProperty('--composer-height', height + 'px');
         }
 
-        function primeBaseHeight() {
-            if (window.visualViewport && baseViewportHeight === null) {
-                baseViewportHeight = window.visualViewport.height;
-            }
-        }
-
         function update() {
             setComposerHeight();
 
-            if (!window.visualViewport) return;
+            if (!window.visualViewport) {
+                // Fallback for browsers without visualViewport
+                root.style.setProperty('--kb-offset', '0px');
+                root.style.setProperty('--kb', '0px');
+                return;
+            }
 
             const vv = window.visualViewport;
             
-            // Prime base height on first call
-            if (baseViewportHeight === null) {
-                baseViewportHeight = vv.height;
-            }
-
-            // Calculate keyboard height
+            // Calculate keyboard height: difference between window height and visual viewport
+            // visualViewport.height is the visible area, so keyboard = window.innerHeight - vv.height
+            // But we also need to account for vv.offsetTop (scroll offset)
             const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
 
             // Debug logging for iOS
@@ -1139,18 +1134,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 innerHeight: window.innerHeight,
                 vvHeight: vv.height,
                 vvOffsetTop: vv.offsetTop,
+                vvOffsetLeft: vv.offsetLeft,
                 keyboardHeight: keyboardHeight,
-                baseViewportHeight: baseViewportHeight
+                composerBottom: composer.getBoundingClientRect().bottom
             });
 
             // Push composer above keyboard
             root.style.setProperty('--kb-offset', keyboardHeight + 'px');
             root.style.setProperty('--kb', keyboardHeight + 'px');
-
-            // Reset base height when keyboard closes (for next open)
-            if (keyboardHeight < 50) {
-                baseViewportHeight = vv.height;
-            }
         }
 
         function debouncedUpdate() {
@@ -1158,14 +1149,9 @@ document.addEventListener('DOMContentLoaded', function() {
             updateTimeout = setTimeout(update, 10);
         }
 
-        // Prime base height on user interaction
-        window.addEventListener('load', () => {
-            primeBaseHeight();
-            update();
-        });
-        window.addEventListener('touchstart', primeBaseHeight, { once: true, passive: true });
-        window.addEventListener('pointerdown', primeBaseHeight, { once: true, passive: true });
-
+        // Initial update
+        window.addEventListener('load', update);
+        
         // Update on resize
         window.addEventListener('resize', debouncedUpdate);
         if (window.visualViewport) {
@@ -1173,29 +1159,27 @@ document.addEventListener('DOMContentLoaded', function() {
             window.visualViewport.addEventListener('scroll', debouncedUpdate);
         }
 
-        // Also update on focus (first-time bug fix + subsequent opens)
+        // Update on focus (keyboard opens) - multiple timeouts to catch animation
         document.addEventListener('focusin', (e) => {
             if (e.target.matches('input, textarea')) {
-                // Reset base height before keyboard opens
-                if (window.visualViewport) {
-                    baseViewportHeight = window.visualViewport.height;
-                }
+                // Immediate update
+                update();
+                // Then update at intervals to catch keyboard animation
                 setTimeout(update, 50);
-                setTimeout(update, 150);
+                setTimeout(update, 100);
+                setTimeout(update, 200);
                 setTimeout(update, 300);
             }
         });
 
-        // Reset on blur (keyboard closes)
+        // Update on blur (keyboard closes)
         document.addEventListener('focusout', (e) => {
             if (e.target.matches('input, textarea')) {
-                setTimeout(() => {
-                    // Reset base height when keyboard fully closes
-                    if (window.visualViewport) {
-                        baseViewportHeight = window.visualViewport.height;
-                    }
-                    update();
-                }, 100);
+                // Update immediately, then after delay to catch keyboard close animation
+                update();
+                setTimeout(update, 50);
+                setTimeout(update, 150);
+                setTimeout(update, 300);
             }
         });
     })();
