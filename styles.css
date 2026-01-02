@@ -1574,9 +1574,9 @@ button, .property-type-card {
 }
 
 .chat-greeting-text {
-    font-family: 'Inter', sans-serif;
+    font-family: 'Playfair Display', serif;
     font-size: 28px;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--text-dark);
     text-align: center;
     margin: 0;
