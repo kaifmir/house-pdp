@@ -802,7 +802,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }
                 }, 400);
-                }
             }
         });
     }
