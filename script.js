@@ -656,6 +656,49 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Placeholder animation removed - using static placeholder "Got Questions..."
     
+    // Pills horizontal auto-scroll animation
+    const pillsContainer = document.getElementById('chat-starter-pills');
+    if (pillsContainer) {
+        let isUserScrolling = false;
+        let scrollTimeout = null;
+        let animationPaused = false;
+        
+        // Duplicate pills for seamless loop
+        const pills = pillsContainer.querySelectorAll('.chat-pill');
+        pills.forEach(pill => {
+            const clone = pill.cloneNode(true);
+            pillsContainer.appendChild(clone);
+        });
+        
+        // Detect user scrolling
+        pillsContainer.addEventListener('scroll', () => {
+            isUserScrolling = true;
+            pillsContainer.classList.add('scrolling');
+            
+            // Clear existing timeout
+            if (scrollTimeout) {
+                clearTimeout(scrollTimeout);
+            }
+            
+            // Resume animation after user stops scrolling
+            scrollTimeout = setTimeout(() => {
+                isUserScrolling = false;
+                pillsContainer.classList.remove('scrolling');
+            }, 2000);
+        }, { passive: true });
+        
+        // Also detect touch/mouse interactions
+        pillsContainer.addEventListener('touchstart', () => {
+            pillsContainer.classList.add('scrolling');
+        }, { passive: true });
+        
+        pillsContainer.addEventListener('touchend', () => {
+            setTimeout(() => {
+                pillsContainer.classList.remove('scrolling');
+            }, 2000);
+        }, { passive: true });
+    }
+    
     // Back button - Return to homescreen
     if (chatBackBtn) {
         chatBackBtn.addEventListener('click', () => {
