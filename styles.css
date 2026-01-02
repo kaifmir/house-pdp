@@ -1673,6 +1673,10 @@ html, body {
     padding: 0;
     margin: 0;
     width: max-content;
+    /* Safari iOS hardware acceleration */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: transform;
 }
 
 /* Each chip set contains 2 rows */
