@@ -1659,7 +1659,12 @@ button, .property-type-card {
     gap: 12px;
     width: max-content;
     padding: 0;
-    animation: scrollPills 25s linear infinite;
+    animation: scrollPills 30s linear infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 .chat-starter-pills-wrapper.paused {
@@ -1688,15 +1693,6 @@ button, .property-type-card {
     100% {
         transform: translateX(-33.333%);
     }
-}
-
-/* Ensure smooth animation with hardware acceleration */
-.chat-starter-pills-wrapper {
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
 }
 
 .chat-pill {
