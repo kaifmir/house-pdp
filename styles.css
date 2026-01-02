@@ -1690,6 +1690,15 @@ button, .property-type-card {
     }
 }
 
+/* Ensure smooth animation with hardware acceleration */
+.chat-starter-pills-wrapper {
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
 .chat-pill {
     background: linear-gradient(135deg, #FFFFFF 0%, #F8F8F8 100%);
     border: 1px solid rgba(200, 200, 210, 0.5);

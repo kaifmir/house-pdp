@@ -666,6 +666,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Duplicate rows multiple times for seamless infinite loop (only show 2 rows)
         const rows = pillsWrapper.querySelectorAll('.chat-starter-pills-row');
+        
+        // Store original rows count
+        const originalRowCount = rows.length;
+        
         // Duplicate 2 more times (total 3 sets) for seamless infinite loop
         // This ensures when animation reaches -33.333%, it seamlessly continues
         for (let i = 0; i < 2; i++) {
@@ -674,6 +678,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 pillsWrapper.appendChild(clone);
             });
         }
+        
+        // Calculate exact width for seamless loop
+        const totalRows = pillsWrapper.querySelectorAll('.chat-starter-pills-row').length;
+        const oneSetWidth = Array.from(rows).reduce((sum, row) => {
+            return sum + row.offsetWidth + 12; // 12px gap
+        }, 0);
+        
+        // Ensure animation is smooth and seamless
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes scrollPillsSeamless {
+                0% {
+                    transform: translateX(0);
+                }
+                100% {
+                    transform: translateX(-${(oneSetWidth * originalRowCount)}px);
+                }
+            }
+        `;
+        document.head.appendChild(style);
         
         // Limit visible rows to 2 by setting max-height
         const firstRow = rows[0];
