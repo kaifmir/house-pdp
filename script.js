@@ -445,6 +445,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (chatScreen) {
                         chatScreen.classList.add('active');
                         document.body.style.overflow = 'hidden';
+                        // Start placeholder animation
+                        setTimeout(() => {
+                            const chatInput = document.getElementById('chat-input');
+                            if (chatInput && !chatInput.value) {
+                                initChatPlaceholderAnimation();
+                            }
+                        }, 100);
                     }
                 } else {
                     // Show splash screen
@@ -629,9 +636,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 chatScreen.classList.add('active');
                 document.body.style.overflow = 'hidden';
                 // Start placeholder animation when chat opens
-                if (chatInput) {
-                    startChatPlaceholderAnimation();
-                }
+                setTimeout(() => {
+                    if (chatInput && !chatInput.value) {
+                        initChatPlaceholderAnimation();
+                    }
+                }, 100);
             }
         });
     }
@@ -684,14 +693,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    if (chatInput) {
-        // Start animation when chat screen opens
-        if (chatScreen && chatScreen.classList.contains('active')) {
-            setTimeout(() => {
-                startChatPlaceholderAnimation();
-            }, 500);
+    // Function to initialize chat placeholder animation
+    function initChatPlaceholderAnimation() {
+        if (!chatInput) return;
+        
+        // Reset state
+        chatIsFocused = false;
+        chatPlaceholderIndex = 0;
+        chatCurrentCharIndex = 0;
+        chatCurrentText = '';
+        chatIsDeleting = false;
+        chatInput.placeholder = '';
+        
+        // Clear any existing timeout
+        if (chatTypingTimeout) {
+            clearTimeout(chatTypingTimeout);
+            chatTypingTimeout = null;
         }
         
+        // Start animation after a short delay
+        chatTypingTimeout = setTimeout(() => {
+            startChatPlaceholderAnimation();
+        }, 500);
+    }
+    
+    if (chatInput) {
         // Stop animation on focus
         chatInput.addEventListener('focus', () => {
             chatIsFocused = true;
@@ -708,16 +734,33 @@ document.addEventListener('DOMContentLoaded', function() {
         chatInput.addEventListener('blur', () => {
             chatIsFocused = false;
             if (!chatInput.value.trim()) {
-                chatPlaceholderIndex = 0;
-                chatCurrentCharIndex = 0;
-                chatCurrentText = '';
-                chatIsDeleting = false;
-                chatInput.placeholder = '';
-                if (!chatTypingTimeout) {
-                    chatTypingTimeout = setTimeout(startChatPlaceholderAnimation, 500);
-                }
+                initChatPlaceholderAnimation();
             }
         });
+    }
+    
+    // Start animation when chat screen opens
+    if (chatScreen) {
+        // Use MutationObserver to detect when chat screen becomes active
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    if (chatScreen.classList.contains('active') && chatInput && !chatInput.value) {
+                        initChatPlaceholderAnimation();
+                    }
+                }
+            });
+        });
+        
+        observer.observe(chatScreen, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+        
+        // Also check if already active
+        if (chatScreen.classList.contains('active') && chatInput && !chatInput.value) {
+            initChatPlaceholderAnimation();
+        }
     }
     
     // Back button - Return to homescreen

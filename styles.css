@@ -1405,7 +1405,7 @@ button, .property-type-card {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to bottom, #F8F8F8 0%, #F0F0F0 100%);
+    background: linear-gradient(to bottom, #F5F5F5 0%, #EBEBEB 100%);
     z-index: 3000;
     display: none;
     flex-direction: column;
