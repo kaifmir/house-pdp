@@ -828,6 +828,26 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!isKeyboardOpen) {
                         isKeyboardOpen = true;
                         chatScreen.classList.add('keyboard-open');
+                        
+                        // CRITICAL: Lock scroll position BEFORE keyboard fully opens
+                        const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+                        document.body.style.position = 'fixed';
+                        document.body.style.top = `-${scrollY}px`;
+                        document.body.style.width = '100%';
+                        document.body.style.overflow = 'hidden';
+                        
+                        // Lock html scroll
+                        document.documentElement.style.overflow = 'hidden';
+                        document.documentElement.style.position = 'fixed';
+                        document.documentElement.style.width = '100%';
+                        
+                        // Lock chat screen
+                        chatScreen.style.position = 'fixed';
+                        chatScreen.style.top = '0';
+                        chatScreen.style.left = '0';
+                        chatScreen.style.right = '0';
+                        chatScreen.style.bottom = '0';
+                        chatScreen.style.overflow = 'hidden';
                     }
                     
                     // Calculate position: visualViewport.bottom gives us the distance from bottom
@@ -842,37 +862,51 @@ document.addEventListener('DOMContentLoaded', function() {
                         inputBar.style.bottom = `${newBottom}px`;
                     }
                     
-                    // Ensure top bar stays at top - always fixed, never move
+                    // CRITICAL: Force top bar to stay at visual viewport top (not document top)
                     if (topBar) {
-                        topBar.style.setProperty('position', 'fixed', 'important');
-                        topBar.style.setProperty('top', '0', 'important');
-                        topBar.style.setProperty('transform', 'translateY(0)', 'important');
-                        topBar.style.setProperty('z-index', '10003', 'important');
-                        topBar.style.setProperty('left', '0', 'important');
-                        topBar.style.setProperty('right', '0', 'important');
+                        const viewportOffsetTop = window.visualViewport.offsetTop || 0;
+                        topBar.style.position = 'fixed';
+                        topBar.style.top = `${viewportOffsetTop}px`;
+                        topBar.style.left = '0';
+                        topBar.style.right = '0';
+                        topBar.style.transform = 'translateY(0)';
+                        topBar.style.zIndex = '10003';
+                        topBar.style.margin = '0';
+                        // Force repaint
+                        void topBar.offsetHeight;
                     }
                     
-                    // Prevent any scrolling - critical for keeping header fixed
-                    document.body.style.overflow = 'hidden';
-                    document.body.style.position = 'fixed';
-                    document.body.style.width = '100%';
-                    chatScreen.style.overflow = 'hidden';
-                    chatScreen.style.position = 'fixed';
-                    chatScreen.style.top = '0';
-                    chatScreen.style.left = '0';
-                    chatScreen.style.right = '0';
-                    chatScreen.style.bottom = '0';
-                    
-                    // Prevent viewport scrolling
-                    if (window.visualViewport) {
-                        window.scrollTo(0, 0);
-                        document.documentElement.scrollTop = 0;
-                    }
+                    // Prevent any scrolling
+                    window.scrollTo(0, 0);
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
                 } else {
                     // Keyboard is closed
                     if (isKeyboardOpen) {
                         isKeyboardOpen = false;
                         chatScreen.classList.remove('keyboard-open');
+                        
+                        // Restore scroll position
+                        const scrollY = document.body.style.top;
+                        document.body.style.position = '';
+                        document.body.style.top = '';
+                        document.body.style.width = '';
+                        document.body.style.overflow = '';
+                        document.documentElement.style.overflow = '';
+                        document.documentElement.style.position = '';
+                        document.documentElement.style.width = '';
+                        
+                        if (scrollY) {
+                            window.scrollTo(0, parseInt(scrollY || '0') * -1);
+                        }
+                        
+                        // Reset chat screen
+                        chatScreen.style.position = '';
+                        chatScreen.style.top = '';
+                        chatScreen.style.left = '';
+                        chatScreen.style.right = '';
+                        chatScreen.style.bottom = '';
+                        chatScreen.style.overflow = '';
                     }
                     
                     // Reset input bar position
@@ -881,26 +915,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         inputBar.style.bottom = '';
                     }
                     
-                    // Ensure top bar stays at top - always fixed, never move
+                    // Reset top bar to normal position
                     if (topBar) {
-                        topBar.style.setProperty('position', 'fixed', 'important');
-                        topBar.style.setProperty('top', '0', 'important');
-                        topBar.style.setProperty('transform', 'translateY(0)', 'important');
-                        topBar.style.setProperty('z-index', '10003', 'important');
-                        topBar.style.setProperty('left', '0', 'important');
-                        topBar.style.setProperty('right', '0', 'important');
+                        topBar.style.position = 'fixed';
+                        topBar.style.top = '0';
+                        topBar.style.left = '0';
+                        topBar.style.right = '0';
+                        topBar.style.transform = 'translateY(0)';
+                        topBar.style.zIndex = '10003';
+                        topBar.style.margin = '0';
                     }
-                    
-                    // Reset body and screen positioning
-                    document.body.style.overflow = '';
-                    document.body.style.position = '';
-                    document.body.style.width = '';
-                    chatScreen.style.overflow = '';
-                    chatScreen.style.position = '';
-                    chatScreen.style.top = '';
-                    chatScreen.style.left = '';
-                    chatScreen.style.right = '';
-                    chatScreen.style.bottom = '';
                     
                     // Update base height
                     baseViewportHeight = currentHeight;
@@ -935,9 +959,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 navigator.vibrate(10);
             }
             
-            // Prevent scrolling
+            // CRITICAL: Lock scroll immediately before keyboard opens
+            const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+            document.body.style.position = 'fixed';
+            document.body.style.top = `-${scrollY}px`;
+            document.body.style.width = '100%';
             document.body.style.overflow = 'hidden';
+            document.documentElement.style.overflow = 'hidden';
+            document.documentElement.style.position = 'fixed';
+            document.documentElement.style.width = '100%';
+            
             chatScreen.style.overflow = 'hidden';
+            chatScreen.style.position = 'fixed';
+            chatScreen.style.top = '0';
+            chatScreen.style.left = '0';
+            chatScreen.style.right = '0';
+            chatScreen.style.bottom = '0';
+            
+            // Force header to stay at top
+            const topBar = document.querySelector('.chat-top-bar');
+            if (topBar) {
+                topBar.style.position = 'fixed';
+                topBar.style.top = '0';
+                topBar.style.left = '0';
+                topBar.style.right = '0';
+                topBar.style.transform = 'translateY(0)';
+                topBar.style.zIndex = '10003';
+            }
             
             // Update base height before keyboard opens
             if (window.visualViewport) {
@@ -949,7 +997,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (window.visualViewport) {
                     handleViewportResize();
                 }
-            }, 200);
+            }, 100);
         });
         
         chatInput.addEventListener('blur', () => {
