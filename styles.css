@@ -1618,7 +1618,7 @@ button, .property-type-card {
 .chat-send-btn {
     position: absolute;
     right: 6px;
-    background-color: var(--primary-purple);
+    background-color: #9D6DF0;
     border: none;
     border-radius: 50%;
     width: 40px;
