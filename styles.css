@@ -1643,7 +1643,7 @@ button, .property-type-card {
 
 .chat-input {
     width: 100%;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 28px;
     padding: 16px 100px 16px 16px;
     font-family: 'Inter', sans-serif;
