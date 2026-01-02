@@ -727,7 +727,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 chatScreen.classList.remove('active');
                 chatScreen.classList.remove('keyboard-open');
                 document.body.style.overflow = '';
-                if (chatInput) chatInput.blur();
+                if (chatInput) {
+                    chatInput.blur();
+                    // Stop placeholder animation
+                    if (chatTypingTimeout) {
+                        clearTimeout(chatTypingTimeout);
+                        chatTypingTimeout = null;
+                    }
+                }
             }
         });
     }
