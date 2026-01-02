@@ -1634,16 +1634,17 @@ html, body {
     overflow-wrap: anywhere;
 }
 
-/* Infinite Horizontal Chips Rail */
+/* Infinite Horizontal Chips Rail - Match search bar width */
 .chips-rail {
     width: 100%;
-    max-width: 360px;
+    max-width: 100%;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    padding: 4px 0;
+    padding: 4px 16px;
+    box-sizing: border-box;
     position: relative;
     isolation: isolate;
 }
