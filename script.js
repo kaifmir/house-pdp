@@ -1139,40 +1139,73 @@ document.addEventListener('DOMContentLoaded', function() {
     // Prime viewport on chat screen initialization
     primeViewport();
     
-    // Step 3: Use VisualViewport pinning for header (iOS fix)
-    // Even with position: fixed, iOS can shift the layout viewport when keyboard opens
-    // So pin header using translateY(visualViewport.offsetTop)
+    // iOS header pinning: VisualViewport pinning + re-prime on every open/close
+    // visualViewport.offsetTop / viewport metrics can be stale after keyboard close (bfcache / toolbar collapse)
+    // We must recompute the pinned offset on every focusin/focusout + pageshow + visibilitychange
     (function() {
         const root = document.documentElement;
+        const header = document.querySelector('.chat-top-bar');
+        if (!header) return;
 
-        function syncVVTop() {
-            if (!window.visualViewport) {
-                root.style.setProperty('--vv-top', '0px');
-                return;
+        let raf = null;
+
+        function applyVVTop() {
+            const vv = window.visualViewport;
+            const top = vv ? vv.offsetTop : 0;
+            root.style.setProperty('--vv-top', `${top}px`);
+            
+            // Debug logging for iOS (can be removed in production)
+            if (vv) {
+                console.log('Header pinning:', {
+                    scrollY: window.scrollY,
+                    vvTop: vv.offsetTop,
+                    vvHeight: vv.height,
+                    vvOffsetLeft: vv.offsetLeft
+                });
             }
-            // offsetTop is non-zero on iOS when keyboard / URL bar shifts viewport
-            root.style.setProperty('--vv-top', `${window.visualViewport.offsetTop}px`);
         }
 
-        window.addEventListener('load', syncVVTop);
-        window.addEventListener('resize', syncVVTop);
+        // Run multiple times to beat iOS timing (first open + reopen)
+        function syncHard() {
+            if (raf) cancelAnimationFrame(raf);
+            applyVVTop();
+            raf = requestAnimationFrame(() => {
+                applyVVTop();
+                setTimeout(applyVVTop, 50);
+                setTimeout(applyVVTop, 150);
+                setTimeout(applyVVTop, 300);
+            });
+        }
+
+        // Key events iOS needs
+        window.addEventListener('load', syncHard);
+        window.addEventListener('resize', syncHard);
         if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', syncVVTop);
-            window.visualViewport.addEventListener('scroll', syncVVTop);
+            window.visualViewport.addEventListener('resize', syncHard);
+            window.visualViewport.addEventListener('scroll', syncHard);
         }
 
-        // Extra: on focus, run again after viewport settles
+        // Critical: re-prime on every keyboard open/close
         document.addEventListener('focusin', (e) => {
             if (!e.target.matches('input, textarea, [contenteditable="true"]')) return;
-            setTimeout(syncVVTop, 0);
-            setTimeout(syncVVTop, 50);
-            setTimeout(syncVVTop, 150);
+            syncHard();
         });
 
         document.addEventListener('focusout', (e) => {
             if (!e.target.matches('input, textarea, [contenteditable="true"]')) return;
-            setTimeout(syncVVTop, 50);
+            // iOS often updates offsetTop AFTER blur
+            setTimeout(syncHard, 50);
+            setTimeout(syncHard, 200);
         });
+
+        // Critical: iOS bfcache restores stale viewport values
+        window.addEventListener('pageshow', syncHard);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) syncHard();
+        });
+
+        // Initial
+        syncHard();
     })();
 
     // C) Keyboard reopen bug fix: Force recalculation on every focus

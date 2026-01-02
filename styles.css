@@ -1482,8 +1482,8 @@ html, body {
     -webkit-backdrop-filter: blur(12px) saturate(180%);
     pointer-events: none;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-    transform: translateY(var(--vv-top));
-    -webkit-transform: translateY(var(--vv-top));
+    transform: translate3d(0, var(--vv-top), 0);
+    -webkit-transform: translate3d(0, var(--vv-top), 0);
     will-change: transform;
     margin: 0;
     /* VisualViewport pinning: offsetTop accounts for iOS keyboard/layout viewport shifts */
