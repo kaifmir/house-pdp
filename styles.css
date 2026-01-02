@@ -1582,7 +1582,7 @@ button, .property-type-card {
 
 .chat-pill {
     background: linear-gradient(135deg, #FFFFFF 0%, #F8F8F8 100%);
-    border: 1px solid rgba(200, 200, 210, 0.4);
+    border: 1px solid rgba(200, 200, 210, 0.5);
     border-radius: 24px;
     padding: 12px 18px;
     font-family: 'Inter', sans-serif;
@@ -1602,6 +1602,31 @@ button, .property-type-card {
     text-align: center;
     width: auto;
     flex-shrink: 0;
+}
+
+/* Subtle different muted stroke colors for each pill */
+.chat-pill:nth-child(1) {
+    border-color: rgba(180, 190, 220, 0.6);
+}
+
+.chat-pill:nth-child(2) {
+    border-color: rgba(200, 180, 200, 0.6);
+}
+
+.chat-pill:nth-child(3) {
+    border-color: rgba(190, 200, 190, 0.6);
+}
+
+.chat-pill:nth-child(4) {
+    border-color: rgba(220, 200, 180, 0.6);
+}
+
+.chat-pill:nth-child(5) {
+    border-color: rgba(200, 210, 220, 0.6);
+}
+
+.chat-pill:nth-child(6) {
+    border-color: rgba(210, 200, 210, 0.6);
 }
 
 .chat-pill:active {
