@@ -1409,17 +1409,22 @@ button, .property-type-card {
 
 /* CSS Variables for layout spacing */
 :root {
-    --chat-header-height: 68px;  /* Updated by JS */
-    --chat-composer-height: 80px; /* Updated by JS */
+    --header-h: 68px;  /* Updated by JS */
+    --composer-h: 80px; /* Updated by JS */
+    --kb: 0px; /* Keyboard height - updated by visualViewport */
 }
 
-/* Prevent body scroll jump - lock layout */
+/* Step 1: Hard lock page scroll (critical for Android) */
 html, body {
     height: 100%;
     overflow: hidden;
+    margin: 0;
+    position: fixed;
+    width: 100%;
 }
 
 /* Chat Screen - Container only, no scrolling */
+/* Step 2: Transform is on this element - header is OUTSIDE, so it's OK */
 .chat-screen {
     position: fixed;
     top: 0;
@@ -1435,7 +1440,6 @@ html, body {
     opacity: 0;
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
-    /* Remove flex layout - we use fixed positioning instead */
     display: block;
 }
 
@@ -1445,7 +1449,7 @@ html, body {
     pointer-events: all;
 }
 
-/* Header - Fixed at top, OUTSIDE scroll container */
+/* Step 3: Header - Fixed at top, OUTSIDE any transformed parent */
 .chat-top-bar {
     display: flex;
     align-items: center;
@@ -1466,7 +1470,7 @@ html, body {
     -webkit-transform: translateZ(0);
     will-change: transform;
     margin: 0;
-    /* Always fixed, never moves */
+    /* Header is OUTSIDE .chat-screen transform, so fixed works correctly */
 }
 
 .chat-back-btn {
@@ -1551,16 +1555,18 @@ html, body {
     font-family: 'Inter', sans-serif;
 }
 
-/* Messages Area - ONLY scrollable region, positioned between header and composer */
+/* Step 3: Messages Area - ONLY scrollable region, positioned between header and composer */
+/* Bottom accounts for composer height + keyboard height */
 .chat-messages {
     position: fixed;
-    top: var(--chat-header-height);
+    top: var(--header-h);
     left: 0;
     right: 0;
-    bottom: var(--chat-composer-height);
+    bottom: calc(var(--composer-h) + var(--kb));
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     /* Reduced padding - spacing comes from layout, not padding */
     padding: 16px;
     padding-top: calc(16px + env(safe-area-inset-top));
@@ -1571,10 +1577,7 @@ html, body {
     align-items: center;
     gap: 32px;
     font-family: 'Inter', sans-serif;
-    overscroll-behavior: contain;
     z-index: 1;
-    /* Use dynamic viewport height for Android keyboard */
-    max-height: 100dvh;
 }
 
 /* Chat Greeting */
@@ -1775,20 +1778,21 @@ html, body {
 
 /* Messages area remains scrollable even when keyboard is open */
 
-/* Composer/Input Bar - Fixed at bottom, stays above keyboard */
+/* Step 3: Composer - Fixed at bottom, translated up by keyboard height */
 .chat-input-bar {
     padding: 12px 16px;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
     position: fixed;
-    bottom: 0;
     left: 0;
     right: 0;
-    background: transparent;
+    bottom: 0;
     z-index: 10003;
+    background: transparent;
     pointer-events: none;
-    transition: transform 0.3s ease-out;
+    /* Translate up by keyboard height to sit above keyboard */
+    transform: translateY(calc(-1 * var(--kb)));
     will-change: transform;
-    /* Always fixed at bottom */
+    transition: transform 0.3s ease-out;
 }
 
 .chat-input-wrapper {

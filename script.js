@@ -8,49 +8,76 @@ const TOP_AREA_THRESHOLD = 100;
 const TAP_THRESHOLD = 15;
 const TAP_TIME_THRESHOLD = 300;
 
-// Measure real heights and set CSS vars for layout
+// Step 4: Measure header/composer heights
 function syncHeights() {
     const header = document.querySelector('.chat-top-bar');
     const composer = document.querySelector('.chat-input-bar');
     
     if (header) {
         const headerHeight = header.offsetHeight;
-        document.documentElement.style.setProperty('--chat-header-height', `${headerHeight}px`);
+        document.documentElement.style.setProperty('--header-h', `${headerHeight}px`);
     }
     
     if (composer) {
         const composerHeight = composer.offsetHeight;
-        document.documentElement.style.setProperty('--chat-composer-height', `${composerHeight}px`);
+        document.documentElement.style.setProperty('--composer-h', `${composerHeight}px`);
+    }
+}
+
+// Step 5: Compute keyboard height using visualViewport (the real fix)
+function syncKeyboard() {
+    if (!window.visualViewport) return;
+    
+    const vv = window.visualViewport;
+    // keyboard height approx = layout viewport height - visual viewport height - offsetTop
+    const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    
+    document.documentElement.style.setProperty('--kb', `${kb}px`);
+    
+    // Debug logging (remove in production)
+    const header = document.querySelector('.chat-top-bar');
+    if (header) {
+        const headerTop = header.getBoundingClientRect().top;
+        console.log('Header top:', headerTop, 'KB height:', kb, 'VV height:', vv.height);
     }
 }
 
 // Sync heights on resize and orientation change
-window.addEventListener('resize', syncHeights);
-window.addEventListener('orientationchange', syncHeights);
+window.addEventListener('resize', () => {
+    syncHeights();
+    syncKeyboard();
+});
+window.addEventListener('orientationchange', () => {
+    syncHeights();
+    syncKeyboard();
+});
 
 // Use visualViewport for Android keyboard compatibility
 if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', syncHeights);
-    window.visualViewport.addEventListener('scroll', () => {
-        // Prevent visual viewport scroll from affecting layout
+    window.visualViewport.addEventListener('resize', () => {
         syncHeights();
+        syncKeyboard();
+    });
+    window.visualViewport.addEventListener('scroll', () => {
+        syncKeyboard();
     });
 }
 
-// Stop Android "scroll to focused input" from pushing layout
-// On focus, keep window scroll at 0 and let messages container handle scrolling
+// Step 6: Prevent focus scroll-jump
+// Stop the browser from scrolling the window by ensuring window scroll stays at 0
 document.addEventListener('focusin', (e) => {
     if (!e.target.matches('input, textarea')) return;
     if (!e.target.closest('.chat-screen')) return; // Only for chat inputs
     
-    // Keep header stable by ensuring window doesn't scroll
+    // Keep window scroll at 0 to prevent header from moving
     requestAnimationFrame(() => {
         window.scrollTo(0, 0);
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
         
-        // Sync heights after potential layout shift
+        // Sync heights and keyboard after potential layout shift
         syncHeights();
+        syncKeyboard();
     });
 }, { passive: true });
 
@@ -843,8 +870,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Sync heights initially
+    // Sync heights and keyboard initially
     syncHeights();
+    syncKeyboard();
+    
+    // Step 7: Debug logging (remove in production)
+    // Monitor header position and keyboard height
+    setInterval(() => {
+        const header = document.querySelector('.chat-top-bar');
+        if (!header) return;
+        const headerTop = header.getBoundingClientRect().top;
+        const kb = getComputedStyle(document.documentElement).getPropertyValue('--kb').trim();
+        console.log('Header top:', headerTop, 'KB:', kb);
+    }, 1000);
     
     // Handle keyboard open/close for input
     if (chatInput && chatScreen) {
@@ -918,8 +956,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         inputBar.style.bottom = `${newBottom}px`;
                     }
                     
-                    // Header is already fixed - just sync heights
+                    // Sync heights and keyboard when keyboard opens
                     syncHeights();
+                    syncKeyboard();
                     
                     // Prevent any scrolling
                     window.scrollTo(0, 0);
@@ -1021,8 +1060,9 @@ document.addEventListener('DOMContentLoaded', function() {
             chatScreen.style.right = '0';
             chatScreen.style.bottom = '0';
             
-            // Sync heights after potential layout changes
+            // Sync heights and keyboard after potential layout changes
             syncHeights();
+            syncKeyboard();
             
             // Update base height before keyboard opens
             if (window.visualViewport) {
