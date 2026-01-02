@@ -1139,6 +1139,42 @@ document.addEventListener('DOMContentLoaded', function() {
     // Prime viewport on chat screen initialization
     primeViewport();
     
+    // Step 3: Use VisualViewport pinning for header (iOS fix)
+    // Even with position: fixed, iOS can shift the layout viewport when keyboard opens
+    // So pin header using translateY(visualViewport.offsetTop)
+    (function() {
+        const root = document.documentElement;
+
+        function syncVVTop() {
+            if (!window.visualViewport) {
+                root.style.setProperty('--vv-top', '0px');
+                return;
+            }
+            // offsetTop is non-zero on iOS when keyboard / URL bar shifts viewport
+            root.style.setProperty('--vv-top', `${window.visualViewport.offsetTop}px`);
+        }
+
+        window.addEventListener('load', syncVVTop);
+        window.addEventListener('resize', syncVVTop);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', syncVVTop);
+            window.visualViewport.addEventListener('scroll', syncVVTop);
+        }
+
+        // Extra: on focus, run again after viewport settles
+        document.addEventListener('focusin', (e) => {
+            if (!e.target.matches('input, textarea, [contenteditable="true"]')) return;
+            setTimeout(syncVVTop, 0);
+            setTimeout(syncVVTop, 50);
+            setTimeout(syncVVTop, 150);
+        });
+
+        document.addEventListener('focusout', (e) => {
+            if (!e.target.matches('input, textarea, [contenteditable="true"]')) return;
+            setTimeout(syncVVTop, 50);
+        });
+    })();
+
     // C) Keyboard reopen bug fix: Force recalculation on every focus
     // On iOS, visualViewport values can be stale after closing keyboard
     (function() {
