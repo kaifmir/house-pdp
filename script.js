@@ -898,133 +898,139 @@ document.addEventListener('DOMContentLoaded', function() {
         return { rail, track, loopEdges };
     }
 
-    // Soft auto-movement + manual scroll (iOS: timer after first touch, Android: rAF)
+    // Step 1: Debug probe to diagnose scrollability issues
+    function debugChips() {
+        const rail = document.getElementById('chipsRail');
+        const track = document.getElementById('chipsTrack');
+        if (!rail || !track) {
+            console.log('chips: missing rail/track');
+            return;
+        }
+
+        const cs = getComputedStyle(rail);
+        console.log('chips debug', {
+            railClient: rail.clientWidth,
+            railScrollW: rail.scrollWidth,
+            trackScrollW: track.scrollWidth,
+            railOverflowX: cs.overflowX,
+            webkitOverflowScrolling: cs.webkitOverflowScrolling,
+            scrollSnapType: cs.scrollSnapType,
+            pointerEvents: cs.pointerEvents,
+            isScrollable: rail.scrollWidth > rail.clientWidth + 5
+        });
+
+        // Can we actually scroll by code?
+        const before = rail.scrollLeft;
+        if (rail.scrollTo) {
+            rail.scrollTo({ left: before + 10, behavior: 'auto' });
+        } else {
+            rail.scrollLeft = before + 10;
+        }
+        const after = rail.scrollLeft;
+        const moved = Math.abs(after - before) > 0.5;
+        console.log('programmatic scroll works?', { before, after, moved });
+        
+        if (!moved) {
+            console.warn('⚠️ Programmatic scroll FAILED - rail may be blocked by preventDefault or scroll-snap');
+        }
+        if (rail.scrollWidth <= rail.clientWidth + 5) {
+            console.warn('⚠️ Rail not scrollable - need more clones or wider content');
+        }
+    }
+
+    // Step 2: Ensure rail is truly scrollable (clone correctly)
+    function ensureScrollable() {
+        const rail = document.getElementById('chipsRail');
+        const track = document.getElementById('chipsTrack');
+        if (!rail || !track) return false;
+        return rail.scrollWidth > rail.clientWidth + 5;
+    }
+
+    // Step 3: Reliable iOS auto-scroll implementation
     (function initChipsAutoScroll() {
         const ctx = setupInfiniteChips();
         if (!ctx) return;
 
         const { rail, track } = ctx;
 
-        // A) Detect iOS WebKit
+        // Apply iOS-specific fade overlay (instead of mask-image)
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-        // Debug logging
-        console.log('isIOS', isIOS, 'rail scrollWidth', rail.scrollWidth, 'track scrollWidth', track.scrollWidth, 'rail clientWidth', rail.clientWidth);
-        console.log('Is scrollable?', track.scrollWidth > rail.clientWidth);
-
-        // Apply iOS-specific fade overlay (instead of mask-image)
         if (isIOS) {
             rail.classList.add('ios-fade');
         }
 
-        // B) Start auto scroll ONLY after first touch on the rail
-        let intervalId = null;
+        let chipsTimer = null;
         let pausedUntil = 0;
-        let dir = 1;
-        const speedPx = 1;      // per tick
-        const tickMs = 20;      // 50fps-ish
 
-        function pause(ms = 1000) {
+        function pauseChips(ms = 1000) {
             pausedUntil = Date.now() + ms;
         }
 
-        function startAuto() {
-            if (intervalId) {
+        function startChipsAuto() {
+            const rail = document.getElementById('chipsRail');
+            const track = document.getElementById('chipsTrack');
+            if (!rail || !track) return;
+
+            // Ensure scrollable
+            if (!ensureScrollable()) {
+                console.warn('Cannot start auto-scroll: rail not scrollable');
+                debugChips();
+                return;
+            }
+
+            // Toggle momentum scrolling OFF only while auto running
+            rail.classList.add('auto');
+
+            if (chipsTimer) {
                 console.log('Auto-scroll already running');
                 return;
             }
 
-            console.log('Starting auto-scroll, isIOS:', isIOS);
+            console.log('Starting chips auto-scroll');
 
-            if (isIOS) {
-                // iOS: use setInterval + scrollLeft
-                intervalId = setInterval(() => {
-                    if (Date.now() < pausedUntil) return;
+            // Auto-scroll via setInterval + scrollTo fallback (iOS-friendly)
+            chipsTimer = setInterval(() => {
+                if (Date.now() < pausedUntil) return;
 
-                    // move
-                    rail.scrollLeft += dir * speedPx;
-
-                    // keep infinite loop correction (third-width logic)
-                    const third = track.scrollWidth / 3;
-                    const x = rail.scrollLeft;
-                    if (x < third * 0.5) rail.scrollLeft = x + third;
-                    if (x > third * 1.5) rail.scrollLeft = x - third;
-                }, tickMs);
-                console.log('iOS interval started, intervalId:', intervalId);
-            } else {
-                // Android: use requestAnimationFrame
-                let rafId = null;
-                const speed = 0.25; // pixels per frame
-
-                function tick() {
-                    const now = Date.now();
-
-                    if (now < pausedUntil) {
-                        rafId = requestAnimationFrame(tick);
-                        return;
-                    }
-
-                    // Soft auto-move
-                    rail.scrollLeft += dir * speed;
-
-                    // Keep infinite loop correction
-                    const third = track.scrollWidth / 3;
-                    const x = rail.scrollLeft;
-                    if (x < third * 0.5) rail.scrollLeft = x + third;
-                    if (x > third * 1.5) rail.scrollLeft = x - third;
-
-                    rafId = requestAnimationFrame(tick);
+                const next = rail.scrollLeft + 1; // slow drift
+                if (rail.scrollTo) {
+                    rail.scrollTo({ left: next, behavior: 'auto' });
+                } else {
+                    rail.scrollLeft = next;
                 }
 
-                rafId = requestAnimationFrame(tick);
-                intervalId = { cancel: () => cancelAnimationFrame(rafId) };
-            }
+                // Infinite loop correction (if using 3x clones)
+                const third = track.scrollWidth / 3;
+                const x = rail.scrollLeft;
+                if (x < third * 0.5) rail.scrollLeft = x + third;
+                if (x > third * 1.5) rail.scrollLeft = x - third;
+            }, 20);
         }
 
-        // C) Pause on interaction, resume automatically
+        // Resume automatically, pause on any interaction
         ['touchstart', 'pointerdown', 'wheel', 'mousedown'].forEach(evt => {
-            rail.addEventListener(evt, () => pause(1200), { passive: true });
+            rail.addEventListener(evt, () => pauseChips(1200), { passive: true });
         });
-        rail.addEventListener('scroll', () => pause(600), { passive: true });
+        rail.addEventListener('scroll', () => pauseChips(600), { passive: true });
 
-        // A) Pills auto-start on iOS (must auto-run without user gesture)
-        // iOS may throttle timers/rAF until a gesture. Use a hybrid start:
-        function bootPills() {
-            // Ensure rail is actually scrollable
-            if (track.scrollWidth <= rail.clientWidth) {
-                console.warn('Pills rail not scrollable:', track.scrollWidth, '<=', rail.clientWidth);
-                return;
-            }
-            startAuto();
+        // Auto-start reliably on iOS (no "only after touch")
+        function bootChips() {
+            startChipsAuto();
+            requestAnimationFrame(startChipsAuto);
+            setTimeout(startChipsAuto, 150);
+            setTimeout(debugChips, 200);
         }
 
-        // Start animation on DOMContentLoaded
+        // Start multiple times to beat iOS timing/bfcache
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                bootPills();
-                requestAnimationFrame(() => bootPills());
-                setTimeout(() => bootPills(), 150);
-            });
+            document.addEventListener('DOMContentLoaded', bootChips);
         } else {
-            // Already loaded
-            bootPills();
-            requestAnimationFrame(() => bootPills());
-            setTimeout(() => bootPills(), 150);
+            bootChips();
         }
-
-        // Also re-trigger on pageshow (Safari bfcache)
-        window.addEventListener('pageshow', () => {
-            bootPills();
-            requestAnimationFrame(() => bootPills());
-            setTimeout(() => bootPills(), 150);
-        });
-
-        // Also re-trigger on first user interaction as fallback
-        ['touchstart', 'pointerdown'].forEach(e => {
-            window.addEventListener(e, () => {
-                bootPills();
-            }, { once: true, passive: true });
+        window.addEventListener('pageshow', bootChips); // iOS bfcache restore
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) bootChips();
         });
 
         // Stop auto-scroll when keyboard opens (intro is hidden)

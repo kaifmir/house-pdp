@@ -1663,7 +1663,7 @@ html, body {
 }
 
 /* iOS: disable momentum scrolling during auto-scroll to allow JS updates */
-.chips-rail.auto-scrolling {
+.chips-rail.auto {
     -webkit-overflow-scrolling: auto;
 }
 
