@@ -471,12 +471,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 chatScreen.classList.add('active');
                             });
                             document.body.style.overflow = 'hidden';
-                            setTimeout(() => {
-                                const chatInput = document.getElementById('chat-input');
-                                if (chatInput && !chatInput.value) {
-                                    initChatPlaceholderAnimation();
-                                }
-                            }, 100);
+                        // Placeholder animation removed
                         }
                     } else {
                         openBottomSheet();
@@ -777,10 +772,7 @@ document.addEventListener('DOMContentLoaded', function() {
             attributeFilter: ['class']
         });
         
-        // Also check if already active
-        if (chatScreen.classList.contains('active') && chatInput && !chatInput.value) {
-            initChatPlaceholderAnimation();
-        }
+        // Placeholder animation removed
     }
     
     // Back button - Return to homescreen
