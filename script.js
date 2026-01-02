@@ -627,6 +627,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (scoutyCTA) {
         scoutyCTA.addEventListener('click', () => {
+            // Haptic feedback
+            if (navigator.vibrate) {
+                navigator.vibrate(30);
+            }
+            
             // Mark splash as seen in sessionStorage (resets on page refresh)
             sessionStorage.setItem('scoutySplashSeen', 'true');
             // Close bottom sheet
@@ -801,14 +806,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     const topBar = document.querySelector('.chat-top-bar');
                     
                     if (inputBar) {
-                        // Move input bar above keyboard with 16px spacing
+                        // Move input bar above keyboard with 16px spacing - use smooth transition
+                        inputBar.style.transition = 'transform 0.3s ease-out';
                         inputBar.style.transform = `translateY(-${keyboardHeight - 16}px)`;
                     }
                     
-                    // Ensure top bar stays visible
+                    // Ensure top bar always stays visible at top
                     if (topBar) {
                         topBar.style.position = 'fixed';
                         topBar.style.top = '0';
+                        topBar.style.zIndex = '200';
                     }
                 } else if (heightDifference <= 100 && isKeyboardOpen) {
                     // Keyboard is closing
@@ -818,12 +825,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     const topBar = document.querySelector('.chat-top-bar');
                     
                     if (inputBar) {
+                        inputBar.style.transition = 'transform 0.3s ease-out';
                         inputBar.style.transform = 'translateY(0)';
                     }
                     
                     if (topBar) {
                         topBar.style.position = 'fixed';
                         topBar.style.top = '0';
+                        topBar.style.zIndex = '200';
                     }
                     
                     // Update initial height for next time
@@ -846,12 +855,24 @@ document.addEventListener('DOMContentLoaded', function() {
         chatInput.addEventListener('focus', () => {
             // Haptic feedback
             if (navigator.vibrate) {
-                navigator.vibrate(10);
+                navigator.vibrate(25);
             }
             
+            // Immediately update viewport height
+            if (window.visualViewport) {
+                initialViewportHeight = window.visualViewport.height;
+            }
+            
+            // Handle keyboard with multiple checks for reliability
             setTimeout(() => {
                 if (window.visualViewport) {
                     initialViewportHeight = window.visualViewport.height;
+                    handleViewportResize();
+                }
+            }, 100);
+            
+            setTimeout(() => {
+                if (window.visualViewport) {
                     handleViewportResize();
                 }
             }, 300);
