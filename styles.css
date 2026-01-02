@@ -1589,6 +1589,27 @@ button, .property-type-card {
     max-height: 120px;
 }
 
+.chat-starter-pills::before,
+.chat-starter-pills::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.chat-starter-pills::before {
+    left: 0;
+    background: linear-gradient(to right, rgba(245, 245, 245, 1) 0%, rgba(245, 245, 245, 0) 100%);
+}
+
+.chat-starter-pills::after {
+    right: 0;
+    background: linear-gradient(to left, rgba(245, 245, 245, 1) 0%, rgba(245, 245, 245, 0) 100%);
+}
+
 .chat-starter-pills::-webkit-scrollbar {
     display: none;
 }
