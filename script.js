@@ -828,9 +828,22 @@ document.addEventListener('DOMContentLoaded', function() {
                         topBar.style.setProperty('right', '0', 'important');
                     }
                     
-                    // Prevent any scrolling
+                    // Prevent any scrolling - critical for keeping header fixed
                     document.body.style.overflow = 'hidden';
+                    document.body.style.position = 'fixed';
+                    document.body.style.width = '100%';
                     chatScreen.style.overflow = 'hidden';
+                    chatScreen.style.position = 'fixed';
+                    chatScreen.style.top = '0';
+                    chatScreen.style.left = '0';
+                    chatScreen.style.right = '0';
+                    chatScreen.style.bottom = '0';
+                    
+                    // Prevent viewport scrolling
+                    if (window.visualViewport) {
+                        window.scrollTo(0, 0);
+                        document.documentElement.scrollTop = 0;
+                    }
                 } else {
                     // Keyboard is closed
                     if (isKeyboardOpen) {
@@ -853,6 +866,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         topBar.style.setProperty('left', '0', 'important');
                         topBar.style.setProperty('right', '0', 'important');
                     }
+                    
+                    // Reset body and screen positioning
+                    document.body.style.overflow = '';
+                    document.body.style.position = '';
+                    document.body.style.width = '';
+                    chatScreen.style.overflow = '';
+                    chatScreen.style.position = '';
+                    chatScreen.style.top = '';
+                    chatScreen.style.left = '';
+                    chatScreen.style.right = '';
+                    chatScreen.style.bottom = '';
                     
                     // Update base height
                     baseViewportHeight = currentHeight;
