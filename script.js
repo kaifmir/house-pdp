@@ -852,6 +852,13 @@ document.addEventListener('DOMContentLoaded', function() {
             window.visualViewport.addEventListener('resize', handleViewportResize);
         }
         
+        // Haptic feedback on click
+        chatInput.addEventListener('click', () => {
+            if (navigator.vibrate) {
+                navigator.vibrate(25);
+            }
+        });
+        
         chatInput.addEventListener('focus', () => {
             // Haptic feedback
             if (navigator.vibrate) {
