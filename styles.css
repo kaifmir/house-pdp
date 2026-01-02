@@ -1577,10 +1577,11 @@ button, .property-type-card {
     font-family: 'Playfair Display', serif;
     font-size: 28px;
     font-weight: 500;
+    letter-spacing: 0.5px;
     color: var(--text-dark);
     text-align: center;
     margin: 0;
-    line-height: 1.3;
+    line-height: 1.4;
     max-width: 90%;
 }
 
