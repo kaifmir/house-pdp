@@ -1580,24 +1580,24 @@ html, body {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    /* Reduced padding - spacing comes from layout, not padding */
-    /* When intro collapses, messages should fill space naturally */
-    padding: 16px;
+    /* 16px padding from left and right, everything fills in between */
+    padding: 0 16px;
     padding-top: calc(16px + env(safe-area-inset-top));
     padding-bottom: 16px;
     background: transparent;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0; /* Remove gap - spacing handled by intro container */
+    align-items: stretch;
+    gap: 0;
     font-family: 'Inter', sans-serif;
     z-index: 1;
+    box-sizing: border-box;
 }
 
 /* Hero Intro Block - wraps greeting + pills */
 .chat-intro {
     width: 100%;
-    padding: 24px 16px 12px;
+    padding: 24px 0 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1634,7 +1634,7 @@ html, body {
     overflow-wrap: anywhere;
 }
 
-/* Infinite Horizontal Chips Rail - Match search bar width */
+/* Infinite Horizontal Chips Rail - Full width within container */
 .chips-rail {
     width: 100%;
     max-width: 100%;
@@ -1643,7 +1643,7 @@ html, body {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    padding: 4px 16px;
+    padding: 4px 0;
     box-sizing: border-box;
     position: relative;
     isolation: isolate;
