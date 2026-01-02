@@ -636,7 +636,7 @@ document.addEventListener('DOMContentLoaded', function() {
         scoutyCTA.addEventListener('click', () => {
             // Haptic feedback
             if (navigator.vibrate) {
-                navigator.vibrate(30);
+                navigator.vibrate(10);
             }
             
             // Mark splash as seen in sessionStorage (resets on page refresh)
@@ -778,14 +778,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Haptic feedback on click
         chatInput.addEventListener('click', () => {
             if (navigator.vibrate) {
-                navigator.vibrate(25);
+                navigator.vibrate(10);
             }
         });
         
         chatInput.addEventListener('focus', () => {
             // Haptic feedback
             if (navigator.vibrate) {
-                navigator.vibrate(25);
+                navigator.vibrate(10);
             }
             
             // Prevent scrolling
