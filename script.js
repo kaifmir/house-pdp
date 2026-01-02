@@ -794,57 +794,153 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Placeholder animation removed - using static placeholder "Got Questions..."
     
-    // Pills horizontal auto-scroll animation
+    // Pills horizontal infinite scroll (360-degree continuous loop)
     const pillsWrapper = document.getElementById('chat-starter-pills-wrapper');
     const pillsContainer = document.getElementById('chat-starter-pills');
     
     if (pillsWrapper && pillsContainer) {
         let isUserInteracting = false;
         let interactionTimeout = null;
+        let isScrolling = false;
         
-        // Duplicate rows multiple times for seamless infinite loop (only show 2 rows)
-        const rows = pillsWrapper.querySelectorAll('.chat-starter-pills-row');
+        // Get original rows (2 rows)
+        const originalRows = Array.from(pillsWrapper.querySelectorAll('.chat-starter-pills-row'));
+        const originalRowCount = originalRows.length;
         
-        // Store original rows count
-        const originalRowCount = rows.length;
+        // Calculate width of one complete set (2 rows)
+        let oneSetWidth = 0;
+        originalRows.forEach(row => {
+            oneSetWidth += row.offsetWidth + 12; // 12px gap
+        });
         
-        // Duplicate 2 more times (total 3 sets) for seamless infinite loop
-        // This ensures when animation reaches -33.333%, it seamlessly continues
-        for (let i = 0; i < 2; i++) {
-            rows.forEach(row => {
+        // Create 5 more sets (total 6 sets) for seamless infinite scrolling
+        // This gives us enough content to scroll infinitely in both directions
+        for (let i = 0; i < 5; i++) {
+            originalRows.forEach(row => {
                 const clone = row.cloneNode(true);
                 pillsWrapper.appendChild(clone);
             });
         }
         
-        // Calculate exact width for seamless loop
-        const totalRows = pillsWrapper.querySelectorAll('.chat-starter-pills-row').length;
-        const oneSetWidth = Array.from(rows).reduce((sum, row) => {
-            return sum + row.offsetWidth + 12; // 12px gap
-        }, 0);
-        
-        // Ensure animation is smooth and seamless
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes scrollPillsSeamless {
-                0% {
-                    transform: translateX(0);
+        // Wait for layout to settle, then calculate exact width
+        setTimeout(() => {
+            oneSetWidth = 0;
+            originalRows.forEach(row => {
+                oneSetWidth += row.offsetWidth + 12;
+            });
+            
+            // Set up infinite scroll handler
+            let scrollPosition = 0;
+            let lastScrollLeft = 0;
+            
+            // Handle manual scrolling - create infinite loop
+            const handleScroll = () => {
+                if (isScrolling) return;
+                
+                const scrollLeft = pillsContainer.scrollLeft;
+                const maxScroll = pillsContainer.scrollWidth - pillsContainer.clientWidth;
+                
+                // If scrolled to the end (right), reset to beginning of second set
+                if (scrollLeft >= maxScroll - 10) {
+                    isScrolling = true;
+                    pillsContainer.scrollLeft = oneSetWidth;
+                    setTimeout(() => { isScrolling = false; }, 50);
                 }
-                100% {
-                    transform: translateX(-${(oneSetWidth * originalRowCount)}px);
+                // If scrolled to the beginning (left), reset to end of second-to-last set
+                else if (scrollLeft <= 10) {
+                    isScrolling = true;
+                    pillsContainer.scrollLeft = maxScroll - oneSetWidth;
+                    setTimeout(() => { isScrolling = false; }, 50);
                 }
+                
+                lastScrollLeft = scrollLeft;
+            };
+            
+            // Initialize scroll position to start of second set (so we can scroll both ways)
+            pillsContainer.scrollLeft = oneSetWidth;
+            
+            // Listen for scroll events
+            pillsContainer.addEventListener('scroll', handleScroll, { passive: true });
+            
+            // Auto-scroll animation using requestAnimationFrame
+            let autoScrollSpeed = 0.5; // pixels per frame
+            let autoScrollDirection = 1; // 1 for right, -1 for left
+            let lastFrameTime = performance.now();
+            
+            const autoScroll = (currentTime) => {
+                if (!pillsContainer || !chatScreen || !chatScreen.classList.contains('active')) {
+                    return;
+                }
+                
+                // Pause auto-scroll when user is interacting
+                if (isUserInteracting || pillsWrapper.classList.contains('paused')) {
+                    requestAnimationFrame(autoScroll);
+                    return;
+                }
+                
+                const deltaTime = currentTime - lastFrameTime;
+                lastFrameTime = currentTime;
+                
+                // Adjust speed based on frame time for consistent speed
+                const scrollDelta = (autoScrollSpeed * deltaTime) / 16.67; // Normalize to 60fps
+                
+                if (!isScrolling) {
+                    pillsContainer.scrollLeft += scrollDelta * autoScrollDirection;
+                    
+                    // Check if we need to reset position
+                    const scrollLeft = pillsContainer.scrollLeft;
+                    const maxScroll = pillsContainer.scrollWidth - pillsContainer.clientWidth;
+                    
+                    if (scrollLeft >= maxScroll - 10) {
+                        pillsContainer.scrollLeft = oneSetWidth;
+                    } else if (scrollLeft <= 10) {
+                        pillsContainer.scrollLeft = maxScroll - oneSetWidth;
+                    }
+                }
+                
+                requestAnimationFrame(autoScroll);
+            };
+            
+            // Start auto-scroll when chat screen is active
+            if (chatScreen && chatScreen.classList.contains('active')) {
+                setTimeout(() => {
+                    lastFrameTime = performance.now();
+                    requestAnimationFrame(autoScroll);
+                }, 1000);
             }
-        `;
-        document.head.appendChild(style);
+            
+            // Also start when chat screen becomes active
+            if (chatScreen) {
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                            if (chatScreen.classList.contains('active')) {
+                                setTimeout(() => {
+                                    lastFrameTime = performance.now();
+                                    requestAnimationFrame(autoScroll);
+                                }, 1000);
+                            }
+                        }
+                    });
+                });
+                
+                observer.observe(chatScreen, {
+                    attributes: true,
+                    attributeFilter: ['class']
+                });
+            }
+        }, 100);
         
         // Limit visible rows to 2 by setting max-height
-        const firstRow = rows[0];
+        const firstRow = originalRows[0];
         if (firstRow) {
-            const rowHeight = firstRow.offsetHeight;
-            pillsContainer.style.maxHeight = `${(rowHeight + 12) * 2}px`;
+            setTimeout(() => {
+                const rowHeight = firstRow.offsetHeight;
+                pillsContainer.style.maxHeight = `${(rowHeight + 12) * 2}px`;
+            }, 50);
         }
         
-        // Detect user interaction
+        // Detect user interaction - pause auto-scroll
         pillsContainer.addEventListener('touchstart', () => {
             isUserInteracting = true;
             pillsWrapper.classList.add('paused');
@@ -882,33 +978,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 pillsWrapper.classList.remove('paused');
             }, 2000);
         }, { passive: true });
-        
-        // Start animation when chat screen opens
-        if (chatScreen && chatScreen.classList.contains('active')) {
-            setTimeout(() => {
-                pillsWrapper.classList.remove('paused');
-            }, 1000);
-        }
-        
-        // Also start when chat screen becomes active
-        if (chatScreen) {
-            const observer = new MutationObserver((mutations) => {
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                        if (chatScreen.classList.contains('active')) {
-                            setTimeout(() => {
-                                pillsWrapper.classList.remove('paused');
-                            }, 1000);
-                        }
-                    }
-                });
-            });
-            
-            observer.observe(chatScreen, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
-        }
     }
     
     // Back button - Return to homescreen

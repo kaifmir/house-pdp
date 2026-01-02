@@ -1600,6 +1600,9 @@ html, body {
     justify-content: center;
     align-items: center;
     margin-top: 40px;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
 .chat-greeting-text {
@@ -1629,6 +1632,9 @@ html, body {
     max-height: calc(120px - 2px);
     /* Create proper container for edge fades */
     isolation: isolate;
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out, max-height 0.3s ease-out, margin 0.3s ease-out, padding 0.3s ease-out;
 }
 
 .chat-starter-pills::-webkit-scrollbar {
@@ -1682,7 +1688,6 @@ html, body {
     gap: 12px;
     width: max-content;
     padding: 0;
-    animation: scrollPills 30s linear infinite;
     will-change: transform;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
@@ -1691,7 +1696,7 @@ html, body {
 }
 
 .chat-starter-pills-wrapper.paused {
-    animation-play-state: paused;
+    /* Paused state handled by JavaScript */
 }
 
 .chat-starter-pills-row {
@@ -1709,14 +1714,7 @@ html, body {
     padding-left: 24px;
 }
 
-@keyframes scrollPills {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-33.333%);
-    }
-}
+/* Animation removed - using JavaScript for infinite scroll */
 
 .chat-pill {
     background: linear-gradient(135deg, #FFFFFF 0%, #F8F8F8 100%);
@@ -1797,9 +1795,22 @@ html, body {
     background-color: #EDE8E0;
 }
 
-/* Hide pills when keyboard is open */
+/* Hide pills and greeting when keyboard is open with fade animation */
+.chat-screen.keyboard-open .chat-greeting {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+}
+
 .chat-screen.keyboard-open .chat-starter-pills {
-    display: none;
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+    max-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out, max-height 0.3s ease-out, margin 0.3s ease-out, padding 0.3s ease-out;
 }
 
 /* Step 3: Composer - Fixed at bottom, translated up by keyboard height */
