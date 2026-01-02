@@ -960,52 +960,75 @@ document.addEventListener('DOMContentLoaded', function() {
             rail.classList.add('ios-fade');
         }
 
-        let chipsTimer = null;
         let pausedUntil = 0;
+        let running = false;
+        let lastT = 0;
+        let dir = 1;
+
+        const speed = 18; // px per second (subtle). tune 12–24.
 
         function pauseChips(ms = 1000) {
             pausedUntil = Date.now() + ms;
         }
 
-        function startChipsAuto() {
-            const rail = document.getElementById('chipsRail');
-            const track = document.getElementById('chipsTrack');
-            if (!rail || !track) return;
+        function setLeft(x) {
+            if (isIOS && rail.scrollTo) {
+                rail.scrollTo({ left: x, behavior: 'auto' });
+            } else {
+                rail.scrollLeft = x;
+            }
+        }
 
-            // Ensure scrollable
+        function loopEdges() {
+            const third = track.scrollWidth / 3;
+            const x = rail.scrollLeft;
+            if (x < third * 0.5) setLeft(x + third);
+            if (x > third * 1.5) setLeft(x - third);
+        }
+
+        function tick(t) {
+            if (!running) return;
+            if (!lastT) lastT = t;
+            const dt = (t - lastT) / 1000; // seconds
+            lastT = t;
+
+            if (Date.now() >= pausedUntil) {
+                // Ensure scrollable before moving
+                if (!ensureScrollable()) {
+                    running = false;
+                    rail.classList.remove('auto');
+                    return;
+                }
+
+                // Toggle momentum scrolling OFF only while auto running
+                if (!rail.classList.contains('auto')) {
+                    rail.classList.add('auto');
+                }
+
+                const next = rail.scrollLeft + dir * speed * dt;
+                setLeft(next);
+                loopEdges();
+            }
+
+            requestAnimationFrame(tick);
+        }
+
+        function startChipsAuto() {
+            if (running) {
+                console.log('Auto-scroll already running');
+                return;
+            }
+
             if (!ensureScrollable()) {
                 console.warn('Cannot start auto-scroll: rail not scrollable');
                 debugChips();
                 return;
             }
 
-            // Toggle momentum scrolling OFF only while auto running
-            rail.classList.add('auto');
-
-            if (chipsTimer) {
-                console.log('Auto-scroll already running');
-                return;
-            }
-
-            console.log('Starting chips auto-scroll');
-
-            // Auto-scroll via setInterval + scrollTo fallback (iOS-friendly)
-            chipsTimer = setInterval(() => {
-                if (Date.now() < pausedUntil) return;
-
-                const next = rail.scrollLeft + 1; // slow drift
-                if (rail.scrollTo) {
-                    rail.scrollTo({ left: next, behavior: 'auto' });
-                } else {
-                    rail.scrollLeft = next;
-                }
-
-                // Infinite loop correction (if using 3x clones)
-                const third = track.scrollWidth / 3;
-                const x = rail.scrollLeft;
-                if (x < third * 0.5) rail.scrollLeft = x + third;
-                if (x > third * 1.5) rail.scrollLeft = x - third;
-            }, 20);
+            console.log('Starting chips auto-scroll (smooth rAF)');
+            running = true;
+            lastT = 0;
+            requestAnimationFrame(tick);
         }
 
         // Resume automatically, pause on any interaction
