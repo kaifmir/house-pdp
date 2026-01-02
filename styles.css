@@ -1530,6 +1530,37 @@ button, .property-type-card {
     overscroll-behavior: contain;
 }
 
+/* Starter Conversation Pills */
+.chat-starter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    margin-bottom: 24px;
+}
+
+.chat-pill {
+    background-color: #F5F1EB;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.chat-pill:active {
+    transform: scale(0.98);
+    background-color: #EDE8E0;
+}
+
 .chat-screen.keyboard-open .chat-messages {
     padding-bottom: 120px;
     overflow-y: hidden;
