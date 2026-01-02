@@ -1450,12 +1450,12 @@ button, .property-type-card {
     pointer-events: all;
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    padding: 12px;
+    padding: 10px;
 }
 
 .chat-back-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     stroke: var(--text-dark);
 }
 
@@ -1618,7 +1618,7 @@ button, .property-type-card {
 .chat-send-btn {
     position: absolute;
     right: 6px;
-    background-color: #9D6DF0;
+    background-color: #000000;
     border: none;
     border-radius: 50%;
     width: 40px;
