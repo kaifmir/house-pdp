@@ -879,66 +879,94 @@ document.addEventListener('DOMContentLoaded', function() {
         return { rail, track, loopEdges };
     }
 
-    // Soft auto-movement + manual scroll (iOS-safe implementation)
+    // Soft auto-movement + manual scroll (iOS-safe implementation with timer)
     (function initChipsAutoScroll() {
         const ctx = setupInfiniteChips();
         if (!ctx) return;
 
-        const { rail } = ctx;
+        const { rail, track } = ctx;
 
         // iOS detection
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        // Debug logging
+        console.log('isIOS', isIOS, 'rail scrollWidth', rail.scrollWidth, 'rail clientWidth', rail.clientWidth);
 
         // Apply iOS-specific fade overlay (instead of mask-image)
         if (isIOS) {
             rail.classList.add('ios-fade');
         }
 
-        // iOS-safe scroll function
-        function setScrollLeft(el, x) {
-            // iOS: scrollTo is more reliable than setting scrollLeft
-            if (isIOS && typeof el.scrollTo === "function") {
-                el.scrollTo({ left: x, behavior: "auto" });
-            } else {
-                el.scrollLeft = x;
-            }
-        }
-
-        let dir = 1;                 // 1 = right, -1 = left
-        let speed = 0.25;            // pixels per frame (~slow drift)
-        let rafId = null;
+        let intervalId = null;
         let pausedUntil = 0;
+        let dir = 1;                 // 1 = right, -1 = left
+        const speedPx = 1;           // pixels per tick
+        const tickMs = 20;           // 50fps-ish
 
-        function pause(ms = 1200) {
+        function pause(ms = 1000) {
             pausedUntil = Date.now() + ms;
-            rail.classList.remove('auto-scrolling');
+            if (isIOS) {
+                rail.classList.remove('auto-scrolling');
+            }
         }
 
-        function resume() {
-            rail.classList.add('auto-scrolling');
-        }
+        function startAuto() {
+            if (intervalId) return;
 
-        function tick() {
-            const now = Date.now();
+            if (isIOS) {
+                // iOS: use setInterval + scrollLeft
+                intervalId = setInterval(() => {
+                    if (Date.now() < pausedUntil) return;
 
-            // pause when user interacted recently
-            if (now < pausedUntil) {
+                    // Move
+                    rail.scrollLeft += dir * speedPx;
+
+                    // Keep infinite loop correction
+                    const third = track.scrollWidth / 3;
+                    const x = rail.scrollLeft;
+                    if (x < third * 0.5) rail.scrollLeft = x + third;
+                    if (x > third * 1.5) rail.scrollLeft = x - third;
+                }, tickMs);
+            } else {
+                // Android: use requestAnimationFrame
+                let rafId = null;
+                const speed = 0.25; // pixels per frame
+
+                function tick() {
+                    const now = Date.now();
+
+                    if (now < pausedUntil) {
+                        rafId = requestAnimationFrame(tick);
+                        return;
+                    }
+
+                    // Soft auto-move
+                    rail.scrollLeft += dir * speed;
+
+                    // Keep infinite loop correction
+                    const third = track.scrollWidth / 3;
+                    const x = rail.scrollLeft;
+                    if (x < third * 0.5) rail.scrollLeft = x + third;
+                    if (x > third * 1.5) rail.scrollLeft = x - third;
+
+                    rafId = requestAnimationFrame(tick);
+                }
+
                 rafId = requestAnimationFrame(tick);
-                return;
+                intervalId = { cancel: () => cancelAnimationFrame(rafId) };
             }
+        }
 
-            // Resume auto-scrolling class before updating scroll
-            resume();
-
-            // Soft auto-move by incrementing scrollLeft (iOS-safe)
-            if (rail) {
-                const currentScroll = rail.scrollLeft;
-                const newScroll = currentScroll + (dir * speed);
-                setScrollLeft(rail, newScroll);
+        function stopAuto() {
+            if (intervalId) {
+                if (isIOS) {
+                    clearInterval(intervalId);
+                } else if (intervalId.cancel) {
+                    intervalId.cancel();
+                }
+                intervalId = null;
             }
-
-            rafId = requestAnimationFrame(tick);
         }
 
         // Pause on any user intent to scroll
@@ -947,26 +975,43 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Also pause while actively scrolling
-        let scrollTimeout;
         rail.addEventListener('scroll', () => {
             pause(600);
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => pause(0), 0);
         }, { passive: true });
 
-        // Start auto-scroll - delay start slightly
-        setTimeout(() => {
-            rafId = requestAnimationFrame(tick);
-        }, 500);
+        // iOS: do not auto-start on load; wait for gesture
+        if (isIOS) {
+            rail.addEventListener('touchstart', () => {
+                startAuto();
+                console.log('iOS: Auto-scroll started after touch');
+            }, { once: true, passive: true });
+            rail.addEventListener('pointerdown', () => {
+                startAuto();
+                console.log('iOS: Auto-scroll started after pointer');
+            }, { once: true, passive: true });
+        } else {
+            // Android: start immediately
+            setTimeout(() => {
+                startAuto();
+            }, 500);
+        }
 
         // Stop auto-scroll when keyboard opens (intro is hidden)
         const intro = document.getElementById('chat-intro');
         if (intro) {
             const observer = new MutationObserver(() => {
                 if (intro.classList.contains('is-hidden')) {
-                    pause(999999); // Pause indefinitely while hidden
+                    stopAuto();
+                    pause(999999);
                 } else {
-                    pause(0); // Resume when visible
+                    if (!intervalId) {
+                        if (isIOS) {
+                            // Wait for next touch on iOS
+                        } else {
+                            startAuto();
+                        }
+                    }
+                    pause(0);
                 }
             });
             observer.observe(intro, {
