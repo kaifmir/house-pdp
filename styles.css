@@ -1581,6 +1581,7 @@ html, body {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     /* Reduced padding - spacing comes from layout, not padding */
+    /* When intro collapses, messages should fill space naturally */
     padding: 16px;
     padding-top: calc(16px + env(safe-area-inset-top));
     padding-bottom: 16px;
@@ -1588,21 +1589,36 @@ html, body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 32px;
+    gap: 0; /* Remove gap - spacing handled by intro container */
     font-family: 'Inter', sans-serif;
     z-index: 1;
 }
 
 /* Chat Greeting */
+/* Hero Intro Block - wraps greeting + pills */
+.chat-intro {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px; /* large enough */
+    transition: opacity 180ms ease, transform 180ms ease, max-height 220ms ease;
+    will-change: opacity, transform, max-height;
+    overflow: hidden;
+}
+
+.chat-intro.is-hidden {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
 .chat-greeting {
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     margin-top: 40px;
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
 .chat-greeting-text {
@@ -1632,9 +1648,6 @@ html, body {
     max-height: calc(120px - 2px);
     /* Create proper container for edge fades */
     isolation: isolate;
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 0.3s ease-out, transform 0.3s ease-out, max-height 0.3s ease-out, margin 0.3s ease-out, padding 0.3s ease-out;
 }
 
 .chat-starter-pills::-webkit-scrollbar {
@@ -1795,23 +1808,7 @@ html, body {
     background-color: #EDE8E0;
 }
 
-/* Hide pills and greeting when keyboard is open with fade animation */
-.chat-screen.keyboard-open .chat-greeting {
-    opacity: 0;
-    transform: translateY(-10px);
-    pointer-events: none;
-}
-
-.chat-screen.keyboard-open .chat-starter-pills {
-    opacity: 0;
-    transform: translateY(-10px);
-    pointer-events: none;
-    max-height: 0;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    transition: opacity 0.3s ease-out, transform 0.3s ease-out, max-height 0.3s ease-out, margin 0.3s ease-out, padding 0.3s ease-out;
-}
+/* Keyboard open state handled by .chat-intro.is-hidden class */
 
 /* Step 3: Composer - Fixed at bottom, translated up by keyboard height */
 .chat-input-bar {

@@ -980,6 +980,59 @@ document.addEventListener('DOMContentLoaded', function() {
         }, { passive: true });
     }
     
+    // Step 3: Reliable keyboard detection for chat-intro hide/show
+    (function () {
+        const intro = document.getElementById('chat-intro');
+        if (!intro) return;
+
+        let baseVVH = null;
+        let keyboardOpen = false;
+
+        function setHiddenState(isOpen) {
+            if (isOpen === keyboardOpen) return;
+            keyboardOpen = isOpen;
+            intro.classList.toggle('is-hidden', isOpen);
+        }
+
+        function onVVResize() {
+            if (!window.visualViewport) return;
+
+            const vv = window.visualViewport;
+            if (baseVVH == null) baseVVH = vv.height;
+
+            // threshold ~120px works well on Android (avoid small UI chrome changes)
+            const delta = baseVVH - vv.height;
+            const isOpen = delta > 120;
+
+            setHiddenState(isOpen);
+        }
+
+        // Prime baseline once user interacts (more accurate on Android)
+        function prime() {
+            if (window.visualViewport && baseVVH == null) {
+                baseVVH = window.visualViewport.height;
+                onVVResize();
+            }
+        }
+
+        window.addEventListener('load', prime);
+        window.addEventListener('touchstart', prime, { once: true, passive: true });
+        window.addEventListener('pointerdown', prime, { once: true, passive: true });
+
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', onVVResize);
+            window.visualViewport.addEventListener('scroll', onVVResize);
+        }
+
+        // Fallback: focus/blur (only if visualViewport missing)
+        document.addEventListener('focusin', (e) => {
+            if (!window.visualViewport && e.target.matches('input,textarea')) setHiddenState(true);
+        });
+        document.addEventListener('focusout', (e) => {
+            if (!window.visualViewport && e.target.matches('input,textarea')) setHiddenState(false);
+        });
+    })();
+    
     // Back button - Return to homescreen
     if (chatBackBtn) {
         chatBackBtn.addEventListener('click', () => {
