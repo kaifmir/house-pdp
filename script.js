@@ -428,18 +428,43 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Nav item event handlers
-    navItems.forEach((item) => {
+    // Nav item event handlers - ensure elements exist
+    if (!navItems || navItems.length === 0) {
+        console.error('Nav items not found!');
+        return;
+    }
+    
+    if (!navSliderBg) {
+        console.error('Nav slider bg not found!');
+    }
+    
+    navItems.forEach((item, index) => {
+        if (!item) return;
+        
         const navType = item.getAttribute('data-nav');
+        if (!navType) return;
+        
         let touchStartTime = 0;
         let touchStartX = 0;
         let touchStartY = 0;
         
-        const handleNavAction = () => {
+        const handleNavAction = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            console.log('Nav clicked:', navType);
+            
             // Update active state and slider for all nav items
-            navItems.forEach(nav => nav.classList.remove('active'));
+            navItems.forEach(nav => {
+                if (nav) nav.classList.remove('active');
+            });
             item.classList.add('active');
-            updateSliderPosition(item, true);
+            
+            if (navSliderBg && bottomNav) {
+                updateSliderPosition(item, true);
+            }
             
             if (navType === 'chat') {
                 // Check if user has already seen the splash screen
@@ -463,19 +488,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 } else {
                     // Show splash screen
-                    openBottomSheet();
+                    if (typeof openBottomSheet === 'function') {
+                        openBottomSheet();
+                    }
                 }
             } else {
-                const navType = item.getAttribute('data-nav');
                 console.log('Navigated to:', navType);
             }
         };
         
-        item.addEventListener('click', function(e) {
-            e.stopPropagation();
-            handleNavAction();
-        });
+        // Click handler
+        item.addEventListener('click', handleNavAction, false);
         
+        // Touch handlers for mobile
         item.addEventListener('touchstart', function(e) {
             touchStartTime = Date.now();
             touchStartX = e.touches[0].clientX;
@@ -488,9 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const yDiff = Math.abs(e.changedTouches[0].clientY - touchStartY);
             
             if (timeDiff < TAP_TIME_THRESHOLD && xDiff < TAP_THRESHOLD && yDiff < TAP_THRESHOLD) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleNavAction();
+                handleNavAction(e);
             }
         }, { passive: false });
     });
