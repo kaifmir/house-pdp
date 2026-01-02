@@ -1154,11 +1154,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.body.style.overflow = '';
                     if (chatInput) {
                         chatInput.blur();
-                        // Stop placeholder animation
-                        if (chatTypingTimeout) {
-                            clearTimeout(chatTypingTimeout);
-                            chatTypingTimeout = null;
-                        }
                     }
                 }, 400);
             }
