@@ -1608,8 +1608,8 @@ button, .property-type-card {
     width: 30px;
     pointer-events: none;
     z-index: 200;
-    /* Match exact background color from chat screen gradient */
-    background: #F5F5F5;
+    /* Match exact background color from chat screen gradient (middle tone) */
+    background: #F0F0F0;
 }
 
 .chat-starter-pills::before {
@@ -1618,11 +1618,11 @@ button, .property-type-card {
     left: -4px;
     width: 34px;
     background: linear-gradient(to right, 
-        #F5F5F5 0%, 
-        #F5F5F5 20%, 
-        rgba(245, 245, 245, 0.98) 45%, 
-        rgba(245, 245, 245, 0.85) 70%, 
-        rgba(245, 245, 245, 0) 100%);
+        #F0F0F0 0%, 
+        #F0F0F0 20%, 
+        rgba(240, 240, 240, 0.98) 45%, 
+        rgba(240, 240, 240, 0.85) 70%, 
+        rgba(240, 240, 240, 0) 100%);
 }
 
 .chat-starter-pills::after {
@@ -1632,11 +1632,11 @@ button, .property-type-card {
     right: -4px;
     width: 34px;
     background: linear-gradient(to left, 
-        #F5F5F5 0%, 
-        #F5F5F5 20%, 
-        rgba(245, 245, 245, 0.98) 45%, 
-        rgba(245, 245, 245, 0.85) 70%, 
-        rgba(245, 245, 245, 0) 100%);
+        #F0F0F0 0%, 
+        #F0F0F0 20%, 
+        rgba(240, 240, 240, 0.98) 45%, 
+        rgba(240, 240, 240, 0.85) 70%, 
+        rgba(240, 240, 240, 0) 100%);
 }
 
 .chat-starter-pills-wrapper {
