@@ -661,7 +661,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (pillsContainer) {
         let isUserScrolling = false;
         let scrollTimeout = null;
-        let animationPaused = false;
+        let animationFrame = null;
+        let scrollPosition = 0;
+        let scrollSpeed = 0.5; // pixels per frame
         
         // Duplicate pills for seamless loop
         const pills = pillsContainer.querySelectorAll('.chat-pill');
@@ -670,10 +672,32 @@ document.addEventListener('DOMContentLoaded', function() {
             pillsContainer.appendChild(clone);
         });
         
-        // Detect user scrolling
+        const maxScroll = pillsContainer.scrollWidth / 2;
+        
+        function autoScroll() {
+            if (!isUserScrolling && pillsContainer) {
+                scrollPosition += scrollSpeed;
+                
+                // Reset to beginning when reaching halfway (seamless loop)
+                if (scrollPosition >= maxScroll) {
+                    scrollPosition = 0;
+                }
+                
+                pillsContainer.scrollLeft = scrollPosition;
+                animationFrame = requestAnimationFrame(autoScroll);
+            }
+        }
+        
+        // Detect user scrolling/interaction
         pillsContainer.addEventListener('scroll', () => {
             isUserScrolling = true;
-            pillsContainer.classList.add('scrolling');
+            scrollPosition = pillsContainer.scrollLeft;
+            
+            // Cancel animation
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
             
             // Clear existing timeout
             if (scrollTimeout) {
@@ -683,20 +707,67 @@ document.addEventListener('DOMContentLoaded', function() {
             // Resume animation after user stops scrolling
             scrollTimeout = setTimeout(() => {
                 isUserScrolling = false;
-                pillsContainer.classList.remove('scrolling');
+                autoScroll();
             }, 2000);
         }, { passive: true });
         
-        // Also detect touch/mouse interactions
+        // Detect touch/mouse interactions
         pillsContainer.addEventListener('touchstart', () => {
-            pillsContainer.classList.add('scrolling');
+            isUserScrolling = true;
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
+        }, { passive: true });
+        
+        pillsContainer.addEventListener('mousedown', () => {
+            isUserScrolling = true;
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+                animationFrame = null;
+            }
         }, { passive: true });
         
         pillsContainer.addEventListener('touchend', () => {
             setTimeout(() => {
-                pillsContainer.classList.remove('scrolling');
+                isUserScrolling = false;
+                autoScroll();
             }, 2000);
         }, { passive: true });
+        
+        pillsContainer.addEventListener('mouseup', () => {
+            setTimeout(() => {
+                isUserScrolling = false;
+                autoScroll();
+            }, 2000);
+        }, { passive: true });
+        
+        // Start animation when chat screen opens
+        if (chatScreen && chatScreen.classList.contains('active')) {
+            setTimeout(() => {
+                autoScroll();
+            }, 1000);
+        }
+        
+        // Also start when chat screen becomes active
+        if (chatScreen) {
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                        if (chatScreen.classList.contains('active') && !animationFrame) {
+                            setTimeout(() => {
+                                autoScroll();
+                            }, 1000);
+                        }
+                    }
+                });
+            });
+            
+            observer.observe(chatScreen, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        }
     }
     
     // Back button - Return to homescreen

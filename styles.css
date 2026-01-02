@@ -1584,25 +1584,10 @@ button, .property-type-card {
     scroll-behavior: smooth;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    animation: scrollPills 30s linear infinite;
-    animation-play-state: running;
 }
 
 .chat-starter-pills::-webkit-scrollbar {
     display: none;
-}
-
-.chat-starter-pills.scrolling {
-    animation-play-state: paused;
-}
-
-@keyframes scrollPills {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-50%);
-    }
 }
 
 .chat-pill {
