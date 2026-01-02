@@ -1597,7 +1597,7 @@ button, .property-type-card {
     flex-direction: column;
     gap: 12px;
     width: max-content;
-    animation: scrollPills 40s linear infinite;
+    animation: scrollPills 25s linear infinite;
 }
 
 .chat-starter-pills-wrapper.paused {
@@ -1645,37 +1645,37 @@ button, .property-type-card {
     min-width: 140px;
 }
 
-/* Subtle different muted stroke colors for each pill - increased saturation */
+/* Stronger colors with lighter stroke opacity */
 .chat-pill:nth-child(1) {
-    border-color: rgba(140, 160, 200, 0.75);
+    border-color: rgba(100, 140, 220, 0.3);
 }
 
 .chat-pill:nth-child(2) {
-    border-color: rgba(180, 140, 180, 0.75);
+    border-color: rgba(180, 100, 200, 0.3);
 }
 
 .chat-pill:nth-child(3) {
-    border-color: rgba(150, 180, 150, 0.75);
+    border-color: rgba(120, 200, 120, 0.3);
 }
 
 .chat-pill:nth-child(4) {
-    border-color: rgba(200, 160, 140, 0.75);
+    border-color: rgba(240, 140, 100, 0.3);
 }
 
 .chat-pill:nth-child(5) {
-    border-color: rgba(160, 190, 200, 0.75);
+    border-color: rgba(100, 170, 230, 0.3);
 }
 
 .chat-pill:nth-child(6) {
-    border-color: rgba(190, 160, 190, 0.75);
+    border-color: rgba(210, 120, 210, 0.3);
 }
 
 .chat-pill:nth-child(7) {
-    border-color: rgba(130, 150, 190, 0.75);
+    border-color: rgba(80, 130, 200, 0.3);
 }
 
 .chat-pill:nth-child(8) {
-    border-color: rgba(170, 150, 170, 0.75);
+    border-color: rgba(190, 120, 190, 0.3);
 }
 
 .chat-pill:active {

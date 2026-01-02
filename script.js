@@ -664,12 +664,22 @@ document.addEventListener('DOMContentLoaded', function() {
         let isUserInteracting = false;
         let interactionTimeout = null;
         
-        // Duplicate rows for seamless loop
+        // Duplicate rows multiple times for seamless infinite loop (only show 2 rows)
         const rows = pillsWrapper.querySelectorAll('.chat-starter-pills-row');
-        rows.forEach(row => {
-            const clone = row.cloneNode(true);
-            pillsWrapper.appendChild(clone);
-        });
+        // Duplicate 3 times to ensure seamless loop
+        for (let i = 0; i < 3; i++) {
+            rows.forEach(row => {
+                const clone = row.cloneNode(true);
+                pillsWrapper.appendChild(clone);
+            });
+        }
+        
+        // Limit visible rows to 2 by setting max-height
+        const firstRow = rows[0];
+        if (firstRow) {
+            const rowHeight = firstRow.offsetHeight;
+            pillsContainer.style.maxHeight = `${(rowHeight + 12) * 2}px`;
+        }
         
         // Detect user interaction
         pillsContainer.addEventListener('touchstart', () => {
