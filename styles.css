@@ -1575,9 +1575,6 @@ button, .property-type-card {
 
 /* Starter Conversation Pills */
 .chat-starter-pills {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
     width: 100%;
     max-width: 100%;
     padding: 0 16px;
@@ -1596,11 +1593,13 @@ button, .property-type-card {
 }
 
 .chat-starter-pills-wrapper {
-    display: flex;
+    display: inline-flex;
     flex-direction: column;
     gap: 12px;
     width: max-content;
     animation: scrollPills 40s linear infinite;
+    column-count: 2;
+    column-gap: 12px;
 }
 
 .chat-starter-pills-wrapper.paused {
@@ -1611,6 +1610,7 @@ button, .property-type-card {
     display: flex;
     gap: 12px;
     flex-wrap: nowrap;
+    width: max-content;
 }
 
 @keyframes scrollPills {
