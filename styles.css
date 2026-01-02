@@ -1709,7 +1709,8 @@ html, body {
 }
 
 .chat-starter-pills-wrapper.paused {
-    /* Paused state handled by JavaScript */
+    /* Paused state handled by JavaScript - no CSS needed */
+    animation-play-state: paused;
 }
 
 .chat-starter-pills-row {
