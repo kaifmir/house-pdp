@@ -1586,13 +1586,13 @@ button, .property-type-card {
 
 /* Starter Conversation Pills */
 .chat-starter-pills {
-    width: 100%;
-    max-width: 100%;
-    padding: 0;
+    width: calc(100% - 2px);
+    max-width: calc(100% - 2px);
+    padding: 1px;
     margin: 0 0 24px 0;
     overflow: hidden;
     position: relative;
-    max-height: 120px;
+    max-height: calc(120px - 2px);
     /* Create proper container for edge fades */
     isolation: isolate;
 }
