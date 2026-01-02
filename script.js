@@ -1007,168 +1007,128 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-        // Edge fade parity: feature-detect mask support, fallback to overlay
-        const supportsMask =
-            CSS.supports('-webkit-mask-image', 'linear-gradient(to right, transparent, #000)') ||
-            CSS.supports('mask-image', 'linear-gradient(to right, transparent, #000)');
-        
-        // If mask doesn't render reliably (iOS WebKit sometimes has issues), force fallback
-        // Runtime check: if mask is "supported" but not visible, use overlay
-        if (!supportsMask) {
-            rail.classList.add('fade-overlay');
-            parityLog('Edge fade: using overlay fallback (mask not supported)');
-        } else {
-            // On iOS WebKit, mask-image can be "supported" but not render correctly
-            // Force overlay fallback for iOS WebKit (can be removed if mask works)
-            const isIOSWebKit = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            if (isIOSWebKit) {
-                rail.classList.add('fade-overlay');
-                parityLog('Edge fade: using overlay fallback (iOS WebKit mask rendering issue)');
-            } else {
-                parityLog('Edge fade: using mask-image (supported)');
-            }
-        }
+            // Ensure scrollable: clone until it is
+            const original = originalSet.outerHTML;
+            track.innerHTML = original + original + original;
 
-        let pausedUntil = 0;
-        let running = false;
-        let lastT = 0;
-        let dir = 1;
-
-        const speed = 18; // px per second (subtle). tune 12–24.
-
-        function pauseChips(ms = 1000) {
-            pausedUntil = Date.now() + ms;
-        }
-
-        // Platform parity: use scrollTo where available (iOS + modern browsers)
-        function setLeft(x) {
-            if (rail.scrollTo) {
-                rail.scrollTo({ left: x, behavior: 'auto' });
-            } else {
-                rail.scrollLeft = x;
-            }
-        }
-
-        function loopEdges() {
-            const third = track.scrollWidth / 3;
-            const x = rail.scrollLeft;
-            if (x < third * 0.5) setLeft(x + third);
-            if (x > third * 1.5) setLeft(x - third);
-        }
-
-        function tick(t) {
-            if (!running) return;
-            if (!lastT) lastT = t;
-            const dt = (t - lastT) / 1000; // seconds
-            lastT = t;
-
-            if (Date.now() >= pausedUntil) {
-                // Ensure scrollable before moving
-                if (!ensureScrollable()) {
-                    running = false;
-                    rail.classList.remove('auto');
-                    return;
-                }
-
-                // Toggle momentum scrolling OFF only while auto running
-                if (!rail.classList.contains('auto')) {
-                    rail.classList.add('auto');
-                }
-
-                const next = rail.scrollLeft + dir * speed * dt;
-                setLeft(next);
-                loopEdges();
+            // If still not scrollable, add more clones
+            let safety = 0;
+            while (rail.scrollWidth <= rail.clientWidth + 5 && safety < 5) {
+                track.innerHTML += original;
+                safety++;
             }
 
-            requestAnimationFrame(tick);
-        }
+            // Hard validation: check overflow and scroll-snap
+            const cs = getComputedStyle(rail);
 
-        function startChipsAuto() {
-            if (running) {
-                console.log('Auto-scroll already running');
-                return;
-            }
+            // Remove snap if any
+            rail.style.scrollSnapType = "none";
+            track.style.scrollSnapType = "none";
 
-            if (!ensureScrollable()) {
-                console.warn('Cannot start auto-scroll: rail not scrollable');
-                debugChips();
-                return;
-            }
+            // Ensure overflow is correct
+            rail.style.overflowX = "auto";
+            rail.style.overflowY = "hidden";
+            rail.style.webkitOverflowScrolling = "touch";
 
-            parityLog('Starting chips auto-scroll (smooth rAF time-based)');
-            running = true;
-            lastT = 0;
-            requestAnimationFrame(tick);
-        }
-        
-        // Debug: log auto-scroll status
-        if (window.__CHAT_DEBUG__) {
-            setInterval(() => {
-                parityLog('Pills auto-scroll:', {
-                    running: running,
-                    paused: Date.now() < pausedUntil,
-                    scrollLeft: rail.scrollLeft,
+            // Hard validation: must be scrollable
+            if (rail.scrollWidth <= rail.clientWidth + 5) {
+                show({
+                    error: "Rail not scrollable after cloning",
+                    clientWidth: rail.clientWidth,
                     scrollWidth: rail.scrollWidth,
-                    clientWidth: rail.clientWidth
+                    clones: 3 + safety
                 });
-            }, 2000);
-        }
+                return;
+            }
 
-        // Resume automatically, pause on any interaction
-        ['touchstart', 'pointerdown', 'wheel', 'mousedown'].forEach(evt => {
-            rail.addEventListener(evt, () => pauseChips(1200), { passive: true });
-        });
-        rail.addEventListener('scroll', () => pauseChips(600), { passive: true });
-
-        // Auto-start reliably on iOS (no "only after touch")
-        function bootChips() {
-            startChipsAuto();
-            requestAnimationFrame(startChipsAuto);
-            setTimeout(startChipsAuto, 150);
-            setTimeout(debugChips, 200);
-        }
-
-        // Start multiple times to beat iOS timing/bfcache
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', bootChips);
-        } else {
-            bootChips();
-        }
-        window.addEventListener('pageshow', bootChips); // iOS bfcache restore
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) bootChips();
-        });
-
-        // Stop auto-scroll when keyboard opens (intro is hidden)
-        const intro = document.getElementById('chat-intro');
-        if (intro) {
-            const observer = new MutationObserver(() => {
-                if (intro.classList.contains('is-hidden')) {
-                    if (intervalId) {
-                        if (isIOS) {
-                            clearInterval(intervalId);
-                        } else if (intervalId.cancel) {
-                            intervalId.cancel();
-                        }
-                        intervalId = null;
-                    }
-                    pause(999999);
-                } else {
-                    if (!intervalId) {
-                        if (isIOS) {
-                            // Wait for next touch on iOS
-                        } else {
-                            startAuto();
-                        }
-                    }
-                    pause(0);
+            // Edge fade parity: feature-detect mask support, fallback to overlay
+            const supportsMask =
+                CSS.supports('-webkit-mask-image', 'linear-gradient(to right, transparent, #000)') ||
+                CSS.supports('mask-image', 'linear-gradient(to right, transparent, #000)');
+            
+            if (!supportsMask) {
+                rail.classList.add('fade-overlay');
+            } else {
+                const isIOSWebKit = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                if (isIOSWebKit) {
+                    rail.classList.add('fade-overlay');
                 }
-            });
-            observer.observe(intro, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
+            }
+
+            // Start in middle (infinite loop correction)
+            function jumpMiddle() {
+                const third = track.scrollWidth / 3;
+                if (third > 0) {
+                    rail.scrollLeft = third;
+                }
+            }
+            requestAnimationFrame(jumpMiddle);
+            setTimeout(jumpMiddle, 60);
+
+            // Auto-scroll engine: time-based rAF (singleton guard)
+            let pausedUntil = 0;
+            let running = true; // Start running immediately
+            let lastT = 0;
+            const speed = 18; // px/sec subtle
+            let dir = 1;
+
+            function pause(ms = 1000) {
+                pausedUntil = Date.now() + ms;
+            }
+
+            // Pause on interaction, resume automatically
+            ['touchstart', 'pointerdown', 'wheel', 'mousedown'].forEach(evt =>
+                rail.addEventListener(evt, () => pause(1200), { passive: true })
+            );
+            rail.addEventListener('scroll', () => pause(600), { passive: true });
+
+            function loopEdges() {
+                const third = track.scrollWidth / 3;
+                const x = rail.scrollLeft;
+                if (x < third * 0.5) rail.scrollLeft = x + third;
+                if (x > third * 1.5) rail.scrollLeft = x - third;
+            }
+
+            function tick(t) {
+                if (!running) return;
+                if (!lastT) lastT = t;
+                const dt = (t - lastT) / 1000;
+                lastT = t;
+
+                if (Date.now() >= pausedUntil) {
+                    // Toggle momentum scrolling OFF only while auto running
+                    if (!rail.classList.contains('auto')) {
+                        rail.classList.add('auto');
+                    }
+
+                    rail.scrollLeft += dir * speed * dt;
+                    loopEdges();
+                }
+
+                // Update debug badge
+                show({
+                    railFound: true,
+                    trackFound: true,
+                    clientWidth: rail.clientWidth,
+                    scrollWidth: rail.scrollWidth,
+                    scrollLeft: Math.round(rail.scrollLeft),
+                    paused: Date.now() < pausedUntil,
+                    pausedUntil: Math.round((pausedUntil - Date.now()) / 1000) + 's',
+                    running: running,
+                    overflowX: getComputedStyle(rail).overflowX,
+                    scrollSnapType: getComputedStyle(rail).scrollSnapType
+                });
+
+                requestAnimationFrame(tick);
+            }
+
+            // Start animation immediately
+            requestAnimationFrame(tick);
+
+        } catch (e) {
+            show({ error: String(e), stack: e.stack });
+            console.error('Pills auto-scroll error:', e);
         }
     })();
     
