@@ -1789,7 +1789,10 @@ html, body {
     background-color: #EDE8E0;
 }
 
-/* Messages area remains scrollable even when keyboard is open */
+/* Hide pills when keyboard is open */
+.chat-screen.keyboard-open .chat-starter-pills {
+    display: none;
+}
 
 /* Step 3: Composer - Fixed at bottom, translated up by keyboard height */
 .chat-input-bar {
