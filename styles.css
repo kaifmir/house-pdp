@@ -1648,16 +1648,47 @@ html, body {
     box-sizing: border-box;
     position: relative;
     isolation: isolate;
-    /* Soft edge fade using mask - Safari iOS compatible */
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
-    mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    /* Soft edge fade using mask (Android OK) */
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 8%, #000 92%, transparent 100%);
     /* Safari iOS hardware acceleration */
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
     will-change: scroll-position;
-    /* Force hardware acceleration on Safari */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+}
+
+/* iOS: disable momentum scrolling during auto-scroll to allow JS updates */
+.chips-rail.auto-scrolling {
+    -webkit-overflow-scrolling: auto;
+}
+
+/* iOS: disable mask-image, use overlay gradients instead (WebKit bug fix) */
+.chips-rail.ios-fade {
+    -webkit-mask-image: none;
+    mask-image: none;
+}
+
+.chips-rail.ios-fade::before,
+.chips-rail.ios-fade::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.chips-rail.ios-fade::before {
+    left: 0;
+    background: linear-gradient(to right, #F5F5F5 0%, rgba(245, 245, 245, 0.95) 30%, rgba(245, 245, 245, 0.70) 60%, rgba(245, 245, 245, 0) 100%);
+}
+
+.chips-rail.ios-fade::after {
+    right: 0;
+    background: linear-gradient(to left, #F5F5F5 0%, rgba(245, 245, 245, 0.95) 30%, rgba(245, 245, 245, 0.70) 60%, rgba(245, 245, 245, 0) 100%);
 }
 
 .chips-rail::-webkit-scrollbar {

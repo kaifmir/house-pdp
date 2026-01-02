@@ -808,11 +808,24 @@ document.addEventListener('DOMContentLoaded', function() {
         const originalHTML = originalSet.outerHTML;
         track.innerHTML = originalHTML + originalHTML + originalHTML;
 
+        // iOS detection for scrollTo
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        // iOS-safe scroll function
+        function setScrollLeft(el, x) {
+            if (isIOS && typeof el.scrollTo === "function") {
+                el.scrollTo({ left: x, behavior: "auto" });
+            } else {
+                el.scrollLeft = x;
+            }
+        }
+
         const jumpToMiddle = () => {
             if (!rail || !track) return;
             const third = track.scrollWidth / 3;
             if (third > 0) {
-                rail.scrollLeft = third;
+                setScrollLeft(rail, third);
             }
         };
 
@@ -841,12 +854,24 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
+        // iOS-safe scroll function (reuse from above)
+        const isIOSLoop = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        function setScrollLeftLoop(el, x) {
+            if (isIOSLoop && typeof el.scrollTo === "function") {
+                el.scrollTo({ left: x, behavior: "auto" });
+            } else {
+                el.scrollLeft = x;
+            }
+        }
+
         function loopEdges() {
             const third = track.scrollWidth / 3;
             const x = rail.scrollLeft;
 
-            if (x < third * 0.5) rail.scrollLeft = x + third;
-            if (x > third * 1.5) rail.scrollLeft = x - third;
+            if (x < third * 0.5) setScrollLeftLoop(rail, x + third);
+            if (x > third * 1.5) setScrollLeftLoop(rail, x - third);
         }
 
         rail.addEventListener('scroll', loopEdges, { passive: true });
@@ -854,20 +879,44 @@ document.addEventListener('DOMContentLoaded', function() {
         return { rail, track, loopEdges };
     }
 
-    // Soft auto-movement + manual scroll (using scrollLeft, NOT transform)
+    // Soft auto-movement + manual scroll (iOS-safe implementation)
     (function initChipsAutoScroll() {
         const ctx = setupInfiniteChips();
         if (!ctx) return;
 
         const { rail } = ctx;
 
+        // iOS detection
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+        // Apply iOS-specific fade overlay (instead of mask-image)
+        if (isIOS) {
+            rail.classList.add('ios-fade');
+        }
+
+        // iOS-safe scroll function
+        function setScrollLeft(el, x) {
+            // iOS: scrollTo is more reliable than setting scrollLeft
+            if (isIOS && typeof el.scrollTo === "function") {
+                el.scrollTo({ left: x, behavior: "auto" });
+            } else {
+                el.scrollLeft = x;
+            }
+        }
+
         let dir = 1;                 // 1 = right, -1 = left
         let speed = 0.25;            // pixels per frame (~slow drift)
         let rafId = null;
         let pausedUntil = 0;
 
-        function pause(ms = 1000) {
+        function pause(ms = 1200) {
             pausedUntil = Date.now() + ms;
+            rail.classList.remove('auto-scrolling');
+        }
+
+        function resume() {
+            rail.classList.add('auto-scrolling');
         }
 
         function tick() {
@@ -879,10 +928,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // Soft auto-move by incrementing scrollLeft (NOT transform!)
-            // Safari iOS fix: use requestAnimationFrame timestamp for smoother animation
-            if (rail && rail.scrollLeft !== undefined) {
-                rail.scrollLeft += dir * speed;
+            // Resume auto-scrolling class before updating scroll
+            resume();
+
+            // Soft auto-move by incrementing scrollLeft (iOS-safe)
+            if (rail) {
+                const currentScroll = rail.scrollLeft;
+                const newScroll = currentScroll + (dir * speed);
+                setScrollLeft(rail, newScroll);
             }
 
             rafId = requestAnimationFrame(tick);
@@ -901,7 +954,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scrollTimeout = setTimeout(() => pause(0), 0);
         }, { passive: true });
 
-        // Start auto-scroll - Safari iOS fix: delay start slightly
+        // Start auto-scroll - delay start slightly
         setTimeout(() => {
             rafId = requestAnimationFrame(tick);
         }, 500);
