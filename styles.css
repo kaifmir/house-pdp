@@ -40,6 +40,15 @@ body {
     overscroll-behavior-x: none;
 }
 
+/* Step 1: Hard lock page scroll when chat screen is active (critical for Android) */
+.chat-screen.active ~ *,
+body:has(.chat-screen.active) {
+    overflow: hidden !important;
+    height: 100% !important;
+    position: fixed !important;
+    width: 100% !important;
+}
+
 /* Desktop Blocker */
 .desktop-blocker {
     display: none;
