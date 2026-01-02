@@ -1726,6 +1726,7 @@ html, body {
     width: auto;
     flex-shrink: 0;
     min-width: 140px;
+    margin: 0;
 }
 
 /* Random colors with lighter stroke opacity */
