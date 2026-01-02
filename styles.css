@@ -1648,9 +1648,16 @@ html, body {
     box-sizing: border-box;
     position: relative;
     isolation: isolate;
-    /* Soft edge fade using mask */
+    /* Soft edge fade using mask - Safari iOS compatible */
     -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
     mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+    /* Safari iOS hardware acceleration */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: scroll-position;
+    /* Force hardware acceleration on Safari */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 .chips-rail::-webkit-scrollbar {

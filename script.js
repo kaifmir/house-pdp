@@ -809,17 +809,35 @@ document.addEventListener('DOMContentLoaded', function() {
         track.innerHTML = originalHTML + originalHTML + originalHTML;
 
         const jumpToMiddle = () => {
+            if (!rail || !track) return;
             const third = track.scrollWidth / 3;
-            rail.scrollLeft = third;
+            if (third > 0) {
+                rail.scrollLeft = third;
+            }
         };
 
-        requestAnimationFrame(jumpToMiddle);
-        setTimeout(jumpToMiddle, 60);
+        // Safari iOS fix: wait for layout to be ready
+        const initScroll = () => {
+            requestAnimationFrame(() => {
+                jumpToMiddle();
+                setTimeout(jumpToMiddle, 100);
+                setTimeout(jumpToMiddle, 300);
+            });
+        };
+
+        initScroll();
 
         // Handle font loading for proper width calculation
         if (document.fonts?.ready) {
             document.fonts.ready.then(() => {
                 setTimeout(jumpToMiddle, 100);
+            });
+        }
+
+        // Safari iOS: Also recalculate on window load
+        if (document.readyState === 'loading') {
+            window.addEventListener('load', () => {
+                setTimeout(jumpToMiddle, 200);
             });
         }
 
@@ -862,7 +880,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Soft auto-move by incrementing scrollLeft (NOT transform!)
-            rail.scrollLeft += dir * speed;
+            // Safari iOS fix: use requestAnimationFrame timestamp for smoother animation
+            if (rail && rail.scrollLeft !== undefined) {
+                rail.scrollLeft += dir * speed;
+            }
 
             rafId = requestAnimationFrame(tick);
         }
@@ -880,8 +901,10 @@ document.addEventListener('DOMContentLoaded', function() {
             scrollTimeout = setTimeout(() => pause(0), 0);
         }, { passive: true });
 
-        // Start auto-scroll
-        rafId = requestAnimationFrame(tick);
+        // Start auto-scroll - Safari iOS fix: delay start slightly
+        setTimeout(() => {
+            rafId = requestAnimationFrame(tick);
+        }, 500);
 
         // Stop auto-scroll when keyboard opens (intro is hidden)
         const intro = document.getElementById('chat-intro');
