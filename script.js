@@ -879,55 +879,60 @@ document.addEventListener('DOMContentLoaded', function() {
         return { rail, track, loopEdges };
     }
 
-    // Soft auto-movement + manual scroll (iOS-safe implementation with timer)
+    // Soft auto-movement + manual scroll (iOS: timer after first touch, Android: rAF)
     (function initChipsAutoScroll() {
         const ctx = setupInfiniteChips();
         if (!ctx) return;
 
         const { rail, track } = ctx;
 
-        // iOS detection
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+        // A) Detect iOS WebKit
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
         // Debug logging
-        console.log('isIOS', isIOS, 'rail scrollWidth', rail.scrollWidth, 'rail clientWidth', rail.clientWidth);
+        console.log('isIOS', isIOS, 'rail scrollWidth', rail.scrollWidth, 'track scrollWidth', track.scrollWidth, 'rail clientWidth', rail.clientWidth);
+        console.log('Is scrollable?', track.scrollWidth > rail.clientWidth);
 
         // Apply iOS-specific fade overlay (instead of mask-image)
         if (isIOS) {
             rail.classList.add('ios-fade');
         }
 
+        // B) Start auto scroll ONLY after first touch on the rail
         let intervalId = null;
         let pausedUntil = 0;
-        let dir = 1;                 // 1 = right, -1 = left
-        const speedPx = 1;           // pixels per tick
-        const tickMs = 20;           // 50fps-ish
+        let dir = 1;
+        const speedPx = 1;      // per tick
+        const tickMs = 20;      // 50fps-ish
 
         function pause(ms = 1000) {
             pausedUntil = Date.now() + ms;
-            if (isIOS) {
-                rail.classList.remove('auto-scrolling');
-            }
         }
 
         function startAuto() {
-            if (intervalId) return;
+            if (intervalId) {
+                console.log('Auto-scroll already running');
+                return;
+            }
+
+            console.log('Starting auto-scroll, isIOS:', isIOS);
 
             if (isIOS) {
                 // iOS: use setInterval + scrollLeft
                 intervalId = setInterval(() => {
                     if (Date.now() < pausedUntil) return;
 
-                    // Move
+                    // move
                     rail.scrollLeft += dir * speedPx;
 
-                    // Keep infinite loop correction
+                    // keep infinite loop correction (third-width logic)
                     const third = track.scrollWidth / 3;
                     const x = rail.scrollLeft;
                     if (x < third * 0.5) rail.scrollLeft = x + third;
                     if (x > third * 1.5) rail.scrollLeft = x - third;
                 }, tickMs);
+                console.log('iOS interval started, intervalId:', intervalId);
             } else {
                 // Android: use requestAnimationFrame
                 let rafId = null;
@@ -958,36 +963,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        function stopAuto() {
-            if (intervalId) {
-                if (isIOS) {
-                    clearInterval(intervalId);
-                } else if (intervalId.cancel) {
-                    intervalId.cancel();
-                }
-                intervalId = null;
-            }
-        }
-
-        // Pause on any user intent to scroll
+        // C) Pause on interaction, resume automatically
         ['touchstart', 'pointerdown', 'wheel', 'mousedown'].forEach(evt => {
             rail.addEventListener(evt, () => pause(1200), { passive: true });
         });
-
-        // Also pause while actively scrolling
-        rail.addEventListener('scroll', () => {
-            pause(600);
-        }, { passive: true });
+        rail.addEventListener('scroll', () => pause(600), { passive: true });
 
         // iOS: do not auto-start on load; wait for gesture
         if (isIOS) {
             rail.addEventListener('touchstart', () => {
                 startAuto();
-                console.log('iOS: Auto-scroll started after touch');
+                console.log('iOS: Auto-scroll started after touchstart');
             }, { once: true, passive: true });
             rail.addEventListener('pointerdown', () => {
                 startAuto();
-                console.log('iOS: Auto-scroll started after pointer');
+                console.log('iOS: Auto-scroll started after pointerdown');
             }, { once: true, passive: true });
         } else {
             // Android: start immediately
@@ -1001,7 +991,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (intro) {
             const observer = new MutationObserver(() => {
                 if (intro.classList.contains('is-hidden')) {
-                    stopAuto();
+                    if (intervalId) {
+                        if (isIOS) {
+                            clearInterval(intervalId);
+                        } else if (intervalId.cancel) {
+                            intervalId.cancel();
+                        }
+                        intervalId = null;
+                    }
                     pause(999999);
                 } else {
                     if (!intervalId) {
