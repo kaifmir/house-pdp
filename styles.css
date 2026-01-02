@@ -1620,11 +1620,19 @@ html, body {
     max-width: calc(100% - 2px);
     padding: 1px;
     margin: 0 0 24px 0;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     position: relative;
     max-height: calc(120px - 2px);
     /* Create proper container for edge fades */
     isolation: isolate;
+}
+
+.chat-starter-pills::-webkit-scrollbar {
+    display: none;
 }
 
 /* Edge fade overlays - completely rebuilt with proper coverage */
