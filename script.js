@@ -436,6 +436,11 @@ document.addEventListener('DOMContentLoaded', function() {
         let touchStartY = 0;
         
         const handleNavAction = () => {
+            // Update active state and slider for all nav items
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+            updateSliderPosition(item, true);
+            
             if (navType === 'chat') {
                 // Check if user has already seen the splash screen
                 const hasSeenSplash = sessionStorage.getItem('scoutySplashSeen') === 'true';
@@ -461,15 +466,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     openBottomSheet();
                 }
             } else {
-                handleNavClick(item);
+                const navType = item.getAttribute('data-nav');
+                console.log('Navigated to:', navType);
             }
         };
         
         item.addEventListener('click', function(e) {
-            e.preventDefault();
             e.stopPropagation();
             handleNavAction();
-        }, true);
+        });
         
         item.addEventListener('touchstart', function(e) {
             touchStartTime = Date.now();
@@ -487,7 +492,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.stopPropagation();
                 handleNavAction();
             }
-        }, { passive: false, capture: true });
+        }, { passive: false });
     });
     
     // Debounced resize handler

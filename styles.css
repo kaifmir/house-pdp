@@ -849,8 +849,6 @@ img {
     position: relative;
     outline: none;
     -webkit-appearance: none;
-    pointer-events: all;
-    z-index: 10;
     -moz-appearance: none;
     appearance: none;
     user-select: none;
@@ -858,6 +856,7 @@ img {
     touch-action: manipulation;
     -webkit-touch-callout: none;
     min-width: 0;
+    z-index: 10;
 }
 
 .nav-item:active {
