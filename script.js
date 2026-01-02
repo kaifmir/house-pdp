@@ -657,95 +657,63 @@ document.addEventListener('DOMContentLoaded', function() {
     // Placeholder animation removed - using static placeholder "Got Questions..."
     
     // Pills horizontal auto-scroll animation
+    const pillsWrapper = document.getElementById('chat-starter-pills-wrapper');
     const pillsContainer = document.getElementById('chat-starter-pills');
-    if (pillsContainer) {
-        let isUserScrolling = false;
-        let scrollTimeout = null;
-        let animationFrame = null;
-        let scrollPosition = 0;
-        let scrollSpeed = 0.5; // pixels per frame
+    
+    if (pillsWrapper && pillsContainer) {
+        let isUserInteracting = false;
+        let interactionTimeout = null;
         
         // Duplicate pills for seamless loop
-        const pills = pillsContainer.querySelectorAll('.chat-pill');
+        const pills = pillsWrapper.querySelectorAll('.chat-pill');
         pills.forEach(pill => {
             const clone = pill.cloneNode(true);
-            pillsContainer.appendChild(clone);
+            pillsWrapper.appendChild(clone);
         });
         
-        const maxScroll = pillsContainer.scrollWidth / 2;
-        
-        function autoScroll() {
-            if (!isUserScrolling && pillsContainer) {
-                scrollPosition += scrollSpeed;
-                
-                // Reset to beginning when reaching halfway (seamless loop)
-                if (scrollPosition >= maxScroll) {
-                    scrollPosition = 0;
-                }
-                
-                pillsContainer.scrollLeft = scrollPosition;
-                animationFrame = requestAnimationFrame(autoScroll);
-            }
-        }
-        
-        // Detect user scrolling/interaction
-        pillsContainer.addEventListener('scroll', () => {
-            isUserScrolling = true;
-            scrollPosition = pillsContainer.scrollLeft;
-            
-            // Cancel animation
-            if (animationFrame) {
-                cancelAnimationFrame(animationFrame);
-                animationFrame = null;
-            }
-            
-            // Clear existing timeout
-            if (scrollTimeout) {
-                clearTimeout(scrollTimeout);
-            }
-            
-            // Resume animation after user stops scrolling
-            scrollTimeout = setTimeout(() => {
-                isUserScrolling = false;
-                autoScroll();
-            }, 2000);
-        }, { passive: true });
-        
-        // Detect touch/mouse interactions
+        // Detect user interaction
         pillsContainer.addEventListener('touchstart', () => {
-            isUserScrolling = true;
-            if (animationFrame) {
-                cancelAnimationFrame(animationFrame);
-                animationFrame = null;
+            isUserInteracting = true;
+            pillsWrapper.classList.add('paused');
+            if (interactionTimeout) {
+                clearTimeout(interactionTimeout);
             }
         }, { passive: true });
         
         pillsContainer.addEventListener('mousedown', () => {
-            isUserScrolling = true;
-            if (animationFrame) {
-                cancelAnimationFrame(animationFrame);
-                animationFrame = null;
+            isUserInteracting = true;
+            pillsWrapper.classList.add('paused');
+            if (interactionTimeout) {
+                clearTimeout(interactionTimeout);
+            }
+        }, { passive: true });
+        
+        pillsContainer.addEventListener('touchmove', () => {
+            isUserInteracting = true;
+            pillsWrapper.classList.add('paused');
+            if (interactionTimeout) {
+                clearTimeout(interactionTimeout);
             }
         }, { passive: true });
         
         pillsContainer.addEventListener('touchend', () => {
-            setTimeout(() => {
-                isUserScrolling = false;
-                autoScroll();
+            interactionTimeout = setTimeout(() => {
+                isUserInteracting = false;
+                pillsWrapper.classList.remove('paused');
             }, 2000);
         }, { passive: true });
         
         pillsContainer.addEventListener('mouseup', () => {
-            setTimeout(() => {
-                isUserScrolling = false;
-                autoScroll();
+            interactionTimeout = setTimeout(() => {
+                isUserInteracting = false;
+                pillsWrapper.classList.remove('paused');
             }, 2000);
         }, { passive: true });
         
         // Start animation when chat screen opens
         if (chatScreen && chatScreen.classList.contains('active')) {
             setTimeout(() => {
-                autoScroll();
+                pillsWrapper.classList.remove('paused');
             }, 1000);
         }
         
@@ -754,9 +722,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const observer = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
                     if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                        if (chatScreen.classList.contains('active') && !animationFrame) {
+                        if (chatScreen.classList.contains('active')) {
                             setTimeout(() => {
-                                autoScroll();
+                                pillsWrapper.classList.remove('paused');
                             }, 1000);
                         }
                     }
