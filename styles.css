@@ -1577,7 +1577,7 @@ button, .property-type-card {
 .chat-starter-pills {
     width: 100%;
     max-width: 100%;
-    padding: 0 16px;
+    padding: 0;
     margin-bottom: 24px;
     overflow-x: auto;
     overflow-y: hidden;
@@ -1598,6 +1598,7 @@ button, .property-type-card {
     flex-direction: column;
     gap: 12px;
     width: max-content;
+    padding: 0 16px;
     animation: scrollPills 25s linear infinite;
 }
 
@@ -1646,37 +1647,53 @@ button, .property-type-card {
     min-width: 140px;
 }
 
-/* Stronger colors with lighter stroke opacity */
-.chat-pill:nth-child(1) {
-    border-color: rgba(100, 140, 220, 0.3);
-}
-
-.chat-pill:nth-child(2) {
+/* Random colors with lighter stroke opacity */
+.chat-pill.pill-1 {
     border-color: rgba(180, 100, 200, 0.3);
 }
 
-.chat-pill:nth-child(3) {
+.chat-pill.pill-2 {
     border-color: rgba(120, 200, 120, 0.3);
 }
 
-.chat-pill:nth-child(4) {
+.chat-pill.pill-3 {
     border-color: rgba(240, 140, 100, 0.3);
 }
 
-.chat-pill:nth-child(5) {
+.chat-pill.pill-4 {
     border-color: rgba(100, 170, 230, 0.3);
 }
 
-.chat-pill:nth-child(6) {
+.chat-pill.pill-5 {
     border-color: rgba(210, 120, 210, 0.3);
 }
 
-.chat-pill:nth-child(7) {
-    border-color: rgba(80, 130, 200, 0.3);
+.chat-pill.pill-6 {
+    border-color: rgba(150, 180, 100, 0.3);
 }
 
-.chat-pill:nth-child(8) {
-    border-color: rgba(190, 120, 190, 0.3);
+.chat-pill.pill-7 {
+    border-color: rgba(200, 150, 180, 0.3);
+}
+
+.chat-pill.pill-8 {
+    border-color: rgba(100, 200, 180, 0.3);
+}
+
+.chat-pill.pill-9 {
+    border-color: rgba(220, 160, 120, 0.3);
+}
+
+.chat-pill.pill-10 {
+    border-color: rgba(140, 120, 220, 0.3);
+}
+
+.chat-pill.pill-11 {
+    border-color: rgba(180, 200, 140, 0.3);
+}
+
+.chat-pill.pill-12 {
+    border-color: rgba(200, 100, 150, 0.3);
 }
 
 .chat-pill:active {
