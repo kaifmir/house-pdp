@@ -1633,46 +1633,39 @@ html, body {
     max-width: 90%;
 }
 
-/* Starter Conversation Pills */
-.chat-starter-pills {
-    width: calc(100% - 2px);
-    max-width: calc(100% - 2px);
-    padding: 1px;
-    margin: 0 0 24px 0;
+/* Infinite Horizontal Chips Rail */
+.chips-rail {
     overflow-x: auto;
     overflow-y: hidden;
+    white-space: nowrap;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    position: relative;
+    margin: 0 0 24px 0;
     max-height: calc(120px - 2px);
+    position: relative;
     /* Create proper container for edge fades */
     isolation: isolate;
 }
 
-.chat-starter-pills::-webkit-scrollbar {
+.chips-rail::-webkit-scrollbar {
     display: none;
 }
 
-/* Edge fade overlays - completely rebuilt with proper coverage */
-.chat-starter-pills::before,
-.chat-starter-pills::after {
+/* Edge fade overlays */
+.chips-rail::before,
+.chips-rail::after {
     content: '';
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 30px;
+    width: 34px;
     pointer-events: none;
     z-index: 200;
-    /* Match exact background color from chat screen gradient (middle tone) */
-    background: #F0F0F0;
 }
 
-.chat-starter-pills::before {
-    left: 0;
-    /* Extend beyond edge to ensure full coverage */
+.chips-rail::before {
     left: -4px;
-    width: 34px;
     background: linear-gradient(to right, 
         #F0F0F0 0%, 
         #F0F0F0 20%, 
@@ -1681,12 +1674,8 @@ html, body {
         rgba(240, 240, 240, 0) 100%);
 }
 
-.chat-starter-pills::after {
-    right: 0;
-    left: auto;
-    /* Extend beyond edge to ensure full coverage */
+.chips-rail::after {
     right: -4px;
-    width: 34px;
     background: linear-gradient(to left, 
         #F0F0F0 0%, 
         #F0F0F0 20%, 
@@ -1695,22 +1684,12 @@ html, body {
         rgba(240, 240, 240, 0) 100%);
 }
 
-.chat-starter-pills-wrapper {
+.chips-track {
     display: inline-flex;
     flex-direction: column;
     gap: 12px;
+    padding: 8px 16px;
     width: max-content;
-    padding: 0;
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-}
-
-.chat-starter-pills-wrapper.paused {
-    /* Paused state handled by JavaScript - no CSS needed */
-    animation-play-state: paused;
 }
 
 .chat-starter-pills-row {
