@@ -1699,13 +1699,7 @@ html, body {
     width: max-content;
 }
 
-.chat-starter-pills-row:first-child {
-    padding-left: 0;
-}
-
-.chat-starter-pills-row:last-child {
-    padding-left: 24px;
-}
+/* Removed first-child/last-child padding - using consistent gap: 12px */
 
 /* Animation removed - using JavaScript for infinite scroll */
 
