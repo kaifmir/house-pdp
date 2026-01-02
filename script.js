@@ -616,6 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // CTA click handler - Open chat screen
     const chatScreen = document.getElementById('chat-screen');
     const chatBackBtn = document.getElementById('chat-back-btn');
+    const chatInput = document.getElementById('chat-input');
     
     if (scoutyCTA) {
         scoutyCTA.addEventListener('click', () => {
@@ -636,7 +637,58 @@ document.addEventListener('DOMContentLoaded', function() {
         chatBackBtn.addEventListener('click', () => {
             if (chatScreen) {
                 chatScreen.classList.remove('active');
+                chatScreen.classList.remove('keyboard-open');
                 document.body.style.overflow = '';
+                if (chatInput) chatInput.blur();
+            }
+        });
+    }
+    
+    // Handle keyboard open/close for input
+    if (chatInput && chatScreen) {
+        let viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        
+        function handleViewportResize() {
+            if (window.visualViewport) {
+                const currentHeight = window.visualViewport.height;
+                const heightDifference = viewportHeight - currentHeight;
+                
+                if (heightDifference > 150) {
+                    // Keyboard is open
+                    chatScreen.classList.add('keyboard-open');
+                    const keyboardHeight = heightDifference;
+                    const inputBar = document.querySelector('.chat-input-bar');
+                    if (inputBar) {
+                        inputBar.style.transform = `translateY(-${keyboardHeight - 16}px)`;
+                    }
+                } else {
+                    // Keyboard is closed
+                    chatScreen.classList.remove('keyboard-open');
+                    const inputBar = document.querySelector('.chat-input-bar');
+                    if (inputBar) {
+                        inputBar.style.transform = 'translateY(0)';
+                    }
+                }
+            }
+        }
+        
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', handleViewportResize);
+        }
+        
+        chatInput.addEventListener('focus', () => {
+            setTimeout(() => {
+                if (window.visualViewport) {
+                    handleViewportResize();
+                }
+            }, 300);
+        });
+        
+        chatInput.addEventListener('blur', () => {
+            chatScreen.classList.remove('keyboard-open');
+            const inputBar = document.querySelector('.chat-input-bar');
+            if (inputBar) {
+                inputBar.style.transform = 'translateY(0)';
             }
         });
     }

@@ -1405,7 +1405,7 @@ button, .property-type-card {
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to bottom, #FFFFFF 0%, #F5F5F5 100%);
+    background: linear-gradient(to bottom, #F8F8F8 0%, #F0F0F0 100%);
     z-index: 3000;
     display: none;
     flex-direction: column;
@@ -1437,8 +1437,8 @@ button, .property-type-card {
     background-color: rgba(255, 255, 255, 0.9);
     border: none;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     cursor: pointer;
     display: flex;
@@ -1448,10 +1448,9 @@ button, .property-type-card {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     pointer-events: all;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    padding: 10px;
+    padding: 12px;
 }
 
 .chat-back-btn svg {
@@ -1463,8 +1462,8 @@ button, .property-type-card {
 .chat-title-btn {
     background-color: rgba(255, 255, 255, 0.9);
     border: none;
-    border-radius: 20px;
-    padding: 10px 18px;
+    border-radius: 22px;
+    padding: 12px 20px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1474,7 +1473,6 @@ button, .property-type-card {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     pointer-events: all;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     font-family: 'Rubik', sans-serif;
@@ -1529,6 +1527,10 @@ button, .property-type-card {
     font-family: 'Inter', sans-serif;
 }
 
+.chat-screen.keyboard-open .chat-messages {
+    padding-bottom: 120px;
+}
+
 /* Floating Chat Input Bar */
 .chat-input-bar {
     padding: 12px 16px;
@@ -1540,6 +1542,11 @@ button, .property-type-card {
     background: transparent;
     z-index: 100;
     pointer-events: none;
+    transition: transform 0.3s ease, padding-bottom 0.3s ease;
+}
+
+.chat-screen.keyboard-open .chat-input-bar {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
 .chat-input-wrapper {
@@ -1548,10 +1555,37 @@ button, .property-type-card {
     position: relative;
     width: 100%;
     pointer-events: all;
+    gap: 8px;
+}
+
+.chat-voice-btn {
+    background: none;
+    border: none;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dark);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    flex-shrink: 0;
+}
+
+.chat-voice-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--text-dark);
+}
+
+.chat-voice-btn:active {
+    opacity: 0.7;
 }
 
 .chat-input {
-    width: 100%;
+    flex: 1;
     border: 1px solid var(--border-light);
     border-radius: 28px;
     padding: 14px 50px 14px 16px;
@@ -1564,7 +1598,6 @@ button, .property-type-card {
     appearance: none;
     caret-color: var(--primary-purple);
     -webkit-tap-highlight-color: transparent;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     min-height: 52px;
@@ -1598,7 +1631,6 @@ button, .property-type-card {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     flex-shrink: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .chat-send-btn svg {
