@@ -1098,17 +1098,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // Prime viewport on chat screen initialization
     primeViewport();
     
-    // Step 7: Debug logging (remove in production)
-    // Monitor header position and keyboard height
-    setInterval(() => {
-        const header = document.querySelector('.chat-top-bar');
-        if (!header) return;
-        const headerTop = header.getBoundingClientRect().top;
-        const kb = getComputedStyle(document.documentElement).getPropertyValue('--kb').trim();
-        console.log('Header top:', headerTop, 'KB:', kb);
-    }, 1000);
+    // iOS keyboard fix: Use visualViewport to position composer above keyboard
+    (function() {
+        const root = document.documentElement;
+        const composer = document.querySelector('.chat-input-bar');
+        const messages = document.querySelector('.chat-messages');
+        if (!composer || !messages) return;
+
+        function setComposerHeight() {
+            const height = composer.getBoundingClientRect().height;
+            root.style.setProperty('--composer-height', height + 'px');
+        }
+
+        function update() {
+            setComposerHeight();
+
+            if (!window.visualViewport) return;
+
+            const vv = window.visualViewport;
+            const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+
+            // Debug logging for iOS
+            console.log('Keyboard update:', {
+                innerHeight: window.innerHeight,
+                vvHeight: vv.height,
+                vvOffsetTop: vv.offsetTop,
+                keyboardHeight: keyboardHeight
+            });
+
+            // Push composer above keyboard
+            root.style.setProperty('--kb-offset', keyboardHeight + 'px');
+            root.style.setProperty('--kb', keyboardHeight + 'px');
+        }
+
+        // Prime once + on every keyboard/viewport change
+        window.addEventListener('load', update);
+        window.addEventListener('resize', update);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', update);
+            window.visualViewport.addEventListener('scroll', update);
+        }
+
+        // Also update on focus (first-time bug fix)
+        document.addEventListener('focusin', (e) => {
+            if (e.target.matches('input, textarea')) {
+                setTimeout(update, 50);
+            }
+        });
+    })();
     
-    // Handle keyboard open/close for input
+    // Handle keyboard open/close for input (legacy support)
     if (chatInput && chatScreen) {
         let baseViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         let isKeyboardOpen = false;
