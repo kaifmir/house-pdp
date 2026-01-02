@@ -435,63 +435,64 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Found', navItems.length, 'nav items');
     }
     
-    // Simple click handler for all nav items
-    function handleNavClick(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const item = e.currentTarget;
-        if (!item) return;
-        
-        const navType = item.getAttribute('data-nav');
-        if (!navType) return;
-        
-        console.log('Nav clicked:', navType);
-        
-        // Update active state
-        navItems.forEach(nav => nav.classList.remove('active'));
-        item.classList.add('active');
-        
-        // Update slider position
-        if (navSliderBg && bottomNav) {
-            updateSliderPosition(item, true);
-        }
-        
-        // Handle specific nav actions
-        if (navType === 'chat') {
-            const hasSeenSplash = sessionStorage.getItem('scoutySplashSeen') === 'true';
-            if (hasSeenSplash) {
-                const chatScreen = document.getElementById('chat-screen');
-                if (chatScreen) {
-                    requestAnimationFrame(() => {
-                        chatScreen.classList.add('active');
-                    });
-                    document.body.style.overflow = 'hidden';
-                    setTimeout(() => {
-                        const chatInput = document.getElementById('chat-input');
-                        if (chatInput && !chatInput.value) {
-                            initChatPlaceholderAnimation();
-                        }
-                    }, 100);
-                }
-            } else {
-                openBottomSheet();
-            }
-        }
-    }
-    
-    // Attach event listeners directly
+    // Attach event listeners directly to each nav item
     if (navItems && navItems.length > 0) {
         navItems.forEach((item) => {
             if (!item) return;
+            
+            const navType = item.getAttribute('data-nav');
+            if (!navType) return;
+            
+            // Create handler for this specific item
+            const handleNavClick = function(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                console.log('Nav clicked:', navType);
+                
+                // Update active state
+                navItems.forEach(nav => nav.classList.remove('active'));
+                item.classList.add('active');
+                
+                // Update slider position
+                if (navSliderBg && bottomNav) {
+                    updateSliderPosition(item, true);
+                }
+                
+                // Handle specific nav actions
+                if (navType === 'chat') {
+                    const hasSeenSplash = sessionStorage.getItem('scoutySplashSeen') === 'true';
+                    if (hasSeenSplash) {
+                        const chatScreen = document.getElementById('chat-screen');
+                        if (chatScreen) {
+                            requestAnimationFrame(() => {
+                                chatScreen.classList.add('active');
+                            });
+                            document.body.style.overflow = 'hidden';
+                            setTimeout(() => {
+                                const chatInput = document.getElementById('chat-input');
+                                if (chatInput && !chatInput.value) {
+                                    initChatPlaceholderAnimation();
+                                }
+                            }, 100);
+                        }
+                    } else {
+                        openBottomSheet();
+                    }
+                }
+            };
             
             // Add click listener
             item.onclick = handleNavClick;
             
             // Add touch listener
             item.ontouchend = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
                 handleNavClick(e);
             };
         });
