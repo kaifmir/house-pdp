@@ -789,67 +789,97 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle keyboard open/close for input
     if (chatInput && chatScreen) {
-        let initialViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        let baseViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
         let isKeyboardOpen = false;
+        let resizeTimeout = null;
+        
+        // Prevent scrolling on chat screen
+        chatScreen.addEventListener('scroll', (e) => {
+            e.preventDefault();
+            chatScreen.scrollTop = 0;
+        }, { passive: false });
         
         function handleViewportResize() {
-            if (window.visualViewport) {
-                const currentHeight = window.visualViewport.height;
-                const heightDifference = initialViewportHeight - currentHeight;
-                
-                if (heightDifference > 100 && !isKeyboardOpen) {
-                    // Keyboard is opening
-                    isKeyboardOpen = true;
-                    chatScreen.classList.add('keyboard-open');
-                    const keyboardHeight = heightDifference;
-                    const inputBar = document.querySelector('.chat-input-bar');
-                    const topBar = document.querySelector('.chat-top-bar');
-                    
-                    if (inputBar) {
-                        // Move input bar above keyboard with 16px spacing - use smooth transition
-                        inputBar.style.transition = 'transform 0.3s ease-out';
-                        inputBar.style.transform = `translateY(-${keyboardHeight - 16}px)`;
-                    }
-                    
-                    // Ensure top bar always stays visible at top
-                    if (topBar) {
-                        topBar.style.position = 'fixed';
-                        topBar.style.top = '0';
-                        topBar.style.zIndex = '200';
-                    }
-                } else if (heightDifference <= 100 && isKeyboardOpen) {
-                    // Keyboard is closing
-                    isKeyboardOpen = false;
-                    chatScreen.classList.remove('keyboard-open');
-                    const inputBar = document.querySelector('.chat-input-bar');
-                    const topBar = document.querySelector('.chat-top-bar');
-                    
-                    if (inputBar) {
-                        inputBar.style.transition = 'transform 0.3s ease-out';
-                        inputBar.style.transform = 'translateY(0)';
-                    }
-                    
-                    if (topBar) {
-                        topBar.style.position = 'fixed';
-                        topBar.style.top = '0';
-                        topBar.style.zIndex = '200';
-                    }
-                    
-                    // Update initial height for next time
-                    initialViewportHeight = currentHeight;
-                }
+            if (!window.visualViewport) return;
+            
+            // Clear any pending resize
+            if (resizeTimeout) {
+                clearTimeout(resizeTimeout);
             }
+            
+            resizeTimeout = setTimeout(() => {
+                const currentHeight = window.visualViewport.height;
+                const heightDifference = baseViewportHeight - currentHeight;
+                const inputBar = document.querySelector('.chat-input-bar');
+                const topBar = document.querySelector('.chat-top-bar');
+                
+                if (heightDifference > 150) {
+                    // Keyboard is open
+                    if (!isKeyboardOpen) {
+                        isKeyboardOpen = true;
+                        chatScreen.classList.add('keyboard-open');
+                    }
+                    
+                    // Calculate position: visualViewport.bottom gives us the distance from bottom
+                    const viewportBottom = window.visualViewport.height;
+                    const inputBarHeight = inputBar ? inputBar.offsetHeight : 80;
+                    const spacing = 16;
+                    
+                    // Position input bar 16px above keyboard
+                    if (inputBar) {
+                        const newBottom = window.innerHeight - viewportBottom + spacing;
+                        inputBar.style.transition = 'bottom 0.3s ease-out';
+                        inputBar.style.bottom = `${newBottom}px`;
+                    }
+                    
+                    // Ensure top bar stays at top
+                    if (topBar) {
+                        topBar.style.position = 'fixed';
+                        topBar.style.top = '0';
+                        topBar.style.zIndex = '200';
+                    }
+                    
+                    // Prevent any scrolling
+                    document.body.style.overflow = 'hidden';
+                    chatScreen.style.overflow = 'hidden';
+                } else {
+                    // Keyboard is closed
+                    if (isKeyboardOpen) {
+                        isKeyboardOpen = false;
+                        chatScreen.classList.remove('keyboard-open');
+                    }
+                    
+                    // Reset input bar position
+                    if (inputBar) {
+                        inputBar.style.transition = 'bottom 0.3s ease-out';
+                        inputBar.style.bottom = '';
+                    }
+                    
+                    // Ensure top bar stays at top
+                    if (topBar) {
+                        topBar.style.position = 'fixed';
+                        topBar.style.top = '0';
+                        topBar.style.zIndex = '200';
+                    }
+                    
+                    // Update base height
+                    baseViewportHeight = currentHeight;
+                }
+            }, 50);
         }
         
-        // Update initial height on window resize
+        // Update base height when window resizes (but not when keyboard opens)
         window.addEventListener('resize', () => {
             if (window.visualViewport && !isKeyboardOpen) {
-                initialViewportHeight = window.visualViewport.height;
+                baseViewportHeight = window.visualViewport.height;
             }
         });
         
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', handleViewportResize);
+            window.visualViewport.addEventListener('scroll', (e) => {
+                e.preventDefault();
+            }, { passive: false });
         }
         
         // Haptic feedback on click
@@ -865,24 +895,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 navigator.vibrate(25);
             }
             
-            // Immediately update viewport height
+            // Prevent scrolling
+            document.body.style.overflow = 'hidden';
+            chatScreen.style.overflow = 'hidden';
+            
+            // Update base height before keyboard opens
             if (window.visualViewport) {
-                initialViewportHeight = window.visualViewport.height;
+                baseViewportHeight = window.visualViewport.height;
             }
             
-            // Handle keyboard with multiple checks for reliability
-            setTimeout(() => {
-                if (window.visualViewport) {
-                    initialViewportHeight = window.visualViewport.height;
-                    handleViewportResize();
-                }
-            }, 100);
-            
+            // Handle keyboard after a short delay
             setTimeout(() => {
                 if (window.visualViewport) {
                     handleViewportResize();
                 }
-            }, 300);
+            }, 200);
         });
         
         chatInput.addEventListener('blur', () => {
@@ -892,17 +919,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const topBar = document.querySelector('.chat-top-bar');
             
             if (inputBar) {
-                inputBar.style.transform = 'translateY(0)';
+                inputBar.style.transition = 'bottom 0.3s ease-out';
+                inputBar.style.bottom = '';
             }
             
             if (topBar) {
                 topBar.style.position = 'fixed';
                 topBar.style.top = '0';
+                topBar.style.zIndex = '200';
             }
             
-            // Update initial height
+            // Update base height
             if (window.visualViewport) {
-                initialViewportHeight = window.visualViewport.height;
+                baseViewportHeight = window.visualViewport.height;
             }
         });
     }
