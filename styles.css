@@ -1602,7 +1602,7 @@ html, body {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 14px;
+    gap: 28px;
     opacity: 1;
     transform: translateY(0);
     max-height: 500px; /* large enough */
@@ -1653,14 +1653,14 @@ html, body {
     display: none;
 }
 
-/* Edge fade overlays - soft opacity fade on left and right edges */
+/* Edge fade overlays - soft opacity fade on left and right extreme edges */
 .chips-rail::before,
 .chips-rail::after {
     content: '';
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 40px;
+    width: 48px;
     pointer-events: none;
     z-index: 200;
 }
@@ -1669,10 +1669,11 @@ html, body {
     left: 0;
     background: linear-gradient(to right, 
         #F5F5F5 0%, 
-        #F5F5F5 15%, 
-        rgba(245, 245, 245, 0.95) 30%, 
-        rgba(245, 245, 245, 0.80) 50%, 
-        rgba(245, 245, 245, 0.50) 70%, 
+        #F5F5F5 10%, 
+        rgba(245, 245, 245, 0.98) 25%, 
+        rgba(245, 245, 245, 0.90) 40%, 
+        rgba(245, 245, 245, 0.70) 60%, 
+        rgba(245, 245, 245, 0.40) 80%, 
         rgba(245, 245, 245, 0) 100%);
 }
 
@@ -1680,10 +1681,11 @@ html, body {
     right: 0;
     background: linear-gradient(to left, 
         #F5F5F5 0%, 
-        #F5F5F5 15%, 
-        rgba(245, 245, 245, 0.95) 30%, 
-        rgba(245, 245, 245, 0.80) 50%, 
-        rgba(245, 245, 245, 0.50) 70%, 
+        #F5F5F5 10%, 
+        rgba(245, 245, 245, 0.98) 25%, 
+        rgba(245, 245, 245, 0.90) 40%, 
+        rgba(245, 245, 245, 0.70) 60%, 
+        rgba(245, 245, 245, 0.40) 80%, 
         rgba(245, 245, 245, 0) 100%);
 }
 
