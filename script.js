@@ -973,12 +973,39 @@ document.addEventListener('DOMContentLoaded', function() {
         return rail.scrollWidth > rail.clientWidth + 5;
     }
 
-    // Step 3: Reliable iOS auto-scroll implementation
+    // ============================================================================
+    // PILLS AUTO-SCROLL: Known-good implementation with debug overlay
+    // ============================================================================
     (function initChipsAutoScroll() {
-        const ctx = setupInfiniteChips();
-        if (!ctx) return;
+        const rail = document.getElementById('chipsRail');
+        const track = document.getElementById('chipsTrack');
 
-        const { rail, track } = ctx;
+        // Debug badge (on-screen, so we don't depend on console)
+        const badge = document.createElement('div');
+        badge.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:99999;font:11px monospace;background:#000;color:#0f0;padding:6px 8px;border-radius:8px;opacity:.85;max-width:90vw;white-space:pre;line-height:1.4;";
+        document.body.appendChild(badge);
+
+        function show(obj) {
+            badge.textContent = JSON.stringify(obj, null, 2);
+        }
+
+        try {
+            // Hard validation: rail and track must exist
+            if (!rail || !track) {
+                show({ 
+                    error: "chipsRail/chipsTrack not found",
+                    railFound: !!rail,
+                    trackFound: !!track
+                });
+                return;
+            }
+
+            // Get original content for cloning
+            const originalSet = track.querySelector('.chips-set');
+            if (!originalSet) {
+                show({ error: "chips-set not found in track" });
+                return;
+            }
 
         // Edge fade parity: feature-detect mask support, fallback to overlay
         const supportsMask =
