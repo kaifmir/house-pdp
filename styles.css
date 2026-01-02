@@ -899,6 +899,9 @@ img {
     transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     z-index: 1;
+    pointer-events: none;
+    -webkit-user-drag: none;
+    user-select: none;
 }
 
 .nav-icon-face {
