@@ -1154,14 +1154,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const top = vv ? vv.offsetTop : 0;
             root.style.setProperty('--vv-top', `${top}px`);
             
-            // Debug logging for iOS (can be removed in production)
+            // Debug logging for iOS (ensure window.scrollY stays ~0 during focus/blur)
             if (vv) {
+                const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
                 console.log('Header pinning:', {
-                    scrollY: window.scrollY,
+                    scrollY: scrollY,
                     vvTop: vv.offsetTop,
                     vvHeight: vv.height,
                     vvOffsetLeft: vv.offsetLeft
                 });
+                
+                // Warn if window is scrolling (should stay ~0)
+                if (Math.abs(scrollY) > 1) {
+                    console.warn('Window scroll detected:', scrollY, '- only messages container should scroll');
+                }
             }
         }
 
