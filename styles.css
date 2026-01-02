@@ -1407,15 +1407,21 @@ button, .property-type-card {
     bottom: 0;
     background: linear-gradient(to bottom, #F5F5F5 0%, #EBEBEB 100%);
     z-index: 3000;
-    display: none;
+    display: flex;
     flex-direction: column;
     width: 100%;
     max-width: 100%;
     overflow: hidden;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
 }
 
 .chat-screen.active {
-    display: flex;
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: all;
 }
 
 /* Floating Top Bar */

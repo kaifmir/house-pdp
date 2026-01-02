@@ -443,7 +443,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Skip splash, go directly to chat
                     const chatScreen = document.getElementById('chat-screen');
                     if (chatScreen) {
-                        chatScreen.classList.add('active');
+                        // Trigger slide-in animation
+                        requestAnimationFrame(() => {
+                            chatScreen.classList.add('active');
+                        });
                         document.body.style.overflow = 'hidden';
                         // Start placeholder animation
                         setTimeout(() => {
@@ -638,7 +641,10 @@ document.addEventListener('DOMContentLoaded', function() {
             closeBottomSheet();
             // Open chat screen
             if (chatScreen) {
-                chatScreen.classList.add('active');
+                // Trigger slide-in animation
+                requestAnimationFrame(() => {
+                    chatScreen.classList.add('active');
+                });
                 document.body.style.overflow = 'hidden';
                 // Start placeholder animation when chat opens
                 setTimeout(() => {
