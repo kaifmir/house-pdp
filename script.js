@@ -782,6 +782,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Trigger slide-in animation
                 requestAnimationFrame(() => {
                     chatScreen.classList.add('active');
+                    // Prime viewport when chat screen opens
+                    primeViewport();
                 });
                 document.body.style.overflow = 'hidden';
             }
@@ -931,9 +933,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Sync heights and keyboard initially
-    syncHeights();
-    syncKeyboard();
+    // Prime viewport on chat screen initialization
+    primeViewport();
     
     // Step 7: Debug logging (remove in production)
     // Monitor header position and keyboard height
