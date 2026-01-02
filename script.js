@@ -725,12 +725,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         inputBar.style.bottom = `${newBottom}px`;
                     }
                     
-                    // Ensure top bar stays at top - always fixed
+                    // Ensure top bar stays at top - always fixed, never move
                     if (topBar) {
-                        topBar.style.position = 'fixed';
-                        topBar.style.top = '0';
-                        topBar.style.transform = 'translateY(0)';
-                        topBar.style.zIndex = '10003';
+                        topBar.style.setProperty('position', 'fixed', 'important');
+                        topBar.style.setProperty('top', '0', 'important');
+                        topBar.style.setProperty('transform', 'translateY(0)', 'important');
+                        topBar.style.setProperty('z-index', '10003', 'important');
+                        topBar.style.setProperty('left', '0', 'important');
+                        topBar.style.setProperty('right', '0', 'important');
                     }
                     
                     // Prevent any scrolling
@@ -749,12 +751,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         inputBar.style.bottom = '';
                     }
                     
-                    // Ensure top bar stays at top - always fixed
+                    // Ensure top bar stays at top - always fixed, never move
                     if (topBar) {
-                        topBar.style.position = 'fixed';
-                        topBar.style.top = '0';
-                        topBar.style.transform = 'translateY(0)';
-                        topBar.style.zIndex = '10003';
+                        topBar.style.setProperty('position', 'fixed', 'important');
+                        topBar.style.setProperty('top', '0', 'important');
+                        topBar.style.setProperty('transform', 'translateY(0)', 'important');
+                        topBar.style.setProperty('z-index', '10003', 'important');
+                        topBar.style.setProperty('left', '0', 'important');
+                        topBar.style.setProperty('right', '0', 'important');
                     }
                     
                     // Update base height
@@ -819,10 +823,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (topBar) {
-                topBar.style.position = 'fixed';
-                topBar.style.top = '0';
-                topBar.style.transform = 'translateY(0)';
-                topBar.style.zIndex = '10003';
+                topBar.style.setProperty('position', 'fixed', 'important');
+                topBar.style.setProperty('top', '0', 'important');
+                topBar.style.setProperty('transform', 'translateY(0)', 'important');
+                topBar.style.setProperty('z-index', '10003', 'important');
+                topBar.style.setProperty('left', '0', 'important');
+                topBar.style.setProperty('right', '0', 'important');
             }
             
             // Update base height

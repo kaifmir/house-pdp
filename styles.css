@@ -1439,13 +1439,14 @@ button, .property-type-card {
     align-items: center;
     gap: 16px;
     padding: 12px 16px;
-    position: fixed;
-    top: 0;
+    position: fixed !important;
+    top: 0 !important;
     left: 0;
     right: 0;
-    z-index: 10003;
+    z-index: 10003 !important;
     background: transparent;
     pointer-events: none;
+    transform: translateY(0) !important;
     will-change: auto;
 }
 
@@ -1585,9 +1586,9 @@ button, .property-type-card {
 
 .chat-pill {
     background: linear-gradient(135deg, #FFFFFF 0%, #F8F8F8 100%);
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(200, 200, 210, 0.4);
     border-radius: 20px;
-    padding: 10px 16px;
+    padding: 12px 18px;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 400;
@@ -1598,6 +1599,11 @@ button, .property-type-card {
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .chat-pill:active {
