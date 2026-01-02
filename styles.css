@@ -1598,8 +1598,6 @@ button, .property-type-card {
     gap: 12px;
     width: max-content;
     animation: scrollPills 40s linear infinite;
-    column-count: 2;
-    column-gap: 12px;
 }
 
 .chat-starter-pills-wrapper.paused {
