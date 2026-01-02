@@ -1597,33 +1597,45 @@ button, .property-type-card {
     isolation: isolate;
 }
 
-/* Edge fade overlays - completely rebuilt */
+/* Edge fade overlays - completely rebuilt with proper coverage */
 .chat-starter-pills::before,
 .chat-starter-pills::after {
     content: '';
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 32px;
+    width: 30px;
     pointer-events: none;
     z-index: 200;
-    /* Match exact background color from chat screen */
-    background: linear-gradient(to right, #F5F5F5 0%, #F5F5F5 35%, rgba(245, 245, 245, 0.95) 60%, rgba(245, 245, 245, 0) 100%);
+    /* Match exact background color from chat screen gradient */
+    background: #F5F5F5;
 }
 
 .chat-starter-pills::before {
     left: 0;
-    /* Extend slightly beyond to ensure full coverage */
-    margin-left: -1px;
-    background: linear-gradient(to right, #F5F5F5 0%, #F5F5F5 35%, rgba(245, 245, 245, 0.95) 60%, rgba(245, 245, 245, 0) 100%);
+    /* Extend beyond edge to ensure full coverage */
+    left: -4px;
+    width: 34px;
+    background: linear-gradient(to right, 
+        #F5F5F5 0%, 
+        #F5F5F5 20%, 
+        rgba(245, 245, 245, 0.98) 45%, 
+        rgba(245, 245, 245, 0.85) 70%, 
+        rgba(245, 245, 245, 0) 100%);
 }
 
 .chat-starter-pills::after {
     right: 0;
     left: auto;
-    /* Extend slightly beyond to ensure full coverage */
-    margin-right: -1px;
-    background: linear-gradient(to left, #F5F5F5 0%, #F5F5F5 35%, rgba(245, 245, 245, 0.95) 60%, rgba(245, 245, 245, 0) 100%);
+    /* Extend beyond edge to ensure full coverage */
+    right: -4px;
+    width: 34px;
+    background: linear-gradient(to left, 
+        #F5F5F5 0%, 
+        #F5F5F5 20%, 
+        rgba(245, 245, 245, 0.98) 45%, 
+        rgba(245, 245, 245, 0.85) 70%, 
+        rgba(245, 245, 245, 0) 100%);
 }
 
 .chat-starter-pills-wrapper {
