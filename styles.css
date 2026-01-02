@@ -1686,10 +1686,18 @@ html, body {
 
 .chips-track {
     display: inline-flex;
-    flex-direction: column;
-    gap: 12px;
+    flex-direction: row;
+    gap: 24px;
     padding: 8px 16px;
     width: max-content;
+}
+
+/* Each chip set (2 rows) should be a column */
+.chips-set {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
 }
 
 .chat-starter-pills-row {

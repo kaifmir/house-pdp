@@ -800,11 +800,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const track = document.getElementById('chipsTrack');
         if (!rail || !track) return;
 
-        // Take original chips HTML
-        const originalHTML = track.innerHTML;
+        // Get all rows (should be 2 rows)
+        const rows = Array.from(track.querySelectorAll('.chat-starter-pills-row'));
+        if (rows.length === 0) return;
 
-        // Make 3 copies total (original + 2 clones)
-        track.innerHTML = originalHTML + originalHTML + originalHTML;
+        // Wrap original rows in a container div for horizontal arrangement
+        const originalSet = document.createElement('div');
+        originalSet.className = 'chips-set';
+        rows.forEach(row => originalSet.appendChild(row.cloneNode(true)));
+        
+        // Clear track and add 3 sets (original + 2 clones) arranged horizontally
+        track.innerHTML = '';
+        for (let i = 0; i < 3; i++) {
+            const set = originalSet.cloneNode(true);
+            track.appendChild(set);
+        }
 
         // Function to jump to middle and handle font loading
         function jumpToMiddle() {
