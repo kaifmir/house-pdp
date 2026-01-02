@@ -1578,13 +1578,8 @@ button, .property-type-card {
     width: 100%;
     max-width: 100%;
     padding: 0;
-    margin-bottom: 24px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    margin: 0 0 24px 0;
+    overflow: hidden;
     position: relative;
     max-height: 120px;
 }
@@ -1595,24 +1590,19 @@ button, .property-type-card {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 50px;
+    width: 24px;
     pointer-events: none;
     z-index: 10;
 }
 
 .chat-starter-pills::before {
-    left: -3px;
-    width: 53px;
-    background: linear-gradient(to right, rgba(245, 245, 245, 1) 0%, rgba(245, 245, 245, 1) 20%, rgba(245, 245, 245, 0.7) 50%, rgba(245, 245, 245, 0) 100%);
+    left: 0;
+    background: linear-gradient(to right, rgba(245, 245, 245, 1) 0%, rgba(245, 245, 245, 0.95) 30%, rgba(245, 245, 245, 0) 100%);
 }
 
 .chat-starter-pills::after {
-    right: -1px;
-    background: linear-gradient(to left, rgba(245, 245, 245, 1) 0%, rgba(245, 245, 245, 1) 15%, rgba(245, 245, 245, 0.7) 50%, rgba(245, 245, 245, 0) 100%);
-}
-
-.chat-starter-pills::-webkit-scrollbar {
-    display: none;
+    right: 0;
+    background: linear-gradient(to left, rgba(245, 245, 245, 1) 0%, rgba(245, 245, 245, 0.95) 30%, rgba(245, 245, 245, 0) 100%);
 }
 
 .chat-starter-pills-wrapper {
