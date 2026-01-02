@@ -466,9 +466,10 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         
         item.addEventListener('click', function(e) {
+            e.preventDefault();
             e.stopPropagation();
             handleNavAction();
-        });
+        }, true);
         
         item.addEventListener('touchstart', function(e) {
             touchStartTime = Date.now();
@@ -486,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.stopPropagation();
                 handleNavAction();
             }
-        }, { passive: false });
+        }, { passive: false, capture: true });
     });
     
     // Debounced resize handler

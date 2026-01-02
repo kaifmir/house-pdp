@@ -857,7 +857,6 @@ img {
     -webkit-user-select: none;
     touch-action: manipulation;
     -webkit-touch-callout: none;
-    z-index: 1;
     min-width: 0;
 }
 
@@ -953,6 +952,8 @@ img {
     color: var(--text-light);
     letter-spacing: 0.2px;
     transition: all 0.2s ease;
+    pointer-events: none;
+    user-select: none;
 }
 
 .nav-item.active .nav-label {
