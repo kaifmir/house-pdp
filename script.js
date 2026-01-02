@@ -485,22 +485,16 @@ document.addEventListener('DOMContentLoaded', function() {
         navItems.forEach((item) => {
             if (!item) return;
             
-            // Remove any existing listeners by cloning
-            const newItem = item.cloneNode(true);
-            item.parentNode.replaceChild(newItem, item);
+            // Add click listener
+            item.onclick = handleNavClick;
             
-            // Add fresh listeners
-            newItem.addEventListener('click', handleNavClick, { capture: false });
-            newItem.addEventListener('touchend', function(e) {
+            // Add touch listener
+            item.ontouchend = function(e) {
                 e.preventDefault();
                 e.stopPropagation();
                 handleNavClick(e);
-            }, { capture: false, passive: false });
+            };
         });
-        
-        // Re-query after cloning
-        navItems = document.querySelectorAll('.nav-item');
-        navSliderBg = document.querySelector('.nav-slider-bg');
     }
     
     // Debounced resize handler
