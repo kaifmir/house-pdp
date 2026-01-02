@@ -1660,28 +1660,30 @@ html, body {
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 34px;
+    width: 40px;
     pointer-events: none;
     z-index: 200;
 }
 
 .chips-rail::before {
-    left: -4px;
+    left: 0;
     background: linear-gradient(to right, 
         #F5F5F5 0%, 
-        #F5F5F5 20%, 
-        rgba(245, 245, 245, 0.98) 45%, 
-        rgba(245, 245, 245, 0.85) 70%, 
+        #F5F5F5 15%, 
+        rgba(245, 245, 245, 0.95) 30%, 
+        rgba(245, 245, 245, 0.80) 50%, 
+        rgba(245, 245, 245, 0.50) 70%, 
         rgba(245, 245, 245, 0) 100%);
 }
 
 .chips-rail::after {
-    right: -4px;
+    right: 0;
     background: linear-gradient(to left, 
         #F5F5F5 0%, 
-        #F5F5F5 20%, 
-        rgba(245, 245, 245, 0.98) 45%, 
-        rgba(245, 245, 245, 0.85) 70%, 
+        #F5F5F5 15%, 
+        rgba(245, 245, 245, 0.95) 30%, 
+        rgba(245, 245, 245, 0.80) 50%, 
+        rgba(245, 245, 245, 0.50) 70%, 
         rgba(245, 245, 245, 0) 100%);
 }
 
