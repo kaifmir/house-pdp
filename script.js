@@ -778,16 +778,22 @@ document.addEventListener('DOMContentLoaded', function() {
     if (chatBackBtn) {
         chatBackBtn.addEventListener('click', () => {
             if (chatScreen) {
+                // Trigger slide-out animation
                 chatScreen.classList.remove('active');
                 chatScreen.classList.remove('keyboard-open');
-                document.body.style.overflow = '';
-                if (chatInput) {
-                    chatInput.blur();
-                    // Stop placeholder animation
-                    if (chatTypingTimeout) {
-                        clearTimeout(chatTypingTimeout);
-                        chatTypingTimeout = null;
+                
+                // Wait for animation to complete before cleaning up
+                setTimeout(() => {
+                    document.body.style.overflow = '';
+                    if (chatInput) {
+                        chatInput.blur();
+                        // Stop placeholder animation
+                        if (chatTypingTimeout) {
+                            clearTimeout(chatTypingTimeout);
+                            chatTypingTimeout = null;
+                        }
                     }
+                }, 400);
                 }
             }
         });
