@@ -1527,10 +1527,12 @@ button, .property-type-card {
     flex-direction: column;
     gap: 16px;
     font-family: 'Inter', sans-serif;
+    overscroll-behavior: contain;
 }
 
 .chat-screen.keyboard-open .chat-messages {
     padding-bottom: 120px;
+    overflow-y: hidden;
 }
 
 /* Floating Chat Input Bar */
@@ -1544,8 +1546,8 @@ button, .property-type-card {
     background: transparent;
     z-index: 200;
     pointer-events: none;
-    transition: transform 0.3s ease-out, padding-bottom 0.3s ease;
-    will-change: transform;
+    transition: bottom 0.3s ease-out, padding-bottom 0.3s ease;
+    will-change: bottom;
 }
 
 .chat-screen.keyboard-open .chat-input-bar {
