@@ -664,10 +664,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let isUserInteracting = false;
         let interactionTimeout = null;
         
-        // Duplicate pills for seamless loop
-        const pills = pillsWrapper.querySelectorAll('.chat-pill');
-        pills.forEach(pill => {
-            const clone = pill.cloneNode(true);
+        // Duplicate rows for seamless loop
+        const rows = pillsWrapper.querySelectorAll('.chat-starter-pills-row');
+        rows.forEach(row => {
+            const clone = row.cloneNode(true);
             pillsWrapper.appendChild(clone);
         });
         

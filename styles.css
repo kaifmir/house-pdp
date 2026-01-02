@@ -1571,8 +1571,8 @@ button, .property-type-card {
 
 /* Starter Conversation Pills */
 .chat-starter-pills {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 12px;
     width: 100%;
     max-width: 100%;
@@ -1593,7 +1593,7 @@ button, .property-type-card {
 
 .chat-starter-pills-wrapper {
     display: flex;
-    flex-wrap: nowrap;
+    flex-direction: column;
     gap: 12px;
     width: max-content;
     animation: scrollPills 40s linear infinite;
@@ -1601,6 +1601,12 @@ button, .property-type-card {
 
 .chat-starter-pills-wrapper.paused {
     animation-play-state: paused;
+}
+
+.chat-starter-pills-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: nowrap;
 }
 
 @keyframes scrollPills {
@@ -1632,8 +1638,9 @@ button, .property-type-card {
     align-items: center;
     justify-content: center;
     text-align: center;
-    width: 100%;
+    width: auto;
     flex-shrink: 0;
+    min-width: 140px;
 }
 
 /* Subtle different muted stroke colors for each pill - increased saturation */
