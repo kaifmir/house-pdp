@@ -1397,3 +1397,206 @@ button, .property-type-card {
         transform: translateY(0);
     }
 }
+
+/* Chat Screen */
+.chat-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-white);
+    z-index: 3000;
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.chat-screen.active {
+    display: flex;
+}
+
+.chat-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background-color: var(--bg-white);
+    border-bottom: 1px solid var(--border-light);
+    min-height: 56px;
+    position: relative;
+    z-index: 10;
+}
+
+.chat-top-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.chat-menu-btn,
+.chat-back-btn {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dark);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.chat-menu-btn svg,
+.chat-back-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--text-dark);
+}
+
+.chat-title-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex: 1;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.chat-title-icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.chat-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-dark);
+    font-family: 'Rubik', sans-serif;
+}
+
+.chat-top-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+}
+
+.chat-icon-btn {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dark);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.chat-icon-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--text-dark);
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    background-color: var(--bg-white);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.chat-input-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    background-color: var(--bg-white);
+    border-top: 1px solid var(--border-light);
+    min-height: 60px;
+}
+
+.chat-input-add-btn {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dark);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    flex-shrink: 0;
+}
+
+.chat-input-add-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--text-dark);
+}
+
+.chat-input {
+    flex: 1;
+    border: 1px solid var(--border-light);
+    border-radius: 24px;
+    padding: 12px 16px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 16px;
+    line-height: 20px;
+    color: var(--text-dark);
+    background-color: var(--bg-white);
+    -webkit-appearance: none;
+    appearance: none;
+    caret-color: var(--primary-purple);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.chat-input:focus {
+    outline: none;
+    border-color: var(--primary-purple);
+}
+
+.chat-input::placeholder {
+    color: var(--text-placeholder);
+}
+
+.chat-send-btn {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-purple);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    flex-shrink: 0;
+}
+
+.chat-send-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: var(--primary-purple);
+    fill: var(--primary-purple);
+}
+
+.chat-send-btn:active {
+    opacity: 0.7;
+}

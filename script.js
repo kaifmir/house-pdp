@@ -601,10 +601,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }, { passive: false });
     }
     
-    // CTA click handler
+    // CTA click handler - Open chat screen
+    const chatScreen = document.getElementById('chat-screen');
+    const chatBackBtn = document.getElementById('chat-back-btn');
+    
     if (scoutyCTA) {
         scoutyCTA.addEventListener('click', () => {
-            console.log('CTA clicked - Get Started');
+            // Close bottom sheet
+            closeBottomSheet();
+            // Open chat screen
+            if (chatScreen) {
+                chatScreen.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        });
+    }
+    
+    // Back button - Return to homescreen
+    if (chatBackBtn) {
+        chatBackBtn.addEventListener('click', () => {
+            if (chatScreen) {
+                chatScreen.classList.remove('active');
+                document.body.style.overflow = '';
+            }
         });
     }
 });
