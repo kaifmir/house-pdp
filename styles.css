@@ -1428,9 +1428,10 @@ button, .property-type-card {
     top: 0;
     left: 0;
     right: 0;
-    z-index: 100;
+    z-index: 200;
     background: transparent;
     pointer-events: none;
+    will-change: transform;
 }
 
 .chat-back-btn {
@@ -1457,6 +1458,7 @@ button, .property-type-card {
     width: 24px;
     height: 24px;
     stroke: var(--text-dark);
+    stroke-width: 2.5;
 }
 
 .chat-title-btn {
@@ -1540,9 +1542,10 @@ button, .property-type-card {
     left: 0;
     right: 0;
     background: transparent;
-    z-index: 100;
+    z-index: 200;
     pointer-events: none;
     transition: transform 0.3s ease, padding-bottom 0.3s ease;
+    will-change: transform;
 }
 
 .chat-screen.keyboard-open .chat-input-bar {
@@ -1561,7 +1564,7 @@ button, .property-type-card {
     width: 100%;
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 28px;
-    padding: 14px 100px 14px 16px;
+    padding: 16px 100px 16px 16px;
     font-family: 'Inter', sans-serif;
     font-size: 16px;
     line-height: 20px;
@@ -1573,16 +1576,14 @@ button, .property-type-card {
     -webkit-tap-highlight-color: transparent;
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
-    min-height: 52px;
+    min-height: 56px;
     box-sizing: border-box;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .chat-input:focus {
     outline: none;
     border-color: #000000;
     background-color: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .chat-input::placeholder {

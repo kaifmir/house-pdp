@@ -689,7 +689,7 @@ document.addEventListener('DOMContentLoaded', function() {
             chatPlaceholderIndex = (chatPlaceholderIndex + 1) % chatPlaceholderTexts.length;
             chatCurrentCharIndex = 0;
             chatCurrentText = '';
-            chatTypingTimeout = setTimeout(startChatPlaceholderAnimation, 300);
+            chatTypingTimeout = setTimeout(startChatPlaceholderAnimation, 800);
         }
     }
     
