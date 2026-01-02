@@ -666,8 +666,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Duplicate rows multiple times for seamless infinite loop (only show 2 rows)
         const rows = pillsWrapper.querySelectorAll('.chat-starter-pills-row');
-        // Duplicate 3 times to ensure seamless loop
-        for (let i = 0; i < 3; i++) {
+        // Duplicate 2 more times (total 3 sets) for seamless infinite loop
+        // This ensures when animation reaches -33.333%, it seamlessly continues
+        for (let i = 0; i < 2; i++) {
             rows.forEach(row => {
                 const clone = row.cloneNode(true);
                 pillsWrapper.appendChild(clone);
