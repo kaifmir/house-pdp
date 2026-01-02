@@ -1634,7 +1634,7 @@ html, body {
     overflow-wrap: anywhere;
 }
 
-/* Infinite Horizontal Chips Rail - Full width within container */
+/* Infinite Horizontal Chips Rail - Full width within container, edge to edge */
 .chips-rail {
     width: 100%;
     max-width: 100%;
@@ -1643,7 +1643,8 @@ html, body {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    padding: 4px 0;
+    padding: 0;
+    margin: 0;
     box-sizing: border-box;
     position: relative;
     isolation: isolate;
@@ -1694,6 +1695,7 @@ html, body {
     flex-direction: row;
     gap: 24px;
     padding: 0;
+    margin: 0;
     width: max-content;
 }
 
