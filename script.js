@@ -1,3 +1,30 @@
+// ============================================================================
+// PLATFORM PARITY LAYER
+// ============================================================================
+// Single source of truth for iOS + Android behavior parity
+// Uses feature detection, not UA sniffing (unless absolutely required)
+// ============================================================================
+
+// Debug toggle (set window.__CHAT_DEBUG__ = true in console to enable)
+window.__CHAT_DEBUG__ = window.__CHAT_DEBUG__ || false;
+
+function parityLog(...args) {
+    if (window.__CHAT_DEBUG__) {
+        console.log('[Parity]', ...args);
+    }
+}
+
+// ============================================================================
+// PARITY QA CHECKLIST (verify before marking "fixed"):
+// ============================================================================
+// [ ] Edge fade visible on iOS + Android
+// [ ] Pills drift smooth on iOS + Android (no ticking)
+// [ ] Manual scroll works on both platforms
+// [ ] Keyboard open/close works repeatedly on both (5+ times)
+// [ ] Header stays pinned on both platforms
+// [ ] Composer sits above keyboard on both platforms
+// ============================================================================
+
 // Constants
 const MOBILE_REGEX = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
 const DESKTOP_BREAKPOINT = 768;
@@ -953,11 +980,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const { rail, track } = ctx;
 
-        // Apply iOS-specific fade overlay (instead of mask-image)
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        if (isIOS) {
-            rail.classList.add('ios-fade');
+        // Edge fade parity: feature-detect mask support, fallback to overlay
+        const supportsMask =
+            CSS.supports('-webkit-mask-image', 'linear-gradient(to right, transparent, #000)') ||
+            CSS.supports('mask-image', 'linear-gradient(to right, transparent, #000)');
+        
+        // If mask doesn't render reliably (iOS WebKit sometimes has issues), force fallback
+        // Runtime check: if mask is "supported" but not visible, use overlay
+        if (!supportsMask) {
+            rail.classList.add('fade-overlay');
+            parityLog('Edge fade: using overlay fallback (mask not supported)');
+        } else {
+            // On iOS WebKit, mask-image can be "supported" but not render correctly
+            // Force overlay fallback for iOS WebKit (can be removed if mask works)
+            const isIOSWebKit = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                               (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            if (isIOSWebKit) {
+                rail.classList.add('fade-overlay');
+                parityLog('Edge fade: using overlay fallback (iOS WebKit mask rendering issue)');
+            } else {
+                parityLog('Edge fade: using mask-image (supported)');
+            }
         }
 
         let pausedUntil = 0;
@@ -971,8 +1014,9 @@ document.addEventListener('DOMContentLoaded', function() {
             pausedUntil = Date.now() + ms;
         }
 
+        // Platform parity: use scrollTo where available (iOS + modern browsers)
         function setLeft(x) {
-            if (isIOS && rail.scrollTo) {
+            if (rail.scrollTo) {
                 rail.scrollTo({ left: x, behavior: 'auto' });
             } else {
                 rail.scrollLeft = x;
@@ -1025,10 +1069,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            console.log('Starting chips auto-scroll (smooth rAF)');
+            parityLog('Starting chips auto-scroll (smooth rAF time-based)');
             running = true;
             lastT = 0;
             requestAnimationFrame(tick);
+        }
+        
+        // Debug: log auto-scroll status
+        if (window.__CHAT_DEBUG__) {
+            setInterval(() => {
+                parityLog('Pills auto-scroll:', {
+                    running: running,
+                    paused: Date.now() < pausedUntil,
+                    scrollLeft: rail.scrollLeft,
+                    scrollWidth: rail.scrollWidth,
+                    clientWidth: rail.clientWidth
+                });
+            }, 2000);
         }
 
         // Resume automatically, pause on any interaction
@@ -1163,51 +1220,81 @@ document.addEventListener('DOMContentLoaded', function() {
     // Prime viewport on chat screen initialization
     primeViewport();
     
-    // iOS header pinning: VisualViewport pinning + re-prime on every open/close
-    // visualViewport.offsetTop / viewport metrics can be stale after keyboard close (bfcache / toolbar collapse)
-    // We must recompute the pinned offset on every focusin/focusout + pageshow + visibilitychange
-    (function() {
+    // ============================================================================
+    // KEYBOARD PARITY LAYER (single source of truth)
+    // ============================================================================
+    // Computes --kb-offset, --vv-top, --header-h, --composer-h
+    // Updates on visualViewport resize/scroll, focusin/focusout, pageshow, visibilitychange
+    // Works on iOS + Android (no per-platform duplicated logic)
+    // ============================================================================
+    (function keyboardParityLayer() {
         const root = document.documentElement;
         const header = document.querySelector('.chat-top-bar');
-        if (!header) return;
+        const composer = document.querySelector('.chat-input-bar');
+        const messages = document.querySelector('.chat-messages');
+        
+        if (!header || !composer || !messages) {
+            parityLog('Keyboard parity: missing elements', { header: !!header, composer: !!composer, messages: !!messages });
+            return;
+        }
 
         let raf = null;
 
-        function applyVVTop() {
-            const vv = window.visualViewport;
-            const top = vv ? vv.offsetTop : 0;
-            root.style.setProperty('--vv-top', `${top}px`);
+        function updateAll() {
+            // Update header height
+            const headerHeight = header.offsetHeight;
+            root.style.setProperty('--header-h', `${headerHeight}px`);
             
-            // Debug logging for iOS (ensure window.scrollY stays ~0 during focus/blur)
+            // Update composer height
+            const composerHeight = composer.offsetHeight;
+            root.style.setProperty('--composer-h', `${composerHeight}px`);
+            root.style.setProperty('--composer-height', `${composerHeight}px`);
+            
+            // Update visual viewport offset (header pinning)
+            const vv = window.visualViewport;
+            const vvTop = vv ? vv.offsetTop : 0;
+            root.style.setProperty('--vv-top', `${vvTop}px`);
+            
+            // Update keyboard offset (composer positioning)
             if (vv) {
-                const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-                console.log('Header pinning:', {
-                    scrollY: scrollY,
-                    vvTop: vv.offsetTop,
-                    vvHeight: vv.height,
-                    vvOffsetLeft: vv.offsetLeft
-                });
+                const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+                root.style.setProperty('--kb-offset', `${kb}px`);
+                root.style.setProperty('--kb', `${kb}px`);
                 
-                // Warn if window is scrolling (should stay ~0)
-                if (Math.abs(scrollY) > 1) {
-                    console.warn('Window scroll detected:', scrollY, '- only messages container should scroll');
+                if (window.__CHAT_DEBUG__) {
+                    const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+                    parityLog('Keyboard parity:', {
+                        scrollY: scrollY,
+                        vvTop: vv.offsetTop,
+                        vvHeight: vv.height,
+                        keyboardHeight: kb,
+                        headerH: headerHeight,
+                        composerH: composerHeight
+                    });
+                    
+                    if (Math.abs(scrollY) > 1) {
+                        console.warn('[Parity] Window scroll detected:', scrollY, '- only messages container should scroll');
+                    }
                 }
+            } else {
+                root.style.setProperty('--kb-offset', '0px');
+                root.style.setProperty('--kb', '0px');
             }
         }
 
         // Run multiple times to beat iOS timing (first open + reopen)
         function syncHard() {
             if (raf) cancelAnimationFrame(raf);
-            applyVVTop();
+            updateAll();
             raf = requestAnimationFrame(() => {
-                applyVVTop();
-                setTimeout(applyVVTop, 50);
-                setTimeout(applyVVTop, 150);
-                setTimeout(applyVVTop, 300);
+                updateAll();
+                setTimeout(updateAll, 50);
+                setTimeout(updateAll, 150);
+                setTimeout(updateAll, 300);
             });
         }
 
-        // Key events iOS needs
+        // Key events: visualViewport changes
         window.addEventListener('load', syncHard);
         window.addEventListener('resize', syncHard);
         if (window.visualViewport) {
@@ -1236,73 +1323,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Initial
         syncHard();
-    })();
-
-    // C) Keyboard reopen bug fix: Force recalculation on every focus
-    // On iOS, visualViewport values can be stale after closing keyboard
-    (function() {
-        const root = document.documentElement;
-        const composer = document.querySelector('.chat-input-bar');
-        const messages = document.querySelector('.chat-messages');
-        if (!composer || !messages) return;
-
-        function setComposerHeight() {
-            const height = composer.getBoundingClientRect().height;
-            root.style.setProperty('--composer-height', height + 'px');
-        }
-
-        function updateKeyboardOffset() {
-            setComposerHeight();
-
-            if (!window.visualViewport) {
-                root.style.setProperty('--kb-offset', '0px');
-                root.style.setProperty('--kb', '0px');
-                return;
-            }
-
-            const vv = window.visualViewport;
-            const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-
-            // Debug logging for iOS
-            console.log('Keyboard update:', {
-                innerHeight: window.innerHeight,
-                vvHeight: vv.height,
-                vvOffsetTop: vv.offsetTop,
-                keyboardHeight: kb,
-                composerBottom: composer.getBoundingClientRect().bottom
-            });
-
-            root.style.setProperty('--kb-offset', kb + 'px');
-            root.style.setProperty('--kb', kb + 'px');
-        }
-
-        function resetKeyboardOffset() {
-            root.style.setProperty('--kb-offset', '0px');
-            root.style.setProperty('--kb', '0px');
-        }
-
-        // Listen to visualViewport resize + scroll
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', updateKeyboardOffset);
-            window.visualViewport.addEventListener('scroll', updateKeyboardOffset);
-        }
-
-        // On every focusin of the input, call updateKeyboardOffset() with delays
-        document.addEventListener('focusin', (e) => {
-            if (!e.target.matches('input, textarea')) return;
-            // Force recalculation on every focus (fixes reopen bug)
-            setTimeout(updateKeyboardOffset, 50);
-            setTimeout(updateKeyboardOffset, 150); // second-pass fix for iOS reopen
-        });
-
-        // On focusout, reset --kb-offset to 0
-        document.addEventListener('focusout', (e) => {
-            if (!e.target.matches('input, textarea')) return;
-            setTimeout(resetKeyboardOffset, 50);
-        });
-
-        // Initial update
-        window.addEventListener('load', updateKeyboardOffset);
     })();
     
     // Legacy keyboard handling removed - now using CSS --kb-offset approach above
