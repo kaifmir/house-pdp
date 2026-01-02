@@ -974,203 +974,97 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================================================
-    // PILLS AUTO-SCROLL: Known-good implementation with debug overlay
+    // PILLS AUTO-SCROLL: Transform-based marquee (GPU smooth on iOS + Android)
     // ============================================================================
-    (function initChipsAutoScroll() {
-        const rail = document.getElementById('chipsRail');
+    // Switched from scrollLeft to transform translate3d to avoid WebKit quantization
+    // ============================================================================
+    (function() {
+        const marquee = document.getElementById('chipsMarquee');
         const track = document.getElementById('chipsTrack');
-
-        // Debug badge (on-screen, so we don't depend on console)
-        const badge = document.createElement('div');
-        badge.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:99999;font:11px monospace;background:#000;color:#0f0;padding:6px 8px;border-radius:8px;opacity:.85;max-width:90vw;white-space:pre;line-height:1.4;";
-        document.body.appendChild(badge);
-
-        function show(obj) {
-            badge.textContent = JSON.stringify(obj, null, 2);
+        if (!marquee || !track) {
+            console.warn('chipsMarquee or chipsTrack not found');
+            return;
         }
 
-        try {
-            // Hard validation: rail and track must exist
-            if (!rail || !track) {
-                show({ 
-                    error: "chipsRail/chipsTrack not found",
-                    railFound: !!rail,
-                    trackFound: !!track
-                });
-                return;
-            }
+        // Duplicate content for seamless loop (2x)
+        const originalHTML = track.innerHTML;
+        track.innerHTML = originalHTML + originalHTML;
 
-            // Get original content for cloning
-            const originalSet = track.querySelector('.chips-set');
-            if (!originalSet) {
-                show({ error: "chips-set not found in track" });
-                return;
-            }
+        let last = 0;
+        let x = 0; // current translateX (px)
+        const speed = 18; // px/sec subtle (tune 12–24)
+        let pausedUntil = 0;
+        let dragging = false;
+        let dragStartX = 0;
+        let dragStartOffset = 0;
 
-            // Ensure scrollable: clone until it is
-            const original = originalSet.outerHTML;
-            const copies = 3; // Must match cloning logic
-            track.innerHTML = original + original + original;
-
-            // If still not scrollable, add more clones
-            let safety = 0;
-            let actualCopies = copies;
-            while (rail.scrollWidth <= rail.clientWidth + 5 && safety < 5) {
-                track.innerHTML += original;
-                actualCopies++;
-                safety++;
-            }
-            
-            // Store one set width for loopEdges correction
-            const oneSetWidth = track.scrollWidth / actualCopies;
-
-            // Hard validation: check overflow and scroll-snap
-            const cs = getComputedStyle(rail);
-
-            // Remove snap if any
-            rail.style.scrollSnapType = "none";
-            track.style.scrollSnapType = "none";
-
-            // Ensure overflow is correct
-            rail.style.overflowX = "auto";
-            rail.style.overflowY = "hidden";
-            rail.style.webkitOverflowScrolling = "touch";
-
-            // Hard validation: must be scrollable
-            if (rail.scrollWidth <= rail.clientWidth + 5) {
-                show({
-                    error: "Rail not scrollable after cloning",
-                    clientWidth: rail.clientWidth,
-                    scrollWidth: rail.scrollWidth,
-                    clones: 3 + safety
-                });
-                return;
-            }
-
-            // Edge fade parity: feature-detect mask support, fallback to overlay
-            const supportsMask =
-                CSS.supports('-webkit-mask-image', 'linear-gradient(to right, transparent, #000)') ||
-                CSS.supports('mask-image', 'linear-gradient(to right, transparent, #000)');
-            
-            if (!supportsMask) {
-                rail.classList.add('fade-overlay');
-            } else {
-                const isIOSWebKit = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-                if (isIOSWebKit) {
-                    rail.classList.add('fade-overlay');
-                }
-            }
-
-            // Start in middle (infinite loop correction)
-            function jumpMiddle() {
-                if (oneSetWidth > 0) {
-                    rail.scrollLeft = oneSetWidth; // Start at first copy boundary
-                }
-            }
-            requestAnimationFrame(jumpMiddle);
-            setTimeout(jumpMiddle, 60);
-
-            // Auto-scroll engine: time-based rAF (singleton guard)
-            let pausedUntil = 0;
-            let running = true; // Start running immediately
-            let lastT = 0;
-            const speed = 40; // px/sec (temporarily increased for visibility, reduce to 18-24 after confirmation)
-            let dir = 1;
-
-            function pause(ms = 1000) {
-                pausedUntil = Date.now() + ms;
-            }
-
-            // Stop iOS momentum mode during auto-scroll (critical)
-            // On iOS, -webkit-overflow-scrolling: touch can ignore small programmatic scroll changes
-            rail.classList.add('auto'); // Start with momentum disabled
-            
-            // Pause on interaction, resume automatically
-            ['touchstart', 'pointerdown', 'wheel', 'mousedown'].forEach(evt =>
-                rail.addEventListener(evt, () => {
-                    pause(1200);
-                    // User takes over - restore touch momentum
-                    rail.classList.remove('auto');
-                    // Resume auto-scroll after pause
-                    setTimeout(() => {
-                        if (running) rail.classList.add('auto');
-                    }, 1200);
-                }, { passive: true })
-            );
-            rail.addEventListener('scroll', () => pause(600), { passive: true });
-
-            // Fix loopEdges: only adjust when clearly out of middle range, use stored oneSetWidth
-            function loopEdges() {
-                const x = rail.scrollLeft;
-                // Only correct when clearly outside the middle copy range
-                if (x < oneSetWidth * 0.75) {
-                    rail.scrollLeft = x + oneSetWidth;
-                } else if (x > oneSetWidth * 1.75) {
-                    rail.scrollLeft = x - oneSetWidth;
-                }
-            }
-            
-            // 1) Force visible test movement (diagnostic - remove after confirmation)
-            let forceMoveCount = 0;
-            const forceMoveInterval = setInterval(() => {
-                if (forceMoveCount++ < 10) { // Run 10 times then stop
-                    rail.scrollLeft += 8; // noticeable movement
-                    console.log("FORCE MOVE", rail.scrollLeft);
-                } else {
-                    clearInterval(forceMoveInterval);
-                }
-            }, 100);
-
-            function tick(t) {
-                if (!running) return;
-                if (!lastT) lastT = t;
-                const dt = (t - lastT) / 1000;
-                lastT = t;
-
-                if (Date.now() >= pausedUntil) {
-                    // Ensure momentum scrolling is OFF during auto-scroll
-                    if (!rail.classList.contains('auto')) {
-                        rail.classList.add('auto');
-                    }
-
-                    const beforeScroll = rail.scrollLeft;
-                    rail.scrollLeft += dir * speed * dt;
-                    const afterScroll = rail.scrollLeft;
-                    
-                    // Only call loopEdges if we're actually moving (prevents fighting)
-                    if (Math.abs(afterScroll - beforeScroll) > 0.1) {
-                        loopEdges();
-                    }
-                }
-
-                // Update debug badge (fix pausedUntil display - show as number)
-                const pausedMs = pausedUntil - Date.now();
-                show({
-                    railFound: true,
-                    trackFound: true,
-                    clientWidth: rail.clientWidth,
-                    scrollWidth: rail.scrollWidth,
-                    scrollLeft: Math.round(rail.scrollLeft),
-                    paused: Date.now() < pausedUntil,
-                    pausedUntil: pausedMs > 0 ? Math.round(pausedMs / 1000) : 0, // Show as number (seconds remaining)
-                    running: running,
-                    speed: speed + 'px/s',
-                    overflowX: getComputedStyle(rail).overflowX,
-                    scrollSnapType: getComputedStyle(rail).scrollSnapType,
-                    hasAutoClass: rail.classList.contains('auto')
-                });
-
-                requestAnimationFrame(tick);
-            }
-
-            // Start animation immediately
-            requestAnimationFrame(tick);
-
-        } catch (e) {
-            show({ error: String(e), stack: e.stack });
-            console.error('Pills auto-scroll error:', e);
+        function pause(ms = 1000) {
+            pausedUntil = Date.now() + ms;
         }
+
+        function loop(t) {
+            if (!last) last = t;
+            const dt = (t - last) / 1000;
+            last = t;
+
+            const halfWidth = track.scrollWidth / 2; // since 2x duplicate
+
+            if (!dragging && Date.now() >= pausedUntil) {
+                x -= speed * dt; // move left (use + for right)
+                // wrap when we've moved one full set
+                if (Math.abs(x) >= halfWidth) {
+                    x = 0;
+                }
+                track.style.transform = `translate3d(${x}px,0,0)`;
+            }
+
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+
+        // Manual drag (keeps it smooth + works on iOS)
+        marquee.addEventListener('pointerdown', (e) => {
+            dragging = true;
+            pause(999999); // freeze auto while dragging
+            if (marquee.setPointerCapture) {
+                marquee.setPointerCapture(e.pointerId);
+            }
+            dragStartX = e.clientX;
+            dragStartOffset = x;
+        });
+
+        marquee.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            const dx = e.clientX - dragStartX;
+            x = dragStartOffset + dx;
+            track.style.transform = `translate3d(${x}px,0,0)`;
+        });
+
+        function endDrag() {
+            if (!dragging) return;
+            dragging = false;
+            pausedUntil = Date.now() + 900; // resume after a beat
+        }
+        marquee.addEventListener('pointerup', endDrag);
+        marquee.addEventListener('pointercancel', endDrag);
+
+        // Also support touch events for older browsers
+        marquee.addEventListener('touchstart', (e) => {
+            dragging = true;
+            pause(999999);
+            dragStartX = e.touches[0].clientX;
+            dragStartOffset = x;
+        }, { passive: true });
+
+        marquee.addEventListener('touchmove', (e) => {
+            if (!dragging) return;
+            const dx = e.touches[0].clientX - dragStartX;
+            x = dragStartOffset + dx;
+            track.style.transform = `translate3d(${x}px,0,0)`;
+        }, { passive: true });
+
+        marquee.addEventListener('touchend', endDrag, { passive: true });
+        marquee.addEventListener('touchcancel', endDrag, { passive: true });
     })();
     
     // Step 3: Reliable keyboard detection for chat-intro hide/show

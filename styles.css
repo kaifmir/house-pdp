@@ -1637,81 +1637,48 @@ html, body {
     overflow-wrap: anywhere;
 }
 
-/* Infinite Horizontal Chips Rail - Full width within container, edge to edge */
-.chips-rail {
+/* Transform-based marquee (GPU smooth on iOS + Android) */
+.chips-marquee {
+    overflow: hidden;
+    position: relative;
     width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    touch-action: pan-x;
     padding: 0;
     margin: 0;
     box-sizing: border-box;
-    position: relative;
-    isolation: isolate;
-    /* Edge fade using mask-image (default, Android OK) */
-    --fade-w: 24px;
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
-    /* Safari iOS hardware acceleration */
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    will-change: scroll-position;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
 }
 
-/* Disable momentum scrolling during auto-scroll to allow JS updates */
-.chips-rail.auto {
-    -webkit-overflow-scrolling: auto;
-}
-
-/* Fallback: overlay fade (if mask-image doesn't render reliably) */
-.chips-rail.fade-overlay {
-    -webkit-mask-image: none;
-    mask-image: none;
-}
-
-.chips-rail.fade-overlay::before,
-.chips-rail.fade-overlay::after {
+/* Edge fade (works everywhere) */
+.chips-marquee::before,
+.chips-marquee::after {
     content: "";
     position: absolute;
     top: 0;
     bottom: 0;
-    width: var(--fade-w);
+    width: 24px;
     pointer-events: none;
-    z-index: 5;
+    z-index: 2;
 }
 
-.chips-rail.fade-overlay::before {
+.chips-marquee::before {
     left: 0;
     background: linear-gradient(to right, var(--page-bg, #F5F5F5), rgba(245, 245, 245, 0));
 }
 
-.chips-rail.fade-overlay::after {
+.chips-marquee::after {
     right: 0;
     background: linear-gradient(to left, var(--page-bg, #F5F5F5), rgba(245, 245, 245, 0));
 }
 
-.chips-rail::-webkit-scrollbar {
-    display: none;
-}
-
-/* Edge fade now handled by mask-image on .chips-rail */
-
 .chips-track {
-    display: flex;
+    display: inline-flex;
     flex-direction: row;
     gap: 12px;
     padding: 0;
     margin: 0;
-    width: max-content;
-    /* Safari iOS hardware acceleration */
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
     will-change: transform;
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
 }
 
 /* Each chip set contains 2 rows */
