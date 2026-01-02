@@ -8,32 +8,49 @@ const TOP_AREA_THRESHOLD = 100;
 const TAP_THRESHOLD = 15;
 const TAP_TIME_THRESHOLD = 300;
 
-// Header height synchronization for proper content offset
-function syncChatHeaderHeight() {
+// Measure real heights and set CSS vars for layout
+function syncHeights() {
     const header = document.querySelector('.chat-top-bar');
+    const composer = document.querySelector('.chat-input-bar');
+    
     if (header) {
-        const height = header.offsetHeight;
-        document.documentElement.style.setProperty('--chat-header-height', `${height}px`);
+        const headerHeight = header.offsetHeight;
+        document.documentElement.style.setProperty('--chat-header-height', `${headerHeight}px`);
+    }
+    
+    if (composer) {
+        const composerHeight = composer.offsetHeight;
+        document.documentElement.style.setProperty('--chat-composer-height', `${composerHeight}px`);
     }
 }
 
-// Sync header height on resize and orientation change
-window.addEventListener('resize', syncChatHeaderHeight);
-window.addEventListener('orientationchange', syncChatHeaderHeight);
+// Sync heights on resize and orientation change
+window.addEventListener('resize', syncHeights);
+window.addEventListener('orientationchange', syncHeights);
 
-// Focus stabilizer for Android - prevents scroll jump when input is focused
-let lastScrollY = 0;
+// Use visualViewport for Android keyboard compatibility
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', syncHeights);
+    window.visualViewport.addEventListener('scroll', () => {
+        // Prevent visual viewport scroll from affecting layout
+        syncHeights();
+    });
+}
+
+// Stop Android "scroll to focused input" from pushing layout
+// On focus, keep window scroll at 0 and let messages container handle scrolling
 document.addEventListener('focusin', (e) => {
-    if (!e.target.matches('input, textarea, [contenteditable="true"]')) return;
+    if (!e.target.matches('input, textarea')) return;
     if (!e.target.closest('.chat-screen')) return; // Only for chat inputs
     
-    lastScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-    
-    // Prevent scroll jump on Android
+    // Keep header stable by ensuring window doesn't scroll
     requestAnimationFrame(() => {
-        window.scrollTo(0, lastScrollY);
-        document.documentElement.scrollTop = lastScrollY;
-        document.body.scrollTop = lastScrollY;
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        
+        // Sync heights after potential layout shift
+        syncHeights();
     });
 }, { passive: true });
 
@@ -826,8 +843,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Sync header height initially
-    syncChatHeaderHeight();
+    // Sync heights initially
+    syncHeights();
     
     // Handle keyboard open/close for input
     if (chatInput && chatScreen) {
@@ -841,17 +858,10 @@ document.addEventListener('DOMContentLoaded', function() {
             chatScreen.scrollTop = 0;
         }, { passive: false });
         
-        // Use visualViewport to maintain body height when keyboard opens (Android fix)
+        // Sync heights when keyboard opens/closes
         if (window.visualViewport) {
             window.visualViewport.addEventListener('resize', () => {
-                // Lock body height to visual viewport height to prevent scroll
-                document.body.style.height = `${window.visualViewport.height}px`;
-                // Ensure header stays at visual viewport top
-                const topBar = document.querySelector('.chat-top-bar');
-                if (topBar) {
-                    const offsetTop = window.visualViewport.offsetTop || 0;
-                    topBar.style.top = `${offsetTop}px`;
-                }
+                syncHeights();
             });
         }
         
@@ -908,19 +918,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         inputBar.style.bottom = `${newBottom}px`;
                     }
                     
-                    // CRITICAL: Force top bar to stay at visual viewport top (not document top)
-                    if (topBar) {
-                        const viewportOffsetTop = window.visualViewport ? (window.visualViewport.offsetTop || 0) : 0;
-                        topBar.style.position = 'fixed';
-                        topBar.style.top = `${viewportOffsetTop}px`;
-                        topBar.style.left = '0';
-                        topBar.style.right = '0';
-                        topBar.style.transform = 'translateZ(0)';
-                        topBar.style.zIndex = '10003';
-                        topBar.style.margin = '0';
-                        // Force repaint to ensure position is applied
-                        void topBar.offsetHeight;
-                    }
+                    // Header is already fixed - just sync heights
+                    syncHeights();
                     
                     // Prevent any scrolling
                     window.scrollTo(0, 0);
@@ -1022,21 +1021,8 @@ document.addEventListener('DOMContentLoaded', function() {
             chatScreen.style.right = '0';
             chatScreen.style.bottom = '0';
             
-            // Force header to stay at top (use visualViewport offset if available)
-            const topBar = document.querySelector('.chat-top-bar');
-            if (topBar) {
-                const viewportOffsetTop = window.visualViewport ? (window.visualViewport.offsetTop || 0) : 0;
-                topBar.style.position = 'fixed';
-                topBar.style.top = `${viewportOffsetTop}px`;
-                topBar.style.left = '0';
-                topBar.style.right = '0';
-                topBar.style.transform = 'translateZ(0)';
-                topBar.style.zIndex = '10003';
-                topBar.style.margin = '0';
-            }
-            
-            // Sync header height after potential layout changes
-            syncChatHeaderHeight();
+            // Sync heights after potential layout changes
+            syncHeights();
             
             // Update base height before keyboard opens
             if (window.visualViewport) {

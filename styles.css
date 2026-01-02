@@ -1407,20 +1407,27 @@ button, .property-type-card {
     }
 }
 
-/* Chat Screen */
+/* CSS Variables for layout spacing */
+:root {
+    --chat-header-height: 68px;  /* Updated by JS */
+    --chat-composer-height: 80px; /* Updated by JS */
+}
+
+/* Prevent body scroll jump - lock layout */
+html, body {
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Chat Screen - Container only, no scrolling */
 .chat-screen {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    /* Use dynamic viewport height for Android keyboard compatibility */
-    min-height: 100dvh;
-    height: 100dvh;
     background: linear-gradient(to bottom, #F5F5F5 0%, #EBEBEB 100%);
     z-index: 10002;
-    display: flex;
-    flex-direction: column;
     width: 100%;
     max-width: 100%;
     overflow: hidden;
@@ -1428,8 +1435,8 @@ button, .property-type-card {
     opacity: 0;
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
-    /* Prevent transform from creating stacking context that breaks fixed children */
-    isolation: isolate;
+    /* Remove flex layout - we use fixed positioning instead */
+    display: block;
 }
 
 .chat-screen.active {
@@ -1438,7 +1445,7 @@ button, .property-type-card {
     pointer-events: all;
 }
 
-/* Floating Top Bar - Always Sticky (Robust Fixed Positioning) */
+/* Header - Fixed at top, OUTSIDE scroll container */
 .chat-top-bar {
     display: flex;
     align-items: center;
@@ -1455,23 +1462,11 @@ button, .property-type-card {
     -webkit-backdrop-filter: blur(12px) saturate(180%);
     pointer-events: none;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-    /* Hardware acceleration + prevent paint glitches */
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
     will-change: transform;
     margin: 0;
-    /* Ensure it's always on top of viewport, not parent */
-    position: fixed;
-}
-
-/* Ensure header never moves when keyboard opens */
-.chat-screen.keyboard-open .chat-top-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    transform: translateZ(0);
-    margin: 0;
+    /* Always fixed, never moves */
 }
 
 .chat-back-btn {
@@ -1556,14 +1551,20 @@ button, .property-type-card {
     font-family: 'Inter', sans-serif;
 }
 
+/* Messages Area - ONLY scrollable region, positioned between header and composer */
 .chat-messages {
-    flex: 1;
+    position: fixed;
+    top: var(--chat-header-height);
+    left: 0;
+    right: 0;
+    bottom: var(--chat-composer-height);
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    /* Offset content by header height (dynamically set via CSS variable) */
-    padding: calc(var(--chat-header-height, 68px) + 12px) 16px 100px;
-    padding-top: calc(var(--chat-header-height, 68px) + 12px + env(safe-area-inset-top));
+    /* Reduced padding - spacing comes from layout, not padding */
+    padding: 16px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    padding-bottom: 16px;
     background: transparent;
     display: flex;
     flex-direction: column;
@@ -1571,20 +1572,9 @@ button, .property-type-card {
     gap: 32px;
     font-family: 'Inter', sans-serif;
     overscroll-behavior: contain;
-    position: relative;
     z-index: 1;
-    margin-top: 0;
-}
-
-/* Prevent scrolling when keyboard is open */
-.chat-screen.keyboard-open .chat-messages {
-    overflow-y: hidden !important;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    padding-top: calc(80px + env(safe-area-inset-top));
+    /* Use dynamic viewport height for Android keyboard */
+    max-height: 100dvh;
 }
 
 /* Chat Greeting */
