@@ -437,7 +437,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const handleNavAction = () => {
             if (navType === 'chat') {
-                openBottomSheet();
+                // Check if user has already seen the splash screen
+                const hasSeenSplash = sessionStorage.getItem('scoutySplashSeen') === 'true';
+                if (hasSeenSplash) {
+                    // Skip splash, go directly to chat
+                    const chatScreen = document.getElementById('chat-screen');
+                    if (chatScreen) {
+                        chatScreen.classList.add('active');
+                        document.body.style.overflow = 'hidden';
+                    }
+                } else {
+                    // Show splash screen
+                    openBottomSheet();
+                }
             } else {
                 handleNavClick(item);
             }
@@ -607,6 +619,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (scoutyCTA) {
         scoutyCTA.addEventListener('click', () => {
+            // Mark splash as seen in sessionStorage (resets on page refresh)
+            sessionStorage.setItem('scoutySplashSeen', 'true');
             // Close bottom sheet
             closeBottomSheet();
             // Open chat screen
