@@ -42,6 +42,23 @@ function syncKeyboard() {
     }
 }
 
+// Fix 1: Prime keyboard/viewport calculation on page load + first touch
+let primed = false;
+
+function primeViewport() {
+    if (primed) return;
+    primed = true;
+    syncHeights();
+    syncKeyboard();
+    // run again after a tick to catch late viewport init
+    requestAnimationFrame(syncKeyboard);
+    setTimeout(syncKeyboard, 50);
+}
+
+window.addEventListener('load', primeViewport);
+window.addEventListener('touchstart', primeViewport, { passive: true, once: true });
+window.addEventListener('pointerdown', primeViewport, { passive: true, once: true });
+
 // Sync heights on resize and orientation change
 window.addEventListener('resize', () => {
     syncHeights();
@@ -63,22 +80,66 @@ if (window.visualViewport) {
     });
 }
 
+// Fix 2: Prevent the initial focus scroll-jump (only for first focus)
+let firstFocusFixDone = false;
+
 // Step 6: Prevent focus scroll-jump
 // Stop the browser from scrolling the window by ensuring window scroll stays at 0
 document.addEventListener('focusin', (e) => {
-    if (!e.target.matches('input, textarea')) return;
+    if (!e.target.matches('input, textarea, [contenteditable="true"]')) return;
     if (!e.target.closest('.chat-screen')) return; // Only for chat inputs
     
-    // Keep window scroll at 0 to prevent header from moving
-    requestAnimationFrame(() => {
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
+    // Prime viewport before focus
+    primeViewport();
+    
+    // Fix 2: Special handling for first focus
+    if (!firstFocusFixDone) {
+        firstFocusFixDone = true;
         
-        // Sync heights and keyboard after potential layout shift
-        syncHeights();
+        // Capture current scroll
+        const y = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+        
+        // Immediately undo any browser scroll attempt (multiple attempts to catch it)
+        requestAnimationFrame(() => {
+            window.scrollTo(0, y);
+            document.documentElement.scrollTop = y;
+            document.body.scrollTop = y;
+        });
+        setTimeout(() => {
+            window.scrollTo(0, y);
+            document.documentElement.scrollTop = y;
+            document.body.scrollTop = y;
+        }, 0);
+        setTimeout(() => {
+            window.scrollTo(0, y);
+            document.documentElement.scrollTop = y;
+            document.body.scrollTop = y;
+        }, 50);
+        
+        // Force kb recalculation early + after viewport settles
         syncKeyboard();
-    });
+        requestAnimationFrame(syncKeyboard);
+        setTimeout(syncKeyboard, 50);
+    } else {
+        // Normal handling for subsequent focuses
+        requestAnimationFrame(() => {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            
+            // Sync heights and keyboard after potential layout shift
+            syncHeights();
+            syncKeyboard();
+        });
+    }
+    
+    // Fix 4: Debug logging (remove after verification)
+    const header = document.querySelector('.chat-top-bar');
+    if (header) {
+        const headerTop = header.getBoundingClientRect().top;
+        const kb = getComputedStyle(document.documentElement).getPropertyValue('--kb').trim();
+        console.log('focusin - headerTop:', headerTop, 'kb:', kb, 'firstFocus:', !firstFocusFixDone);
+    }
 }, { passive: true });
 
 // DOM element cache
