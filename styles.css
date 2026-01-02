@@ -1578,7 +1578,7 @@ button, .property-type-card {
     font-size: 32px;
     font-weight: 600;
     letter-spacing: 0.5px;
-    color: var(--text-dark);
+    color: #4A4A4A;
     text-align: center;
     margin: 0;
     line-height: 1.4;
