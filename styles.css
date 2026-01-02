@@ -1594,15 +1594,22 @@ html, body {
     z-index: 1;
 }
 
-/* Chat Greeting */
 /* Hero Intro Block - wraps greeting + pills */
 .chat-intro {
+    width: 100%;
+    padding: 24px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
     opacity: 1;
     transform: translateY(0);
     max-height: 500px; /* large enough */
     transition: opacity 180ms ease, transform 180ms ease, max-height 220ms ease;
     will-change: opacity, transform, max-height;
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 .chat-intro.is-hidden {
@@ -1611,40 +1618,33 @@ html, body {
     max-height: 0;
     overflow: hidden;
     pointer-events: none;
+    padding: 0;
 }
 
-.chat-greeting {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 40px;
-}
-
-.chat-greeting-text {
+.chat-hero-title {
     font-family: 'Playfair Display', serif;
     font-size: 32px;
     font-weight: 600;
     letter-spacing: 0.5px;
     color: #4A4A4A;
-    text-align: center;
     margin: 0;
-    line-height: 1.4;
-    max-width: 90%;
+    width: 100%;
+    max-width: 320px;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
 }
 
 /* Infinite Horizontal Chips Rail */
 .chips-rail {
+    width: 100%;
+    max-width: 360px;
     overflow-x: auto;
     overflow-y: hidden;
-    white-space: nowrap;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    margin: 0 0 24px 0;
-    max-height: calc(120px - 2px);
+    padding: 4px 0;
     position: relative;
-    /* Create proper container for edge fades */
     isolation: isolate;
 }
 
@@ -1685,19 +1685,16 @@ html, body {
 }
 
 .chips-track {
-    display: inline-flex;
+    display: flex;
     flex-direction: row;
-    gap: 24px;
-    padding: 8px 16px;
+    gap: 12px;
+    padding: 0 8px;
     width: max-content;
 }
 
-/* Each chip set (2 rows) should be a column */
-.chips-set {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    flex-shrink: 0;
+.chat-pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .chat-starter-pills-row {

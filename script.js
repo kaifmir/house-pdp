@@ -794,38 +794,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Placeholder animation removed - using static placeholder "Got Questions..."
     
-    // Infinite horizontal chips scroll (loop both directions)
-    (function initInfiniteChips() {
+    // Setup infinite chips (clone 3x, start in middle)
+    function setupInfiniteChips() {
         const rail = document.getElementById('chipsRail');
         const track = document.getElementById('chipsTrack');
-        if (!rail || !track) return;
+        if (!rail || !track) return null;
 
-        // Get all rows (should be 2 rows)
-        const rows = Array.from(track.querySelectorAll('.chat-starter-pills-row'));
-        if (rows.length === 0) return;
+        const original = track.innerHTML;
+        track.innerHTML = original + original + original;
 
-        // Wrap original rows in a container div for horizontal arrangement
-        const originalSet = document.createElement('div');
-        originalSet.className = 'chips-set';
-        rows.forEach(row => originalSet.appendChild(row.cloneNode(true)));
-        
-        // Clear track and add 3 sets (original + 2 clones) arranged horizontally
-        track.innerHTML = '';
-        for (let i = 0; i < 3; i++) {
-            const set = originalSet.cloneNode(true);
-            track.appendChild(set);
-        }
+        const jumpToMiddle = () => {
+            const third = track.scrollWidth / 3;
+            rail.scrollLeft = third;
+        };
 
-        // Function to jump to middle and handle font loading
-        function jumpToMiddle() {
-            requestAnimationFrame(() => {
-                const third = track.scrollWidth / 3;
-                rail.scrollLeft = third; // middle start
-            });
-        }
-
-        // Initial jump to middle after render
-        jumpToMiddle();
+        requestAnimationFrame(jumpToMiddle);
+        setTimeout(jumpToMiddle, 60);
 
         // Handle font loading for proper width calculation
         if (document.fonts?.ready) {
@@ -834,26 +818,81 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Also recalculate after a short delay to handle any dynamic sizing
-        setTimeout(jumpToMiddle, 100);
-
-        // Loop logic: when near edges, teleport back into middle region
-        function loop() {
+        function loopEdges() {
             const third = track.scrollWidth / 3;
             const x = rail.scrollLeft;
 
-            // if user scrolls too far left, push them right by 1 segment
-            if (x < third * 0.5) {
-                rail.scrollLeft = x + third;
-            }
-
-            // if user scrolls too far right, pull them left by 1 segment
-            if (x > third * 1.5) {
-                rail.scrollLeft = x - third;
-            }
+            if (x < third * 0.5) rail.scrollLeft = x + third;
+            if (x > third * 1.5) rail.scrollLeft = x - third;
         }
 
-        rail.addEventListener('scroll', loop, { passive: true });
+        rail.addEventListener('scroll', loopEdges, { passive: true });
+
+        return { rail, track, loopEdges };
+    }
+
+    // Soft auto-movement + manual scroll (using scrollLeft, NOT transform)
+    (function initChipsAutoScroll() {
+        const ctx = setupInfiniteChips();
+        if (!ctx) return;
+
+        const { rail } = ctx;
+
+        let dir = 1;                 // 1 = right, -1 = left
+        let speed = 0.25;            // pixels per frame (~slow drift)
+        let rafId = null;
+        let pausedUntil = 0;
+
+        function pause(ms = 1000) {
+            pausedUntil = Date.now() + ms;
+        }
+
+        function tick() {
+            const now = Date.now();
+
+            // pause when user interacted recently
+            if (now < pausedUntil) {
+                rafId = requestAnimationFrame(tick);
+                return;
+            }
+
+            // Soft auto-move by incrementing scrollLeft (NOT transform!)
+            rail.scrollLeft += dir * speed;
+
+            rafId = requestAnimationFrame(tick);
+        }
+
+        // Pause on any user intent to scroll
+        ['touchstart', 'pointerdown', 'wheel', 'mousedown'].forEach(evt => {
+            rail.addEventListener(evt, () => pause(1200), { passive: true });
+        });
+
+        // Also pause while actively scrolling
+        let scrollTimeout;
+        rail.addEventListener('scroll', () => {
+            pause(600);
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => pause(0), 0);
+        }, { passive: true });
+
+        // Start auto-scroll
+        rafId = requestAnimationFrame(tick);
+
+        // Stop auto-scroll when keyboard opens (intro is hidden)
+        const intro = document.getElementById('chat-intro');
+        if (intro) {
+            const observer = new MutationObserver(() => {
+                if (intro.classList.contains('is-hidden')) {
+                    pause(999999); // Pause indefinitely while hidden
+                } else {
+                    pause(0); // Resume when visible
+                }
+            });
+            observer.observe(intro, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        }
     })();
     
     // Step 3: Reliable keyboard detection for chat-intro hide/show
