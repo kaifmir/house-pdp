@@ -725,11 +725,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         inputBar.style.bottom = `${newBottom}px`;
                     }
                     
-                    // Ensure top bar stays at top
+                    // Ensure top bar stays at top - always fixed
                     if (topBar) {
                         topBar.style.position = 'fixed';
                         topBar.style.top = '0';
-                        topBar.style.zIndex = '200';
+                        topBar.style.transform = 'translateY(0)';
+                        topBar.style.zIndex = '10003';
                     }
                     
                     // Prevent any scrolling
@@ -748,11 +749,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         inputBar.style.bottom = '';
                     }
                     
-                    // Ensure top bar stays at top
+                    // Ensure top bar stays at top - always fixed
                     if (topBar) {
                         topBar.style.position = 'fixed';
                         topBar.style.top = '0';
-                        topBar.style.zIndex = '200';
+                        topBar.style.transform = 'translateY(0)';
+                        topBar.style.zIndex = '10003';
                     }
                     
                     // Update base height
