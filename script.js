@@ -603,6 +603,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (chatScreen) {
                             requestAnimationFrame(() => {
                                 chatScreen.classList.add('active');
+                                // Prime viewport when chat screen opens
+                                primeViewport();
                             });
                             document.body.style.overflow = 'hidden';
                         // Placeholder animation removed
