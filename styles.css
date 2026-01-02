@@ -1534,7 +1534,7 @@ button, .property-type-card {
 /* Floating Chat Input Bar */
 .chat-input-bar {
     padding: 12px 16px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
     position: fixed;
     bottom: 0;
     left: 0;
@@ -1546,7 +1546,7 @@ button, .property-type-card {
 }
 
 .chat-screen.keyboard-open .chat-input-bar {
-    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
 }
 
 .chat-input-wrapper {
@@ -1555,40 +1555,13 @@ button, .property-type-card {
     position: relative;
     width: 100%;
     pointer-events: all;
-    gap: 8px;
-}
-
-.chat-voice-btn {
-    background: none;
-    border: none;
-    width: 40px;
-    height: 40px;
-    padding: 0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-dark);
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    flex-shrink: 0;
-}
-
-.chat-voice-btn svg {
-    width: 20px;
-    height: 20px;
-    stroke: var(--text-dark);
-}
-
-.chat-voice-btn:active {
-    opacity: 0.7;
 }
 
 .chat-input {
-    flex: 1;
+    width: 100%;
     border: 1px solid var(--border-light);
     border-radius: 28px;
-    padding: 14px 50px 14px 16px;
+    padding: 14px 50px 14px 50px;
     font-family: 'Inter', sans-serif;
     font-size: 16px;
     line-height: 20px;
@@ -1612,6 +1585,34 @@ button, .property-type-card {
 
 .chat-input::placeholder {
     color: var(--text-placeholder);
+}
+
+.chat-voice-btn {
+    position: absolute;
+    left: 6px;
+    background: none;
+    border: none;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dark);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    flex-shrink: 0;
+}
+
+.chat-voice-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--text-dark);
+}
+
+.chat-voice-btn:active {
+    opacity: 0.7;
 }
 
 .chat-send-btn {
