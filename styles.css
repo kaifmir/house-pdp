@@ -1652,7 +1652,7 @@ html, body {
     display: none;
 }
 
-/* Edge fade overlays */
+/* Edge fade overlays - soft opacity fade on left and right edges */
 .chips-rail::before,
 .chips-rail::after {
     content: '';
@@ -1667,21 +1667,21 @@ html, body {
 .chips-rail::before {
     left: -4px;
     background: linear-gradient(to right, 
-        #F0F0F0 0%, 
-        #F0F0F0 20%, 
-        rgba(240, 240, 240, 0.98) 45%, 
-        rgba(240, 240, 240, 0.85) 70%, 
-        rgba(240, 240, 240, 0) 100%);
+        #F5F5F5 0%, 
+        #F5F5F5 20%, 
+        rgba(245, 245, 245, 0.98) 45%, 
+        rgba(245, 245, 245, 0.85) 70%, 
+        rgba(245, 245, 245, 0) 100%);
 }
 
 .chips-rail::after {
     right: -4px;
     background: linear-gradient(to left, 
-        #F0F0F0 0%, 
-        #F0F0F0 20%, 
-        rgba(240, 240, 240, 0.98) 45%, 
-        rgba(240, 240, 240, 0.85) 70%, 
-        rgba(240, 240, 240, 0) 100%);
+        #F5F5F5 0%, 
+        #F5F5F5 20%, 
+        rgba(245, 245, 245, 0.98) 45%, 
+        rgba(245, 245, 245, 0.85) 70%, 
+        rgba(245, 245, 245, 0) 100%);
 }
 
 .chips-track {
