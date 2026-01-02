@@ -628,6 +628,94 @@ document.addEventListener('DOMContentLoaded', function() {
             if (chatScreen) {
                 chatScreen.classList.add('active');
                 document.body.style.overflow = 'hidden';
+                // Start placeholder animation when chat opens
+                if (chatInput) {
+                    startChatPlaceholderAnimation();
+                }
+            }
+        });
+    }
+    
+    // Chat placeholder animation
+    const chatPlaceholderTexts = [
+        'Ask Scouty anything',
+        'Help me find 3bhk in Goa',
+        'Show me apartments in Mumbai',
+        'Find 2bhk flats in Bangalore',
+        'Search for villas in Pune',
+        'Looking for studio in Delhi'
+    ];
+    
+    let chatPlaceholderIndex = 0;
+    let chatTypingTimeout = null;
+    let chatIsFocused = false;
+    let chatCurrentCharIndex = 0;
+    let chatIsDeleting = false;
+    let chatCurrentText = '';
+    
+    function startChatPlaceholderAnimation() {
+        if (!chatInput || chatIsFocused || chatInput.value) return;
+        
+        const targetText = chatPlaceholderTexts[chatPlaceholderIndex];
+        
+        if (!chatIsDeleting && chatCurrentCharIndex < targetText.length) {
+            // Typing
+            chatCurrentText = targetText.substring(0, chatCurrentCharIndex + 1);
+            chatInput.placeholder = chatCurrentText;
+            chatCurrentCharIndex++;
+            chatTypingTimeout = setTimeout(startChatPlaceholderAnimation, 80);
+        } else if (!chatIsDeleting && chatCurrentCharIndex >= targetText.length) {
+            // Finished typing, wait then start deleting
+            chatIsDeleting = true;
+            chatTypingTimeout = setTimeout(startChatPlaceholderAnimation, 2000);
+        } else if (chatIsDeleting && chatCurrentCharIndex > 0) {
+            // Deleting
+            chatCurrentCharIndex--;
+            chatCurrentText = targetText.substring(0, chatCurrentCharIndex);
+            chatInput.placeholder = chatCurrentText;
+            chatTypingTimeout = setTimeout(startChatPlaceholderAnimation, 50);
+        } else {
+            // Finished deleting, move to next text
+            chatIsDeleting = false;
+            chatPlaceholderIndex = (chatPlaceholderIndex + 1) % chatPlaceholderTexts.length;
+            chatCurrentCharIndex = 0;
+            chatCurrentText = '';
+            chatTypingTimeout = setTimeout(startChatPlaceholderAnimation, 300);
+        }
+    }
+    
+    if (chatInput) {
+        // Start animation when chat screen opens
+        if (chatScreen && chatScreen.classList.contains('active')) {
+            setTimeout(() => {
+                startChatPlaceholderAnimation();
+            }, 500);
+        }
+        
+        // Stop animation on focus
+        chatInput.addEventListener('focus', () => {
+            chatIsFocused = true;
+            if (chatTypingTimeout) {
+                clearTimeout(chatTypingTimeout);
+                chatTypingTimeout = null;
+            }
+            if (!chatInput.value) {
+                chatInput.placeholder = 'Ask Scouty anything';
+            }
+        });
+        
+        // Resume animation on blur if empty
+        chatInput.addEventListener('blur', () => {
+            chatIsFocused = false;
+            if (!chatInput.value.trim()) {
+                chatPlaceholderIndex = 0;
+                chatCurrentCharIndex = 0;
+                chatCurrentText = '';
+                chatIsDeleting = false;
+                chatInput.placeholder = '';
+                if (!chatTypingTimeout) {
+                    chatTypingTimeout = setTimeout(startChatPlaceholderAnimation, 500);
+                }
             }
         });
     }
