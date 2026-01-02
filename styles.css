@@ -1433,25 +1433,33 @@ button, .property-type-card {
     pointer-events: all;
 }
 
-/* Floating Top Bar */
+/* Floating Top Bar - Always Sticky */
 .chat-top-bar {
     display: flex;
     align-items: center;
     gap: 16px;
     padding: 12px 16px;
     padding-top: calc(12px + env(safe-area-inset-top));
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    z-index: 10003 !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10003;
     background: linear-gradient(to bottom, rgba(245, 245, 245, 0.98) 0%, rgba(245, 245, 245, 0.90) 60%, transparent 100%);
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
     pointer-events: none;
-    transform: translateY(0) !important;
-    will-change: auto;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    /* Force sticky behavior - never move */
+    transform: translateY(0);
+    will-change: transform;
+}
+
+/* Ensure header never moves when keyboard opens */
+.chat-screen.keyboard-open .chat-top-bar {
+    position: fixed;
+    top: 0;
+    transform: translateY(0);
 }
 
 .chat-back-btn {
@@ -1542,6 +1550,7 @@ button, .property-type-card {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     padding: 80px 16px 100px;
+    padding-top: calc(80px + env(safe-area-inset-top));
     background: transparent;
     display: flex;
     flex-direction: column;
@@ -1551,6 +1560,8 @@ button, .property-type-card {
     overscroll-behavior: contain;
     position: relative;
     z-index: 1;
+    /* Ensure content scrolls behind sticky header */
+    margin-top: 0;
 }
 
 /* Chat Greeting */
@@ -1582,32 +1593,37 @@ button, .property-type-card {
     overflow: hidden;
     position: relative;
     max-height: 120px;
-    /* Ensure container doesn't clip overlays */
-    clip-path: inset(0 0 0 0);
+    /* Create proper container for edge fades */
+    isolation: isolate;
 }
 
+/* Edge fade overlays - completely rebuilt */
 .chat-starter-pills::before,
 .chat-starter-pills::after {
     content: '';
     position: absolute;
-    top: -1px;
-    bottom: -1px;
-    width: 28px;
+    top: 0;
+    bottom: 0;
+    width: 32px;
     pointer-events: none;
-    z-index: 100;
-    /* Match exact background gradient */
-    background: linear-gradient(to right, #F5F5F5 0%, #F5F5F5 25%, rgba(245, 245, 245, 0.98) 50%, rgba(245, 245, 245, 0.85) 75%, rgba(245, 245, 245, 0) 100%);
+    z-index: 200;
+    /* Match exact background color from chat screen */
+    background: linear-gradient(to right, #F5F5F5 0%, #F5F5F5 35%, rgba(245, 245, 245, 0.95) 60%, rgba(245, 245, 245, 0) 100%);
 }
 
 .chat-starter-pills::before {
-    left: -2px;
-    background: linear-gradient(to right, #F5F5F5 0%, #F5F5F5 25%, rgba(245, 245, 245, 0.98) 50%, rgba(245, 245, 245, 0.85) 75%, rgba(245, 245, 245, 0) 100%);
+    left: 0;
+    /* Extend slightly beyond to ensure full coverage */
+    margin-left: -1px;
+    background: linear-gradient(to right, #F5F5F5 0%, #F5F5F5 35%, rgba(245, 245, 245, 0.95) 60%, rgba(245, 245, 245, 0) 100%);
 }
 
 .chat-starter-pills::after {
-    right: -2px;
+    right: 0;
     left: auto;
-    background: linear-gradient(to left, #F5F5F5 0%, #F5F5F5 25%, rgba(245, 245, 245, 0.98) 50%, rgba(245, 245, 245, 0.85) 75%, rgba(245, 245, 245, 0) 100%);
+    /* Extend slightly beyond to ensure full coverage */
+    margin-right: -1px;
+    background: linear-gradient(to left, #F5F5F5 0%, #F5F5F5 35%, rgba(245, 245, 245, 0.95) 60%, rgba(245, 245, 245, 0) 100%);
 }
 
 .chat-starter-pills-wrapper {
