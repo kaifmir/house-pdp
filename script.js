@@ -819,7 +819,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (topBar) {
                 topBar.style.position = 'fixed';
                 topBar.style.top = '0';
-                topBar.style.zIndex = '200';
+                topBar.style.transform = 'translateY(0)';
+                topBar.style.zIndex = '10003';
             }
             
             // Update base height
