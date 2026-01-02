@@ -428,95 +428,80 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Nav item event handlers - ensure elements exist
+    // Nav item event handlers - SIMPLIFIED APPROACH
     if (!navItems || navItems.length === 0) {
         console.error('Nav items not found!');
-        return;
+    } else {
+        console.log('Found', navItems.length, 'nav items');
     }
     
-    if (!navSliderBg) {
-        console.error('Nav slider bg not found!');
-    }
-    
-    navItems.forEach((item, index) => {
+    // Simple click handler for all nav items
+    function handleNavClick(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const item = e.currentTarget;
         if (!item) return;
         
         const navType = item.getAttribute('data-nav');
         if (!navType) return;
         
-        let touchStartTime = 0;
-        let touchStartX = 0;
-        let touchStartY = 0;
+        console.log('Nav clicked:', navType);
         
-        const handleNavAction = (e) => {
-            if (e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
-            console.log('Nav clicked:', navType);
-            
-            // Update active state and slider for all nav items
-            navItems.forEach(nav => {
-                if (nav) nav.classList.remove('active');
-            });
-            item.classList.add('active');
-            
-            if (navSliderBg && bottomNav) {
-                updateSliderPosition(item, true);
-            }
-            
-            if (navType === 'chat') {
-                // Check if user has already seen the splash screen
-                const hasSeenSplash = sessionStorage.getItem('scoutySplashSeen') === 'true';
-                if (hasSeenSplash) {
-                    // Skip splash, go directly to chat
-                    const chatScreen = document.getElementById('chat-screen');
-                    if (chatScreen) {
-                        // Trigger slide-in animation
-                        requestAnimationFrame(() => {
-                            chatScreen.classList.add('active');
-                        });
-                        document.body.style.overflow = 'hidden';
-                        // Start placeholder animation
-                        setTimeout(() => {
-                            const chatInput = document.getElementById('chat-input');
-                            if (chatInput && !chatInput.value) {
-                                initChatPlaceholderAnimation();
-                            }
-                        }, 100);
-                    }
-                } else {
-                    // Show splash screen
-                    if (typeof openBottomSheet === 'function') {
-                        openBottomSheet();
-                    }
+        // Update active state
+        navItems.forEach(nav => nav.classList.remove('active'));
+        item.classList.add('active');
+        
+        // Update slider position
+        if (navSliderBg && bottomNav) {
+            updateSliderPosition(item, true);
+        }
+        
+        // Handle specific nav actions
+        if (navType === 'chat') {
+            const hasSeenSplash = sessionStorage.getItem('scoutySplashSeen') === 'true';
+            if (hasSeenSplash) {
+                const chatScreen = document.getElementById('chat-screen');
+                if (chatScreen) {
+                    requestAnimationFrame(() => {
+                        chatScreen.classList.add('active');
+                    });
+                    document.body.style.overflow = 'hidden';
+                    setTimeout(() => {
+                        const chatInput = document.getElementById('chat-input');
+                        if (chatInput && !chatInput.value) {
+                            initChatPlaceholderAnimation();
+                        }
+                    }, 100);
                 }
             } else {
-                console.log('Navigated to:', navType);
+                openBottomSheet();
             }
-        };
-        
-        // Click handler
-        item.addEventListener('click', handleNavAction, false);
-        
-        // Touch handlers for mobile
-        item.addEventListener('touchstart', function(e) {
-            touchStartTime = Date.now();
-            touchStartX = e.touches[0].clientX;
-            touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-        
-        item.addEventListener('touchend', function(e) {
-            const timeDiff = Date.now() - touchStartTime;
-            const xDiff = Math.abs(e.changedTouches[0].clientX - touchStartX);
-            const yDiff = Math.abs(e.changedTouches[0].clientY - touchStartY);
+        }
+    }
+    
+    // Attach event listeners directly
+    if (navItems && navItems.length > 0) {
+        navItems.forEach((item) => {
+            if (!item) return;
             
-            if (timeDiff < TAP_TIME_THRESHOLD && xDiff < TAP_THRESHOLD && yDiff < TAP_THRESHOLD) {
-                handleNavAction(e);
-            }
-        }, { passive: false });
-    });
+            // Remove any existing listeners by cloning
+            const newItem = item.cloneNode(true);
+            item.parentNode.replaceChild(newItem, item);
+            
+            // Add fresh listeners
+            newItem.addEventListener('click', handleNavClick, { capture: false });
+            newItem.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleNavClick(e);
+            }, { capture: false, passive: false });
+        });
+        
+        // Re-query after cloning
+        navItems = document.querySelectorAll('.nav-item');
+        navSliderBg = document.querySelector('.nav-slider-bg');
+    }
     
     // Debounced resize handler
     window.addEventListener('resize', debounce(() => {
