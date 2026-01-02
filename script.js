@@ -8,6 +8,35 @@ const TOP_AREA_THRESHOLD = 100;
 const TAP_THRESHOLD = 15;
 const TAP_TIME_THRESHOLD = 300;
 
+// Header height synchronization for proper content offset
+function syncChatHeaderHeight() {
+    const header = document.querySelector('.chat-top-bar');
+    if (header) {
+        const height = header.offsetHeight;
+        document.documentElement.style.setProperty('--chat-header-height', `${height}px`);
+    }
+}
+
+// Sync header height on resize and orientation change
+window.addEventListener('resize', syncChatHeaderHeight);
+window.addEventListener('orientationchange', syncChatHeaderHeight);
+
+// Focus stabilizer for Android - prevents scroll jump when input is focused
+let lastScrollY = 0;
+document.addEventListener('focusin', (e) => {
+    if (!e.target.matches('input, textarea, [contenteditable="true"]')) return;
+    if (!e.target.closest('.chat-screen')) return; // Only for chat inputs
+    
+    lastScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Prevent scroll jump on Android
+    requestAnimationFrame(() => {
+        window.scrollTo(0, lastScrollY);
+        document.documentElement.scrollTop = lastScrollY;
+        document.body.scrollTop = lastScrollY;
+    });
+}, { passive: true });
+
 // DOM element cache
 let desktopBlocker, mobileContainer, bottomSheet, bottomSheetContent, bottomSheetOverlay;
 let bottomSheetHandle, bottomSheetBody, scoutyGreetingText, scoutyCTA;
@@ -797,6 +826,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Sync header height initially
+    syncChatHeaderHeight();
+    
     // Handle keyboard open/close for input
     if (chatInput && chatScreen) {
         let baseViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
@@ -808,6 +840,20 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             chatScreen.scrollTop = 0;
         }, { passive: false });
+        
+        // Use visualViewport to maintain body height when keyboard opens (Android fix)
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', () => {
+                // Lock body height to visual viewport height to prevent scroll
+                document.body.style.height = `${window.visualViewport.height}px`;
+                // Ensure header stays at visual viewport top
+                const topBar = document.querySelector('.chat-top-bar');
+                if (topBar) {
+                    const offsetTop = window.visualViewport.offsetTop || 0;
+                    topBar.style.top = `${offsetTop}px`;
+                }
+            });
+        }
         
         function handleViewportResize() {
             if (!window.visualViewport) return;
@@ -864,15 +910,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // CRITICAL: Force top bar to stay at visual viewport top (not document top)
                     if (topBar) {
-                        const viewportOffsetTop = window.visualViewport.offsetTop || 0;
+                        const viewportOffsetTop = window.visualViewport ? (window.visualViewport.offsetTop || 0) : 0;
                         topBar.style.position = 'fixed';
                         topBar.style.top = `${viewportOffsetTop}px`;
                         topBar.style.left = '0';
                         topBar.style.right = '0';
-                        topBar.style.transform = 'translateY(0)';
+                        topBar.style.transform = 'translateZ(0)';
                         topBar.style.zIndex = '10003';
                         topBar.style.margin = '0';
-                        // Force repaint
+                        // Force repaint to ensure position is applied
                         void topBar.offsetHeight;
                     }
                     
@@ -976,16 +1022,21 @@ document.addEventListener('DOMContentLoaded', function() {
             chatScreen.style.right = '0';
             chatScreen.style.bottom = '0';
             
-            // Force header to stay at top
+            // Force header to stay at top (use visualViewport offset if available)
             const topBar = document.querySelector('.chat-top-bar');
             if (topBar) {
+                const viewportOffsetTop = window.visualViewport ? (window.visualViewport.offsetTop || 0) : 0;
                 topBar.style.position = 'fixed';
-                topBar.style.top = '0';
+                topBar.style.top = `${viewportOffsetTop}px`;
                 topBar.style.left = '0';
                 topBar.style.right = '0';
-                topBar.style.transform = 'translateY(0)';
+                topBar.style.transform = 'translateZ(0)';
                 topBar.style.zIndex = '10003';
+                topBar.style.margin = '0';
             }
+            
+            // Sync header height after potential layout changes
+            syncChatHeaderHeight();
             
             // Update base height before keyboard opens
             if (window.visualViewport) {
