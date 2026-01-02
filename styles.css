@@ -1837,7 +1837,7 @@ html, body {
     left: 0;
     right: 0;
     bottom: var(--kb-offset);
-    z-index: 10003;
+    z-index: 9999;
     background: transparent;
     pointer-events: none;
     transition: bottom 0.3s ease-out;

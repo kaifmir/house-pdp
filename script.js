@@ -336,7 +336,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     if (searchInput && searchButton) {
+        // B) Haptics on search click (iOS-safe)
+        // Note: iOS web haptics need a native bridge (window.webkit.messageHandlers.haptic).
+        // Without a bridge, only Android vibrate will work.
+        function playHaptic() {
+            // Android fallback
+            if (navigator.vibrate) {
+                navigator.vibrate(10);
+            }
+            // Optional iOS bridge if available (PWA with native bridge)
+            try {
+                if (window.webkit?.messageHandlers?.haptic) {
+                    window.webkit.messageHandlers.haptic.postMessage({ type: 'light' });
+                }
+            } catch (e) {
+                // No native bridge available - gracefully do nothing
+            }
+        }
+
         const handleSearch = () => {
+            playHaptic(); // Haptic feedback on search click
             if (searchInput.value.trim()) {
                 console.log('Searching for:', searchInput.value);
             }
@@ -969,22 +988,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         rail.addEventListener('scroll', () => pause(600), { passive: true });
 
-        // iOS: do not auto-start on load; wait for gesture
-        if (isIOS) {
-            rail.addEventListener('touchstart', () => {
-                startAuto();
-                console.log('iOS: Auto-scroll started after touchstart');
-            }, { once: true, passive: true });
-            rail.addEventListener('pointerdown', () => {
-                startAuto();
-                console.log('iOS: Auto-scroll started after pointerdown');
-            }, { once: true, passive: true });
-        } else {
-            // Android: start immediately
-            setTimeout(() => {
-                startAuto();
-            }, 500);
+        // A) Pills auto-start on iOS (must auto-run without user gesture)
+        // iOS may throttle timers/rAF until a gesture. Use a hybrid start:
+        function bootPills() {
+            // Ensure rail is actually scrollable
+            if (track.scrollWidth <= rail.clientWidth) {
+                console.warn('Pills rail not scrollable:', track.scrollWidth, '<=', rail.clientWidth);
+                return;
+            }
+            startAuto();
         }
+
+        // Start animation on DOMContentLoaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                bootPills();
+                requestAnimationFrame(() => bootPills());
+                setTimeout(() => bootPills(), 150);
+            });
+        } else {
+            // Already loaded
+            bootPills();
+            requestAnimationFrame(() => bootPills());
+            setTimeout(() => bootPills(), 150);
+        }
+
+        // Also re-trigger on pageshow (Safari bfcache)
+        window.addEventListener('pageshow', () => {
+            bootPills();
+            requestAnimationFrame(() => bootPills());
+            setTimeout(() => bootPills(), 150);
+        });
+
+        // Also re-trigger on first user interaction as fallback
+        ['touchstart', 'pointerdown'].forEach(e => {
+            window.addEventListener(e, () => {
+                bootPills();
+            }, { once: true, passive: true });
+        });
 
         // Stop auto-scroll when keyboard opens (intro is hidden)
         const intro = document.getElementById('chat-intro');
@@ -1098,90 +1139,71 @@ document.addEventListener('DOMContentLoaded', function() {
     // Prime viewport on chat screen initialization
     primeViewport();
     
-    // iOS keyboard fix: Use visualViewport to position composer above keyboard
+    // C) Keyboard reopen bug fix: Force recalculation on every focus
+    // On iOS, visualViewport values can be stale after closing keyboard
     (function() {
         const root = document.documentElement;
         const composer = document.querySelector('.chat-input-bar');
         const messages = document.querySelector('.chat-messages');
         if (!composer || !messages) return;
 
-        let updateTimeout = null;
-
         function setComposerHeight() {
             const height = composer.getBoundingClientRect().height;
             root.style.setProperty('--composer-height', height + 'px');
         }
 
-        function update() {
+        function updateKeyboardOffset() {
             setComposerHeight();
 
             if (!window.visualViewport) {
-                // Fallback for browsers without visualViewport
                 root.style.setProperty('--kb-offset', '0px');
                 root.style.setProperty('--kb', '0px');
                 return;
             }
 
             const vv = window.visualViewport;
-            
-            // Calculate keyboard height: difference between window height and visual viewport
-            // visualViewport.height is the visible area, so keyboard = window.innerHeight - vv.height
-            // But we also need to account for vv.offsetTop (scroll offset)
-            const keyboardHeight = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+            const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
 
             // Debug logging for iOS
             console.log('Keyboard update:', {
                 innerHeight: window.innerHeight,
                 vvHeight: vv.height,
                 vvOffsetTop: vv.offsetTop,
-                vvOffsetLeft: vv.offsetLeft,
-                keyboardHeight: keyboardHeight,
+                keyboardHeight: kb,
                 composerBottom: composer.getBoundingClientRect().bottom
             });
 
-            // Push composer above keyboard
-            root.style.setProperty('--kb-offset', keyboardHeight + 'px');
-            root.style.setProperty('--kb', keyboardHeight + 'px');
+            root.style.setProperty('--kb-offset', kb + 'px');
+            root.style.setProperty('--kb', kb + 'px');
         }
 
-        function debouncedUpdate() {
-            if (updateTimeout) clearTimeout(updateTimeout);
-            updateTimeout = setTimeout(update, 10);
+        function resetKeyboardOffset() {
+            root.style.setProperty('--kb-offset', '0px');
+            root.style.setProperty('--kb', '0px');
         }
+
+        // Listen to visualViewport resize + scroll
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', updateKeyboardOffset);
+            window.visualViewport.addEventListener('scroll', updateKeyboardOffset);
+        }
+
+        // On every focusin of the input, call updateKeyboardOffset() with delays
+        document.addEventListener('focusin', (e) => {
+            if (!e.target.matches('input, textarea')) return;
+            // Force recalculation on every focus (fixes reopen bug)
+            setTimeout(updateKeyboardOffset, 50);
+            setTimeout(updateKeyboardOffset, 150); // second-pass fix for iOS reopen
+        });
+
+        // On focusout, reset --kb-offset to 0
+        document.addEventListener('focusout', (e) => {
+            if (!e.target.matches('input, textarea')) return;
+            setTimeout(resetKeyboardOffset, 50);
+        });
 
         // Initial update
-        window.addEventListener('load', update);
-        
-        // Update on resize
-        window.addEventListener('resize', debouncedUpdate);
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', debouncedUpdate);
-            window.visualViewport.addEventListener('scroll', debouncedUpdate);
-        }
-
-        // Update on focus (keyboard opens) - multiple timeouts to catch animation
-        document.addEventListener('focusin', (e) => {
-            if (e.target.matches('input, textarea')) {
-                // Immediate update
-                update();
-                // Then update at intervals to catch keyboard animation
-                setTimeout(update, 50);
-                setTimeout(update, 100);
-                setTimeout(update, 200);
-                setTimeout(update, 300);
-            }
-        });
-
-        // Update on blur (keyboard closes)
-        document.addEventListener('focusout', (e) => {
-            if (e.target.matches('input, textarea')) {
-                // Update immediately, then after delay to catch keyboard close animation
-                update();
-                setTimeout(update, 50);
-                setTimeout(update, 150);
-                setTimeout(update, 300);
-            }
-        });
+        window.addEventListener('load', updateKeyboardOffset);
     })();
     
     // Legacy keyboard handling removed - now using CSS --kb-offset approach above
