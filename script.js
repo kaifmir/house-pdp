@@ -1009,14 +1009,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Ensure scrollable: clone until it is
             const original = originalSet.outerHTML;
+            const copies = 3; // Must match cloning logic
             track.innerHTML = original + original + original;
 
             // If still not scrollable, add more clones
             let safety = 0;
+            let actualCopies = copies;
             while (rail.scrollWidth <= rail.clientWidth + 5 && safety < 5) {
                 track.innerHTML += original;
+                actualCopies++;
                 safety++;
             }
+            
+            // Store one set width for loopEdges correction
+            const oneSetWidth = track.scrollWidth / actualCopies;
 
             // Hard validation: check overflow and scroll-snap
             const cs = getComputedStyle(rail);
@@ -1058,9 +1064,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Start in middle (infinite loop correction)
             function jumpMiddle() {
-                const third = track.scrollWidth / 3;
-                if (third > 0) {
-                    rail.scrollLeft = third;
+                if (oneSetWidth > 0) {
+                    rail.scrollLeft = oneSetWidth; // Start at first copy boundary
                 }
             }
             requestAnimationFrame(jumpMiddle);
@@ -1070,25 +1075,52 @@ document.addEventListener('DOMContentLoaded', function() {
             let pausedUntil = 0;
             let running = true; // Start running immediately
             let lastT = 0;
-            const speed = 18; // px/sec subtle
+            const speed = 40; // px/sec (temporarily increased for visibility, reduce to 18-24 after confirmation)
             let dir = 1;
 
             function pause(ms = 1000) {
                 pausedUntil = Date.now() + ms;
             }
 
+            // Stop iOS momentum mode during auto-scroll (critical)
+            // On iOS, -webkit-overflow-scrolling: touch can ignore small programmatic scroll changes
+            rail.classList.add('auto'); // Start with momentum disabled
+            
             // Pause on interaction, resume automatically
             ['touchstart', 'pointerdown', 'wheel', 'mousedown'].forEach(evt =>
-                rail.addEventListener(evt, () => pause(1200), { passive: true })
+                rail.addEventListener(evt, () => {
+                    pause(1200);
+                    // User takes over - restore touch momentum
+                    rail.classList.remove('auto');
+                    // Resume auto-scroll after pause
+                    setTimeout(() => {
+                        if (running) rail.classList.add('auto');
+                    }, 1200);
+                }, { passive: true })
             );
             rail.addEventListener('scroll', () => pause(600), { passive: true });
 
+            // Fix loopEdges: only adjust when clearly out of middle range, use stored oneSetWidth
             function loopEdges() {
-                const third = track.scrollWidth / 3;
                 const x = rail.scrollLeft;
-                if (x < third * 0.5) rail.scrollLeft = x + third;
-                if (x > third * 1.5) rail.scrollLeft = x - third;
+                // Only correct when clearly outside the middle copy range
+                if (x < oneSetWidth * 0.75) {
+                    rail.scrollLeft = x + oneSetWidth;
+                } else if (x > oneSetWidth * 1.75) {
+                    rail.scrollLeft = x - oneSetWidth;
+                }
             }
+            
+            // 1) Force visible test movement (diagnostic - remove after confirmation)
+            let forceMoveCount = 0;
+            const forceMoveInterval = setInterval(() => {
+                if (forceMoveCount++ < 10) { // Run 10 times then stop
+                    rail.scrollLeft += 8; // noticeable movement
+                    console.log("FORCE MOVE", rail.scrollLeft);
+                } else {
+                    clearInterval(forceMoveInterval);
+                }
+            }, 100);
 
             function tick(t) {
                 if (!running) return;
@@ -1097,16 +1129,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastT = t;
 
                 if (Date.now() >= pausedUntil) {
-                    // Toggle momentum scrolling OFF only while auto running
+                    // Ensure momentum scrolling is OFF during auto-scroll
                     if (!rail.classList.contains('auto')) {
                         rail.classList.add('auto');
                     }
 
+                    const beforeScroll = rail.scrollLeft;
                     rail.scrollLeft += dir * speed * dt;
-                    loopEdges();
+                    const afterScroll = rail.scrollLeft;
+                    
+                    // Only call loopEdges if we're actually moving (prevents fighting)
+                    if (Math.abs(afterScroll - beforeScroll) > 0.1) {
+                        loopEdges();
+                    }
                 }
 
-                // Update debug badge
+                // Update debug badge (fix pausedUntil display - show as number)
+                const pausedMs = pausedUntil - Date.now();
                 show({
                     railFound: true,
                     trackFound: true,
@@ -1114,10 +1153,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     scrollWidth: rail.scrollWidth,
                     scrollLeft: Math.round(rail.scrollLeft),
                     paused: Date.now() < pausedUntil,
-                    pausedUntil: Math.round((pausedUntil - Date.now()) / 1000) + 's',
+                    pausedUntil: pausedMs > 0 ? Math.round(pausedMs / 1000) : 0, // Show as number (seconds remaining)
                     running: running,
+                    speed: speed + 'px/s',
                     overflowX: getComputedStyle(rail).overflowX,
-                    scrollSnapType: getComputedStyle(rail).scrollSnapType
+                    scrollSnapType: getComputedStyle(rail).scrollSnapType,
+                    hasAutoClass: rail.classList.contains('auto')
                 });
 
                 requestAnimationFrame(tick);
