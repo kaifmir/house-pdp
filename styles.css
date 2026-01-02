@@ -1630,7 +1630,7 @@ html, body {
     margin: 0;
     width: 100%;
     max-width: 320px;
-    line-height: 1.15;
+    line-height: 1.4;
     overflow-wrap: anywhere;
 }
 
@@ -1687,8 +1687,23 @@ html, body {
 .chips-track {
     display: flex;
     flex-direction: row;
-    gap: 12px;
+    gap: 24px;
     padding: 0 8px;
+    width: max-content;
+}
+
+/* Each chip set contains 2 rows */
+.chips-set {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.chat-starter-pills-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: nowrap;
     width: max-content;
 }
 

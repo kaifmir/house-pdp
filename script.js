@@ -794,14 +794,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Placeholder animation removed - using static placeholder "Got Questions..."
     
-    // Setup infinite chips (clone 3x, start in middle)
+    // Setup infinite chips (clone 3x, start in middle) - Two rows layout
     function setupInfiniteChips() {
         const rail = document.getElementById('chipsRail');
         const track = document.getElementById('chipsTrack');
         if (!rail || !track) return null;
 
-        const original = track.innerHTML;
-        track.innerHTML = original + original + original;
+        // Get the original chips-set
+        const originalSet = track.querySelector('.chips-set');
+        if (!originalSet) return null;
+
+        // Clone the set 2 more times (total 3 sets)
+        const originalHTML = originalSet.outerHTML;
+        track.innerHTML = originalHTML + originalHTML + originalHTML;
 
         const jumpToMiddle = () => {
             const third = track.scrollWidth / 3;
