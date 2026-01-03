@@ -1644,8 +1644,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     textEl.textContent = text;
                 }
                 // Auto-scroll during typing animation (streaming text)
-                // Call scrollChatToBottom to keep latest text visible
-                scrollChatToBottom(true);
+                // Call scrollChatToBottom to keep latest text visible (every few chars)
+                const currentLength = text.length;
+                if (currentLength % 3 === 0 || currentLength === 1) {
+                    scrollChatToBottom({ force: true });
+                }
             }
         }
 
