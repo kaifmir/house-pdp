@@ -1709,8 +1709,7 @@ html, body {
     justify-content: flex-start;
     gap: 16px;
     min-height: 100%;
-    padding-top: var(--chat-top-pad, 16px);
-    padding-bottom: var(--chat-bottom-pad, 16px);
+    /* padding-top and padding-bottom removed - set on #chat-messages instead */
     box-sizing: border-box;
 }
 
