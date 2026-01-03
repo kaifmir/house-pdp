@@ -1696,15 +1696,16 @@ html, body {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: flex-start; /* CRITICAL: Messages start from top, NOT centered */
+    justify-content: flex-start; /* IMPORTANT: not center, not flex-end */
     gap: 16px; /* Consistent spacing between messages */
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
     /* Padding: 16px left/right, top/bottom set dynamically by JS */
-    padding: 16px;
+    padding-left: 16px;
+    padding-right: 16px;
     width: 100%;
     max-width: 100%;
-    min-height: 0; /* Critical for flex child to scroll */
+    min-height: 0; /* IMPORTANT: allows flex child to scroll */
 }
 
 /* Remove spacer - messages should stack naturally from top */
