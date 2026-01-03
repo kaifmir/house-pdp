@@ -1198,7 +1198,7 @@ button, .property-type-card {
 }
 
 .bottom-sheet-body {
-    padding: 60px 24px calc(100px + env(safe-area-inset-bottom));
+    padding: 60px 24px calc(28px + 80px + env(safe-area-inset-bottom));
     overflow-y: hidden;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -1390,7 +1390,7 @@ button, .property-type-card {
     max-width: 380px;
     box-sizing: border-box;
     margin-top: auto;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
