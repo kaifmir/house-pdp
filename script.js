@@ -997,6 +997,13 @@ document.addEventListener('DOMContentLoaded', function() {
         let dragging = false;
         let dragStartX = 0;
         let dragStartOffset = 0;
+        
+        // Momentum scrolling
+        let momentumVelocity = 0;
+        let lastDragX = 0;
+        let lastDragTime = 0;
+        const friction = 0.95; // deceleration factor (0.9-0.98)
+        const minVelocity = 0.5; // stop when velocity is below this
 
         function pause(ms = 1000) {
             pausedUntil = Date.now() + ms;
@@ -1009,7 +1016,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const halfWidth = track.scrollWidth / 2; // since 2x duplicate
 
-            if (!dragging && Date.now() >= pausedUntil) {
+            if (dragging) {
+                // Don't animate during drag
+            } else if (momentumVelocity !== 0) {
+                // Apply momentum scrolling
+                x += momentumVelocity * dt;
+                momentumVelocity *= friction; // decelerate
+                
+                // Stop when velocity is too low
+                if (Math.abs(momentumVelocity) < minVelocity) {
+                    momentumVelocity = 0;
+                    pausedUntil = Date.now() + 900; // pause before auto-resume
+                }
+                
+                // Wrap position during momentum
+                x = wrapPosition(x);
+                track.style.transform = `translate3d(${x}px,0,0)`;
+            } else if (Date.now() >= pausedUntil) {
+                // Auto-scroll
                 x -= speed * dt; // move left (use + for right)
                 // wrap when we've moved one full set
                 if (Math.abs(x) >= halfWidth) {
@@ -1036,20 +1060,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
         marquee.addEventListener('pointerdown', (e) => {
             dragging = true;
+            momentumVelocity = 0; // stop any existing momentum
             pause(999999); // freeze auto while dragging
             if (marquee.setPointerCapture) {
                 marquee.setPointerCapture(e.pointerId);
             }
             dragStartX = e.clientX;
             dragStartOffset = x;
+            lastDragX = e.clientX;
+            lastDragTime = performance.now();
             e.preventDefault();
         });
 
         marquee.addEventListener('pointermove', (e) => {
             if (!dragging) return;
             e.preventDefault();
+            const now = performance.now();
+            const dt = (now - lastDragTime) / 1000; // seconds
             const dx = e.clientX - dragStartX;
             x = dragStartOffset + dx;
+            
+            // Calculate velocity for momentum
+            if (dt > 0) {
+                const moveX = e.clientX - lastDragX;
+                momentumVelocity = moveX / dt; // pixels per second
+            }
+            
+            lastDragX = e.clientX;
+            lastDragTime = now;
             track.style.transform = `translate3d(${x}px,0,0)`;
         });
 
@@ -1059,7 +1097,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Wrap position on end to ensure we're in valid range for seamless loop
             x = wrapPosition(x);
             track.style.transform = `translate3d(${x}px,0,0)`;
-            pausedUntil = Date.now() + 900; // resume after a beat
+            // Momentum will continue scrolling, auto-scroll will resume after momentum stops
+            // (momentum loop handles the pause)
         }
         marquee.addEventListener('pointerup', endDrag);
         marquee.addEventListener('pointercancel', endDrag);
@@ -1067,16 +1106,30 @@ document.addEventListener('DOMContentLoaded', function() {
         // Also support touch events for older browsers (non-passive to prevent scrolling)
         marquee.addEventListener('touchstart', (e) => {
             dragging = true;
+            momentumVelocity = 0; // stop any existing momentum
             pause(999999);
             dragStartX = e.touches[0].clientX;
             dragStartOffset = x;
+            lastDragX = e.touches[0].clientX;
+            lastDragTime = performance.now();
         }, { passive: false });
 
         marquee.addEventListener('touchmove', (e) => {
             if (!dragging) return;
             e.preventDefault(); // Prevent page scroll
+            const now = performance.now();
+            const dt = (now - lastDragTime) / 1000; // seconds
             const dx = e.touches[0].clientX - dragStartX;
             x = dragStartOffset + dx;
+            
+            // Calculate velocity for momentum
+            if (dt > 0) {
+                const moveX = e.touches[0].clientX - lastDragX;
+                momentumVelocity = moveX / dt; // pixels per second
+            }
+            
+            lastDragX = e.touches[0].clientX;
+            lastDragTime = now;
             track.style.transform = `translate3d(${x}px,0,0)`;
         }, { passive: false });
 
