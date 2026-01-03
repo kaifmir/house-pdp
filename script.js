@@ -1498,7 +1498,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Handle send message
         function handleSend() {
-            const text = chatInput.value.trim();
+            // Step 1: Read input value BEFORE any mutation
+            const rawInput = chatInput.value;
+            const text = rawInput.trim();
+            
+            // Debug: verify input is being read
+            console.log('Input read:', { raw: rawInput, trimmed: text, inputElement: chatInput });
+            
             if (!text) return;
 
             // Haptic feedback
@@ -1506,7 +1512,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 navigator.vibrate(10);
             }
 
-            // Clear input
+            // Step 2: Clear input AFTER reading
             chatInput.value = '';
 
             // Check if this is first message
@@ -1520,7 +1526,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 chatScreen.classList.add('chat-started');
             }
 
-            // Trigger bot reply after 200ms
+            // Step 3: Trigger bot reply after 200ms (text is already captured)
             setTimeout(() => {
                 handleHousingIntent(text);
             }, 200);
@@ -1572,48 +1578,81 @@ document.addEventListener('DOMContentLoaded', function() {
             commuteTime: null
         };
 
-        // Intent detection
+        // Intent detection - tolerant and comprehensive
         function detectIntent(text) {
-            const lower = text.toLowerCase();
+            if (!text || typeof text !== 'string') {
+                return null;
+            }
+
+            const raw = text;
+            const normalized = text.trim().toLowerCase();
             
-            // Check for housing keywords
-            const housingKeywords = ['bhk', 'rent', 'buy', 'apartment', 'house', 'villa', 'flat', 'property', 'home', 'pg', 'commercial', 'office', 'plot', 'studio', '1rk', 'furnished', 'budget', 'price', 'gurgaon', 'mumbai', 'bangalore', 'delhi', 'pune', 'noida', 'chennai', 'hyderabad', 'kolkata', 'locality', 'area', 'near', 'metro', 'school', 'hospital', 'park', 'sea', 'view', 'hills', 'quiet', 'safe', 'pet', 'senior', 'wheelchair', 'vastu', 'invest', 'appreciation'];
+            // A) Service-only messages - MUST be recognized as CORE housing
+            if (normalized === 'rent' || normalized === 'buy' || 
+                normalized.match(/^(rent|buy)$/i)) {
+                return 'rent_buy_search';
+            }
+
+            // B) BHK + location messages - recognize all variants
+            const bhkPattern = /\d+\s*[-]?\s*(bhk|b\s*h\s*k|bedroom|bed|rk)/i;
+            const hasBHK = bhkPattern.test(normalized);
             
-            const hasHousingIntent = housingKeywords.some(keyword => lower.includes(keyword));
+            // Location patterns
+            const cities = ['delhi', 'gurgaon', 'mumbai', 'bangalore', 'pune', 'noida', 'chennai', 'hyderabad', 'kolkata', 'indiranagar', 'koramangala', 'andheri', 'whitefield', 'cyber city', 'dwarka', 'powai', 'koregaon park'];
+            const hasLocation = cities.some(city => normalized.includes(city)) || 
+                               normalized.match(/\bin\s+(delhi|gurgaon|mumbai|bangalore|pune|noida|chennai|hyderabad|kolkata)/i);
             
-            if (!hasHousingIntent) {
+            if (hasBHK || (hasBHK && hasLocation)) {
+                return 'rent_buy_search';
+            }
+
+            // C) Location-only messages - treat as CORE intent
+            if (hasLocation && !hasBHK) {
+                return 'rent_buy_search';
+            }
+
+            // Check for any housing-related keywords
+            const housingKeywords = [
+                'bhk', 'rent', 'buy', 'apartment', 'house', 'villa', 'flat', 'property', 
+                'home', 'pg', 'commercial', 'office', 'plot', 'studio', 'rk', 'furnished', 
+                'budget', 'price', 'locality', 'area', 'near', 'metro', 'school', 'hospital', 
+                'park', 'sea', 'view', 'hills', 'quiet', 'safe', 'pet', 'senior', 'wheelchair', 
+                'vastu', 'invest', 'appreciation', 'gurgaon', 'mumbai', 'bangalore', 'delhi', 
+                'pune', 'noida', 'chennai', 'hyderabad', 'kolkata'
+            ];
+            
+            const hasHousingKeyword = housingKeywords.some(keyword => normalized.includes(keyword));
+            
+            if (!hasHousingKeyword) {
                 return null; // Not a housing intent
             }
 
-            // Detect specific intents
-            if (lower.match(/\d+\s*(bhk|rk|bedroom)/i) || lower.includes('bhk') || lower.includes('bedroom')) {
-                return 'rent_buy_search';
-            }
-            if (lower.match(/(villa|plot|office|pg|commercial|studio|row house)/i)) {
+            // Detect specific intents (order matters - more specific first)
+            if (normalized.match(/(villa|plot|office|pg|commercial|studio|row\s+house)/i)) {
                 return 'type_search';
             }
-            if (lower.match(/(hills|sea view|quiet|green|parks|cafes|no traffic|vibe|lifestyle)/i)) {
+            if (normalized.match(/(hills|sea\s+view|quiet|green|parks|cafes|no\s+traffic|vibe|lifestyle)/i)) {
                 return 'lifestyle_search';
             }
-            if (lower.match(/(near|commute|office|metro|airport|landmark|minutes?|min)/i)) {
+            if (normalized.match(/(near|commute|office|metro|airport|landmark|minutes?|min)/i)) {
                 return 'commute_search';
             }
-            if (lower.match(/(cheapest|budget|under|price|₹|rs|rupees?|lakh|lac|cr|crore)/i)) {
+            if (normalized.match(/(cheapest|budget|under|price|₹|rs|rupees?|lakh|lac|cr|crore)/i)) {
                 return 'budget_search';
             }
-            if (lower.match(/(furnished|move.?in|possession|ready)/i)) {
+            if (normalized.match(/(furnished|move\s*in|possession|ready)/i)) {
                 return 'furnished_search';
             }
-            if (lower.match(/(pool|gym|clubhouse|parking|backup|lift|gated|amenit)/i)) {
+            if (normalized.match(/(pool|gym|clubhouse|parking|backup|lift|gated|amenit)/i)) {
                 return 'amenities_search';
             }
-            if (lower.match(/(pet|senior|wheelchair|accessible|vastu)/i)) {
+            if (normalized.match(/(pet|senior|wheelchair|accessible|vastu)/i)) {
                 return 'special_needs';
             }
-            if (lower.match(/(school|kids|safe|hospital|family)/i)) {
+            if (normalized.match(/(school|kids|safe|hospital|family)/i)) {
                 return 'family_search';
             }
-            if (lower.match(/(invest|appreciation|upcoming|trend|roi)/i)) {
+            if (normalized.match(/(invest|appreciation|upcoming|trend|roi)/i)) {
                 return 'investment_search';
             }
 
@@ -1621,26 +1660,30 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'rent_buy_search';
         }
 
-        // Extract parameters from text
+        // Extract parameters from text - more tolerant
         function extractParams(text) {
-            const lower = text.toLowerCase();
+            if (!text || typeof text !== 'string') {
+                return {};
+            }
+
+            const lower = text.trim().toLowerCase();
             const params = {};
 
-            // Service (rent/buy)
-            if (lower.includes('rent') || lower.includes('renting')) {
+            // Service (rent/buy) - more tolerant matching
+            if (lower.match(/\b(rent|renting|for rent)\b/i)) {
                 params.service = 'rent';
-            } else if (lower.includes('buy') || lower.includes('purchase') || lower.includes('buying')) {
+            } else if (lower.match(/\b(buy|buying|purchase|for sale)\b/i)) {
                 params.service = 'buy';
             }
 
-            // BHK
-            const bhkMatch = lower.match(/(\d+)\s*(bhk|bedroom|bed|rk)/i);
+            // BHK - handle all variants: 3bhk, 3 bhk, 3-bhk, 3 BHK, etc.
+            const bhkMatch = lower.match(/(\d+)\s*[-]?\s*(bhk|b\s*h\s*k|bedroom|bed|rk)/i);
             if (bhkMatch) {
                 params.bhk = parseInt(bhkMatch[1]);
             }
 
-            // Budget
-            const budgetMatch = lower.match(/(?:under|upto|max|budget|₹|rs|rupees?)\s*(\d+)\s*(k|thousand|lakh|lac|cr|crore|million)/i);
+            // Budget - more flexible matching
+            const budgetMatch = lower.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)\s*(\d+)\s*(k|thousand|lakh|lac|cr|crore|million)/i);
             if (budgetMatch) {
                 let amount = parseInt(budgetMatch[1]);
                 const unit = budgetMatch[2].toLowerCase();
@@ -1654,21 +1697,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 params.budget = amount;
             }
 
-            // City/Locality
-            const cities = ['gurgaon', 'mumbai', 'bangalore', 'delhi', 'pune', 'noida', 'chennai', 'hyderabad', 'kolkata', 'indiranagar', 'koramangala', 'andheri', 'whitefield', 'cyber city', 'dwarka'];
+            // City/Locality - more comprehensive
+            const cities = [
+                { name: 'gurgaon', aliases: ['gurgaon', 'gurugram'] },
+                { name: 'mumbai', aliases: ['mumbai', 'bombay'] },
+                { name: 'bangalore', aliases: ['bangalore', 'bengaluru'] },
+                { name: 'delhi', aliases: ['delhi', 'new delhi'] },
+                { name: 'pune', aliases: ['pune'] },
+                { name: 'noida', aliases: ['noida'] },
+                { name: 'chennai', aliases: ['chennai', 'madras'] },
+                { name: 'hyderabad', aliases: ['hyderabad'] },
+                { name: 'kolkata', aliases: ['kolkata', 'calcutta'] },
+                { name: 'indiranagar', aliases: ['indiranagar'] },
+                { name: 'koramangala', aliases: ['koramangala'] },
+                { name: 'andheri', aliases: ['andheri'] },
+                { name: 'whitefield', aliases: ['whitefield'] },
+                { name: 'dwarka', aliases: ['dwarka'] }
+            ];
+            
             for (const city of cities) {
-                if (lower.includes(city)) {
-                    params.city = city;
+                if (city.aliases.some(alias => lower.includes(alias))) {
+                    params.city = city.name;
                     break;
                 }
             }
 
             // Type
-            if (lower.includes('villa')) params.type = 'Villa';
-            else if (lower.includes('plot')) params.type = 'Plot';
-            else if (lower.includes('pg')) params.type = 'PG';
-            else if (lower.includes('commercial') || lower.includes('office')) params.type = 'Commercial';
-            else if (lower.includes('studio') || lower.includes('1rk')) params.type = 'Studio';
+            if (lower.match(/\bvilla\b/i)) params.type = 'Villa';
+            else if (lower.match(/\bplot\b/i)) params.type = 'Plot';
+            else if (lower.match(/\bpg\b/i)) params.type = 'PG';
+            else if (lower.match(/\b(commercial|office)\b/i)) params.type = 'Commercial';
+            else if (lower.match(/\b(studio|1rk)\b/i)) params.type = 'Studio';
 
             return params;
         }
@@ -1879,16 +1938,34 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        // Main housing intent handler
+        // Main housing intent handler with debug logging
         function handleHousingIntent(userText) {
-            const intent = detectIntent(userText);
+            // Step 1: Read input value (already done, but ensure we have it)
+            const raw = userText;
+            const normalized = userText ? userText.trim().toLowerCase() : '';
             
+            // Step 2: Detect intent + slots
+            const intent = detectIntent(userText);
+            const slots = extractParams(userText);
+            
+            // Debug logging
+            const debugInfo = {
+                raw: raw,
+                normalized: normalized,
+                intent: intent,
+                slots: slots,
+                branch: intent ? 'core_handler' : 'OTHER → Hi'
+            };
+            console.log('Intent Detection:', debugInfo);
+            
+            // Step 3: Route based on intent
             if (!intent) {
                 // Not a housing intent - return "Hi"
                 typeBotReply('Hi');
                 return;
             }
 
+            // Step 4: Handle core housing intent
             const response = generateBotResponse(intent, userText);
             const msgId = addBotMessage('');
             
@@ -1921,6 +1998,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 100);
                 }
             }, 55);
+        }
+
+        // Test harness for intent detection
+        function runIntentTests() {
+            const tests = [
+                { input: 'rent', expected: 'CORE' },
+                { input: 'buy', expected: 'CORE' },
+                { input: '3bhk in delhi', expected: 'CORE' },
+                { input: '3 bhk in delhi', expected: 'CORE' },
+                { input: 'delhi', expected: 'CORE' },
+                { input: 'villa in bangalore', expected: 'CORE' },
+                { input: 'aqi today', expected: 'OTHER' },
+                { input: 'dfsdfsdf', expected: 'OTHER' }
+            ];
+
+            console.log('=== Intent Detection Tests ===');
+            tests.forEach(test => {
+                const intent = detectIntent(test.input);
+                const result = intent ? 'CORE' : 'OTHER';
+                const passed = result === test.expected;
+                console.log(`${passed ? '✅' : '❌'} "${test.input}" → ${result} (expected: ${test.expected})`);
+                if (!passed) {
+                    console.log('  Details:', { intent, normalized: test.input.trim().toLowerCase() });
+                }
+            });
+            console.log('=== End Tests ===');
+        }
+
+        // Run tests in dev mode
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            setTimeout(runIntentTests, 1000);
         }
     })();
 });
