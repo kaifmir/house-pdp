@@ -1587,7 +1587,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Called during bot "type one letter at a time" streaming
         function scrollToBottomTyping(msgElement = null) {
             // During typing, force scroll to keep latest text visible
-            scrollChatToBottom(true);
+            scrollChatToBottom({ force: true });
         }
 
         // Add user message
