@@ -1426,21 +1426,31 @@ document.addEventListener('DOMContentLoaded', function() {
             return (el.scrollHeight - (el.scrollTop + el.clientHeight)) < thresholdPx;
         }
         
-        // This is the function your code is calling but it's missing
-        function scrollToBottomIfNeeded({ force = false } = {}) {
-            const el = getChatMessagesEl();
-            if (!el) return;
+        // Scroll chat to bottom using scrollIntoView sentinel (most reliable on iOS/Android)
+        function scrollChatToBottom(options = {}) {
+            // Handle both old format (boolean) and new format (object)
+            const force = typeof options === 'boolean' ? options : (options.force !== false);
             
-            if (force || isUserNearBottom(el)) {
-                // RAF twice helps iOS + dynamic height changes
+            const messages = document.getElementById("chat-messages");
+            const end = document.getElementById("chat-end");
+            if (!messages || !end) return;
+            
+            const nearBottom =
+                (messages.scrollHeight - (messages.scrollTop + messages.clientHeight)) < 140;
+            
+            if (!force && !nearBottom) return;
+            
+            requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        el.scrollTop = el.scrollHeight;
-                    });
+                    end.scrollIntoView({ block: "end", behavior: "auto" });
                 });
-            }
+            });
         }
         
+        // Legacy alias for compatibility
+        function scrollToBottomIfNeeded({ force = false, immediate = false } = {}) {
+            scrollChatToBottom({ force });
+        }
         
         // Set chat insets dynamically (header + composer heights)
         // Makes first message appear 16px under header (always)
