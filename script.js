@@ -1681,6 +1681,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearInterval(typewriterTimer);
             }
 
+            let lastWordCount = 0;
+            
             typewriterTimer = setInterval(() => {
                 // Check if user stopped the response
                 if (!isBotResponding) {
@@ -1690,7 +1692,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 i++;
-                textEl.textContent = fullText.slice(0, i);
+                const currentText = fullText.slice(0, i);
+                textEl.textContent = currentText;
+                
+                // Detect new word: count words in current text
+                const currentWordCount = currentText.trim().split(/\s+/).filter(w => w.length > 0).length;
+                
+                // Subtle haptic feedback when a new word appears
+                if (currentWordCount > lastWordCount && navigator.vibrate) {
+                    navigator.vibrate(5); // Very subtle 5ms vibration
+                    lastWordCount = currentWordCount;
+                }
+                
                 // Auto-scroll during typing
                 scrollToBottomTyping();
                 if (i >= fullText.length) {
@@ -3486,6 +3499,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     clearInterval(typewriterTimer);
                 }
 
+                let lastWordCount = 0;
+                
                 typewriterTimer = setInterval(() => {
                     // Check if user stopped the response
                     if (!isBotResponding) {
@@ -3501,7 +3516,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     i++;
-                    updateMessageText(msgId, fullText.slice(0, i));
+                    const currentText = fullText.slice(0, i);
+                    updateMessageText(msgId, currentText);
+                    
+                    // Detect new word: count words in current text
+                    const currentWordCount = currentText.trim().split(/\s+/).filter(w => w.length > 0).length;
+                    
+                    // Subtle haptic feedback when a new word appears
+                    if (currentWordCount > lastWordCount && navigator.vibrate) {
+                        navigator.vibrate(5); // Very subtle 5ms vibration
+                        lastWordCount = currentWordCount;
+                    }
+                    
                     if (i >= fullText.length) {
                         clearInterval(typewriterTimer);
                         typewriterTimer = null;
