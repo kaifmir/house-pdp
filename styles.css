@@ -1663,7 +1663,7 @@ html, body {
 /* Bottom accounts for composer height + keyboard height */
 .chat-messages {
     position: fixed;
-    top: calc(var(--header-h) + var(--vv-top));
+    top: 0;
     left: 0;
     right: 0;
     bottom: calc(var(--composer-h) + var(--kb));
@@ -1671,6 +1671,7 @@ html, body {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    z-index: 1;
     /* 16px padding from left and right, everything fills in between */
     padding: 0 16px;
     padding-top: calc(16px + env(safe-area-inset-top));
