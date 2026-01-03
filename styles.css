@@ -1250,8 +1250,8 @@ button, .property-type-card {
 
 .stacked-images-container {
     position: relative;
-    width: 220px;
-    height: 180px;
+    width: 160px;
+    height: 130px;
     margin: 0 auto 40px;
     display: flex;
     align-items: center;
@@ -1276,35 +1276,35 @@ button, .property-type-card {
 
 /* Foremost card - right and center, largest */
 .stacked-image-card.card-1 {
-    width: 200px;
-    height: 150px;
+    width: 145px;
+    height: 110px;
     z-index: 3;
-    transform: rotate(-3deg) translate(15px, -8px);
+    transform: rotate(-3deg) translate(12px, -6px);
     top: 0;
     left: 50%;
-    margin-left: -100px;
+    margin-left: -72.5px;
 }
 
 /* Middle card - left and slightly behind */
 .stacked-image-card.card-2 {
-    width: 190px;
-    height: 145px;
+    width: 138px;
+    height: 105px;
     z-index: 2;
-    transform: rotate(4deg) translate(-18px, 12px);
-    top: 8px;
+    transform: rotate(4deg) translate(-14px, 9px);
+    top: 6px;
     left: 50%;
-    margin-left: -95px;
+    margin-left: -69px;
 }
 
 /* Hindmost card - top and partially obscured */
 .stacked-image-card.card-3 {
-    width: 180px;
-    height: 140px;
+    width: 130px;
+    height: 100px;
     z-index: 1;
-    transform: rotate(-2deg) translate(8px, 20px);
-    top: 15px;
+    transform: rotate(-2deg) translate(6px, 15px);
+    top: 12px;
     left: 50%;
-    margin-left: -90px;
+    margin-left: -65px;
 }
 
 .scouty-greeting-text {
