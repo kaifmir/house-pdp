@@ -3298,6 +3298,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 100);
                 }
             }, 55);
+            } catch (error) {
+                // Fallback: safe bot response if parsing fails
+                console.error('Error handling housing intent:', error);
+                const fallbackText = "I can help with property search and locality insights. What are you looking for?";
+                typeBotReply(fallbackText);
+            }
         }
 
         // Test harness for intent detection
