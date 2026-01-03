@@ -1945,20 +1945,30 @@ html, body {
     line-height: 1.35;
 }
 
-/* Chat Chips */
+/* Chat Chips - left-aligned, separate from bot text */
 .chat-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 12px;
+    margin-top: 16px;
+    max-width: min(78%, 560px);
+    justify-content: flex-start;
+}
+
+.chat-followup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-top: 12px;
     max-width: min(78%, 560px);
+    justify-content: flex-start;
 }
 
 .chat-chip {
-    background: #F5F0E8;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 20px;
-    padding: 8px 16px;
+    background: #F5F5F5;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 999px;
+    padding: 10px 18px;
     font-size: 14px;
     font-family: 'Inter', sans-serif;
     color: #111;
@@ -1966,11 +1976,16 @@ html, body {
     transition: all 0.2s ease;
     white-space: nowrap;
     -webkit-tap-highlight-color: transparent;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .chat-chip:active {
     transform: scale(0.98);
-    background: #EFE6DB;
+    background: #EBEBEB;
 }
 
 /* Search Summary */
@@ -1985,13 +2000,35 @@ html, body {
     font-family: 'Inter', sans-serif;
 }
 
-/* Property Results */
-.property-results {
+/* Property Results - horizontal scrollable */
+.property-results-scroll {
     margin-top: 16px;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.property-results-scroll::-webkit-scrollbar {
+    height: 4px;
+}
+
+.property-results-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.property-results-scroll::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+}
+
+.property-results-wrapper {
     display: flex;
-    flex-direction: column;
     gap: 12px;
-    max-width: min(78%, 560px);
+    padding-bottom: 8px;
+    min-width: max-content;
 }
 
 .property-card {
@@ -2000,6 +2037,10 @@ html, body {
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     border: 1px solid rgba(0, 0, 0, 0.06);
+    width: 280px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .property-image {
@@ -2007,6 +2048,7 @@ html, body {
     height: 180px;
     background: linear-gradient(135deg, #F5F5F5 0%, #EBEBEB 100%);
     position: relative;
+    border-radius: 16px 16px 0 0;
 }
 
 .property-image::after {
@@ -2021,37 +2063,59 @@ html, body {
 
 .property-info {
     padding: 16px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.property-title {
+    font-size: 15px;
+    font-weight: 500;
+    color: #111;
+    margin-bottom: 6px;
+    font-family: 'Inter', sans-serif;
+    line-height: 1.3;
 }
 
 .property-price {
     font-size: 18px;
     font-weight: 600;
     color: #111;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     font-family: 'Inter', sans-serif;
 }
 
-.property-details {
-    font-size: 14px;
+.property-locality {
+    font-size: 13px;
     color: #666;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     font-family: 'Inter', sans-serif;
 }
 
-.property-tags {
-    font-size: 12px;
-    color: #888;
+.property-tags-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     margin-bottom: 12px;
+}
+
+.property-tag-chip {
+    background: #F5F5F5;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: #666;
     font-family: 'Inter', sans-serif;
 }
 
 .property-actions {
     display: flex;
     gap: 8px;
+    margin-top: auto;
 }
 
-.btn-view,
-.btn-enquire {
+.btn-view {
     flex: 1;
     padding: 10px 16px;
     border: none;
@@ -2061,25 +2125,34 @@ html, body {
     cursor: pointer;
     transition: all 0.2s ease;
     -webkit-tap-highlight-color: transparent;
-}
-
-.btn-view {
-    background: #F5F0E8;
-    color: #111;
-}
-
-.btn-view:active {
-    background: #EFE6DB;
-    transform: scale(0.98);
-}
-
-.btn-enquire {
     background: #000;
     color: #fff;
 }
 
-.btn-enquire:active {
+.btn-view:active {
     background: #333;
+    transform: scale(0.98);
+}
+
+.btn-shortlist {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    font-size: 18px;
+    background: #F5F5F5;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-shortlist:active {
+    background: #EBEBEB;
     transform: scale(0.98);
 }
 

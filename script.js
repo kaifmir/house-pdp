@@ -1741,69 +1741,125 @@ document.addEventListener('DOMContentLoaded', function() {
             return missing;
         }
 
-        // Generate bot response
+        // Generate bot response - demo-friendly (always shows results)
         function generateBotResponse(intent, userText) {
             const params = extractParams(userText);
             
             // Update context
             Object.assign(searchContext, params);
 
-            const missing = getMissingParams();
+            // Always get results (demo-friendly - never empty)
+            const results = filterProperties();
+            const resultCount = results.length > 0 ? results.length : getFallbackResults().length;
 
-            // If missing mandatory params, ask one question
-            if (missing.length > 0) {
-                const question = missing[0];
-                if (question === 'service') {
-                    return {
-                        text: 'Are you looking to rent or buy?',
-                        chips: ['Rent', 'Buy']
-                    };
-                } else if (question === 'location') {
-                    return {
-                        text: 'Which city or locality are you interested in?',
-                        chips: ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune']
-                    };
-                } else if (question === 'budget') {
-                    const unit = searchContext.service === 'rent' ? 'per month' : 'total';
-                    return {
-                        text: `What's your budget (₹ ${unit})?`,
-                        chips: searchContext.service === 'rent' 
+            const missing = getMissingParams();
+            let responseText = '';
+            let chips = [];
+            let showResults = true;
+
+            // Generate context-aware response
+            if (intent === 'rent_buy_search' || !searchContext.service) {
+                if (!searchContext.service) {
+                    responseText = 'Here are a few close matches — tell me Rent or Buy and I\'ll refine the results.';
+                    chips = ['Rent', 'Buy'];
+                    if (searchContext.bhk) chips.push(`${searchContext.bhk}BHK`);
+                    if (searchContext.city) chips.push(searchContext.city);
+                } else {
+                    responseText = `I found ${resultCount} properties for ${searchContext.service === 'rent' ? 'rent' : 'purchase'}:`;
+                    if (searchContext.bhk) chips.push(`${searchContext.bhk}BHK`);
+                    if (!searchContext.budget) {
+                        chips.push(...(searchContext.service === 'rent' 
                             ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+']
-                            : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+']
-                    };
+                            : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+']));
+                    }
                 }
+            } else if (intent === 'type_search') {
+                responseText = `Here are some ${searchContext.type || 'properties'} options:`;
+                chips = ['1BHK', '2BHK', '3BHK', '4BHK+'];
+            } else if (intent === 'lifestyle_search') {
+                responseText = 'I\'ll try my best with available data. Here are properties matching your preferences:';
+                chips = ['Quiet', 'Green', 'Sea view', 'Near parks'];
+            } else if (intent === 'commute_search') {
+                responseText = 'Here are properties near metro/landmarks:';
+                chips = ['Near Metro', '15 min', '30 min', '45 min'];
+            } else {
+                responseText = `I found ${resultCount} properties matching your search:`;
             }
 
-            // All params present - show results
-            const results = filterProperties();
-            if (results.length === 0) {
-                return {
-                    text: 'I couldn\'t find exact matches. Would you like to expand your search?',
-                    chips: ['Increase Budget', 'Nearby Areas', 'Different BHK'],
-                    summary: generateSummary()
-                };
+            // If location missing, add location chips
+            if (!searchContext.city && !searchContext.locality) {
+                chips.push('Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune');
             }
 
             return {
-                text: `I found ${results.length} properties matching your criteria:`,
-                results: results.slice(0, 10),
-                summary: generateSummary()
+                text: responseText,
+                results: results.length > 0 ? results.slice(0, 3) : getFallbackResults(),
+                chips: chips,
+                summary: generateSummary(),
+                followUp: missing.length > 0 ? getFollowUpQuestion(missing[0]) : null
             };
         }
 
-        // Filter properties based on context
+        // Get fallback results (always return at least 3)
+        function getFallbackResults() {
+            return mockProperties.slice(0, 3);
+        }
+
+        // Get follow-up question
+        function getFollowUpQuestion(missing) {
+            if (missing === 'service') {
+                return {
+                    text: 'Are you looking to rent or buy?',
+                    chips: ['Rent', 'Buy']
+                };
+            } else if (missing === 'location') {
+                return {
+                    text: 'Which city or locality are you interested in?',
+                    chips: ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune']
+                };
+            } else if (missing === 'budget') {
+                const unit = searchContext.service === 'rent' ? 'per month' : 'total';
+                return {
+                    text: `What's your budget (₹ ${unit})?`,
+                    chips: searchContext.service === 'rent' 
+                        ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+']
+                        : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+']
+                };
+            }
+            return null;
+        }
+
+        // Filter properties based on context - demo-friendly (loose matching)
         function filterProperties() {
-            return mockProperties.filter(prop => {
-                if (searchContext.service && prop.priceUnit !== searchContext.service) return false;
-                if (searchContext.city && prop.city.toLowerCase() !== searchContext.city.toLowerCase()) return false;
-                if (searchContext.bhk && prop.bhk !== searchContext.bhk) return false;
-                if (searchContext.type && prop.type !== searchContext.type) return false;
-                if (searchContext.budget) {
-                    if (searchContext.service === 'rent' && prop.price > searchContext.budget) return false;
-                    if (searchContext.service === 'buy' && prop.price > searchContext.budget) return false;
+            let filtered = [...mockProperties];
+            
+            // Apply filters (loose matching for demo)
+            if (searchContext.service) {
+                filtered = filtered.filter(prop => prop.priceUnit === searchContext.service);
+            }
+            if (searchContext.city) {
+                filtered = filtered.filter(prop => prop.city.toLowerCase() === searchContext.city.toLowerCase());
+            }
+            if (searchContext.bhk) {
+                filtered = filtered.filter(prop => prop.bhk === searchContext.bhk);
+            }
+            if (searchContext.type) {
+                filtered = filtered.filter(prop => prop.type === searchContext.type);
+            }
+            if (searchContext.budget) {
+                if (searchContext.service === 'rent') {
+                    filtered = filtered.filter(prop => prop.price <= searchContext.budget * 1.2); // Allow 20% tolerance
+                } else if (searchContext.service === 'buy') {
+                    filtered = filtered.filter(prop => prop.price <= searchContext.budget * 1.2);
                 }
-                return true;
-            });
+            }
+            
+            // Always return at least 3 results (demo-friendly)
+            if (filtered.length === 0) {
+                return getFallbackResults();
+            }
+            
+            return filtered;
         }
 
         // Generate search summary
@@ -1823,15 +1879,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return parts.join(' • ');
         }
 
-        // Render chips
-        function renderChips(chips, msgId) {
+        // Render chips - left-aligned, separate from bot text
+        function renderChips(chips, msgId, isFollowUp = false) {
             if (!chips || chips.length === 0) return;
             
             const msgEl = document.getElementById(msgId);
             if (!msgEl) return;
 
             const chipsContainer = document.createElement('div');
-            chipsContainer.className = 'chat-chips';
+            chipsContainer.className = isFollowUp ? 'chat-followup' : 'chat-chips';
             
             chips.forEach(chipText => {
                 const chip = document.createElement('button');
@@ -1861,7 +1917,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scrollToBottom();
         }
 
-        // Render property results
+        // Render property results - horizontal scrollable cards
         function renderResults(results, msgId) {
             if (!results || results.length === 0) return;
             
@@ -1869,34 +1925,51 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!msgEl) return;
 
             const resultsContainer = document.createElement('div');
-            resultsContainer.className = 'property-results';
+            resultsContainer.className = 'property-results-scroll';
+            
+            const scrollWrapper = document.createElement('div');
+            scrollWrapper.className = 'property-results-wrapper';
 
             results.forEach(prop => {
                 const card = document.createElement('div');
                 card.className = 'property-card';
                 
                 const price = prop.priceUnit === 'rent' 
-                    ? `₹${(prop.price / 1000).toFixed(0)}k/month`
+                    ? `₹${(prop.price / 1000).toFixed(0)}k/mo`
                     : prop.price >= 10000000
                     ? `₹${(prop.price / 10000000).toFixed(1)}Cr`
                     : `₹${(prop.price / 100000).toFixed(0)}L`;
                 
+                const title = `${prop.bhk}BHK ${prop.type} in ${prop.locality}`;
+                const localityLine = prop.tags.length > 0 ? `Near ${prop.tags[0]}` : prop.locality;
+                const tagChips = prop.amenities.slice(0, 3).map(a => `<span class="property-tag-chip">${a}</span>`).join('');
+                
                 card.innerHTML = `
                     <div class="property-image"></div>
                     <div class="property-info">
+                        <div class="property-title">${title}</div>
                         <div class="property-price">${price}</div>
-                        <div class="property-details">${prop.bhk}BHK • ${prop.type} • ${prop.locality}</div>
-                        <div class="property-tags">${prop.amenities.slice(0, 3).join(' • ')}</div>
+                        <div class="property-locality">${localityLine}</div>
+                        <div class="property-tags-row">${tagChips}</div>
                         <div class="property-actions">
-                            <button class="btn-view">View Details</button>
-                            <button class="btn-enquire">Enquire</button>
+                            <button class="btn-view">View details</button>
+                            <button class="btn-shortlist">♡</button>
                         </div>
                     </div>
                 `;
                 
-                resultsContainer.appendChild(card);
+                // Add click handlers
+                card.querySelector('.btn-view').addEventListener('click', () => {
+                    console.log('View details:', prop);
+                });
+                card.querySelector('.btn-shortlist').addEventListener('click', () => {
+                    console.log('Shortlist:', prop);
+                });
+                
+                scrollWrapper.appendChild(card);
             });
 
+            resultsContainer.appendChild(scrollWrapper);
             msgEl.appendChild(resultsContainer);
             scrollToBottom();
         }
@@ -1947,25 +2020,42 @@ document.addEventListener('DOMContentLoaded', function() {
             // Step 2: Detect intent + slots
             const intent = detectIntent(userText);
             const slots = extractParams(userText);
+            const isCore = intent !== null;
+            
+            // Step 3: Get results count for debug
+            const tempContext = { ...searchContext, ...slots };
+            const oldContext = { ...searchContext };
+            Object.assign(searchContext, slots);
+            const results = filterProperties();
+            const resultCount = results.length;
+            Object.assign(searchContext, oldContext); // Restore for actual processing
             
             // Debug logging
+            const matchedSignals = [];
+            if (slots.service) matchedSignals.push('service');
+            if (slots.bhk) matchedSignals.push('bhk');
+            if (slots.city) matchedSignals.push('city');
+            if (slots.budget) matchedSignals.push('budget');
+            if (slots.type) matchedSignals.push('type');
+            
             const debugInfo = {
-                raw: raw,
                 normalized: normalized,
-                intent: intent,
+                isCore: isCore,
+                matchedSignals: matchedSignals,
                 slots: slots,
-                branch: intent ? 'core_handler' : 'OTHER → Hi'
+                resultCount: resultCount
             };
             console.log('Intent Detection:', debugInfo);
             
-            // Step 3: Route based on intent
+            // Step 4: Route based on intent
             if (!intent) {
                 // Not a housing intent - return "Hi"
                 typeBotReply('Hi');
                 return;
             }
 
-            // Step 4: Handle core housing intent
+            // Step 5: Handle core housing intent
+            Object.assign(searchContext, slots); // Update context for real
             const response = generateBotResponse(intent, userText);
             const msgId = addBotMessage('');
             
@@ -1986,14 +2076,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Render additional UI after typing completes
                     setTimeout(() => {
-                        if (response.chips) {
-                            renderChips(response.chips, msgId);
+                        if (response.results) {
+                            renderResults(response.results, msgId);
                         }
                         if (response.summary) {
                             renderSummary(response.summary, msgId);
                         }
-                        if (response.results) {
-                            renderResults(response.results, msgId);
+                        if (response.chips) {
+                            renderChips(response.chips, msgId, false);
+                        }
+                        if (response.followUp) {
+                            // Render follow-up question separately (left-aligned)
+                            const followUpMsgId = addBotMessage(response.followUp.text);
+                            setTimeout(() => {
+                                renderChips(response.followUp.chips, followUpMsgId, true);
+                            }, 100);
                         }
                     }, 100);
                 }
