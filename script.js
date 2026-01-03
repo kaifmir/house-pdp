@@ -2728,7 +2728,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Weather-related
             if (normalized.match(/\b(weather|temperature|rain|sunny|cloudy|forecast|aqi|air quality)\b/i)) {
-                return "I can't help with that, but I can help you find a home that gets great natural light. What are you looking for?";
+                return "I can't help with the weather, but I can help you find a bright, well-ventilated home. What kind of place are you looking for?";
             }
 
             // Platform comparison
