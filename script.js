@@ -1501,6 +1501,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const text = chatInput.value.trim();
             if (!text) return;
 
+            // Haptic feedback
+            if (navigator.vibrate) {
+                navigator.vibrate(10);
+            }
+
             // Clear input
             chatInput.value = '';
 
