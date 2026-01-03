@@ -1585,6 +1585,9 @@ html, body {
     margin: 0;
     flex-shrink: 0; /* Don't shrink */
     /* VisualViewport pinning: offsetTop accounts for iOS keyboard/layout viewport shifts */
+    /* Allow messages to be visible behind header */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
 .chat-top-bar::after {
@@ -1602,7 +1605,7 @@ html, body {
 }
 
 .chat-back-btn {
-    background-color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.4);
     border: none;
     border-radius: 50%;
     width: 44px;
@@ -1616,8 +1619,8 @@ html, body {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     pointer-events: all;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     padding: 10px;
 }
 
