@@ -1585,9 +1585,7 @@ html, body {
     margin: 0;
     flex-shrink: 0; /* Don't shrink */
     /* VisualViewport pinning: offsetTop accounts for iOS keyboard/layout viewport shifts */
-    /* Allow messages to be visible behind header - reduce blur for better transparency */
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    /* Allow messages to be visible behind header - no blur for true transparency */
 }
 
 .chat-top-bar::after {
