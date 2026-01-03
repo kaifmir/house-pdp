@@ -2415,9 +2415,9 @@ document.addEventListener('DOMContentLoaded', function() {
         function handleChipClick(chipText) {
             const lower = chipText.toLowerCase();
             
-            // Mode chips
+            // Mode chips (intentType)
             if (lower === 'rent' || lower === 'buy' || lower === 'pg' || lower === 'commercial' || lower === 'plot' || lower === 'projects') {
-                searchContext.mode = lower;
+                searchContext.intentType = lower;
                 addUserMessage(chipText);
                 setTimeout(() => {
                     handleHousingIntent(chipText);
