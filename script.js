@@ -1729,8 +1729,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     lastWordCount = currentWordCount;
                 }
                 
-                // Auto-scroll during typing
-                scrollToBottomTyping();
+                // Auto-scroll during typing (every 3-5 chars)
+                if (i % 3 === 0) {
+                    scrollChatToBottom({ force: true });
+                }
                 if (i >= fullText.length) {
                     clearInterval(typewriterTimer);
                     typewriterTimer = null;
@@ -3102,7 +3104,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 checkOverflow(msgEl);
             });
             
-            scrollChatToBottom(true);
+            scrollChatToBottom({ force: true });
             return existingMsgId || msgEl.id;
         }
 
