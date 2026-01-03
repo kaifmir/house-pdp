@@ -1679,9 +1679,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     <rect x="6" y="6" width="12" height="12" fill="currentColor" stroke="none"/>
                 `;
                 svg.setAttribute('viewBox', '0 0 24 24');
+                svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
                 chatSendBtn.setAttribute('aria-label', 'Stop');
             } else {
-                // Show Send icon (paper plane)
+                // Show Send icon (paper plane) - restore original
                 svg.innerHTML = `
                     <rect width="256" height="256" fill="none"/>
                     <path d="M223.69,42.18a8,8,0,0,0-9.87-9.87l-192,58.22a8,8,0,0,0-1.25,14.93L108,148l42.54,87.42a8,8,0,0,0,14.93-1.25Z" opacity="0.2" fill="currentColor"/>
@@ -1689,6 +1690,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <path d="M223.69,42.18a8,8,0,0,0-9.87-9.87l-192,58.22a8,8,0,0,0-1.25,14.93L108,148l42.54,87.42a8,8,0,0,0,14.93-1.25Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
                 `;
                 svg.setAttribute('viewBox', '0 0 256 256');
+                svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
                 chatSendBtn.setAttribute('aria-label', 'Send');
             }
         }
