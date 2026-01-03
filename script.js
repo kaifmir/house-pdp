@@ -1836,28 +1836,25 @@ document.addEventListener('DOMContentLoaded', function() {
             let responseText = '';
             let chips = [];
 
-            // Generate sweet, minimal response (1-2 lines max)
+            // Generate semi-professional, minimal response
             if (nextMissing === 'mode') {
                 // Mode missing - ask once with all options
                 responseText = 'Is this for Rent, Buy, PG, Commercial, Plot, or Projects?';
                 chips = ['Rent', 'Buy', 'PG', 'Commercial', 'Plot', 'Projects'].slice(0, 6);
             } else if (nextMissing === 'location') {
-                // Location missing
-                const modeText = searchContext.mode ? `${searchContext.mode} ` : '';
-                responseText = `Which city or locality are you interested in?`;
+                // Location missing - exact template
+                responseText = 'Which city or locality are you looking in?';
                 chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
             } else if (nextMissing === 'budget') {
-                // Budget missing
+                // Budget missing - exact template
+                responseText = 'What budget are you targeting?';
                 const isRent = searchContext.mode === 'rent' || searchContext.mode === 'pg';
-                responseText = isRent 
-                    ? 'What\'s your budget per month?'
-                    : 'What\'s your total budget?';
                 chips = isRent
                     ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+'].slice(0, 6)
                     : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+'].slice(0, 6);
             } else if (nextMissing === 'bhk') {
-                // BHK missing
-                responseText = 'How many bedrooms?';
+                // BHK missing - exact template
+                responseText = 'What configuration do you need? 1BHK, 2BHK, 3BHK, or 4BHK?';
                 chips = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK+'].slice(0, 6);
             } else {
                 // All required params present - show results summary
@@ -2185,8 +2182,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Generate polite redirect for non-housing questions
         function generateRedirectResponse(userText) {
-            // Exact pattern: "I can help with home search and property related questions. What kind of place are you looking for?"
-            return "I can help with home search and property related questions. What kind of place are you looking for?";
+            // Exact template: "I can help with home search and property related questions. What are you looking for today?"
+            return "I can help with home search and property related questions. What are you looking for today?";
         }
 
         // Generate gibberish response

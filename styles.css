@@ -1934,10 +1934,23 @@ html, body {
 
 .msg-user {
     justify-content: flex-end;
+    margin-top: 4px;
 }
 
 .msg-bot {
     justify-content: flex-start;
+    margin-top: 10px;
+}
+
+/* Extra spacing after bot turn with cards or chips */
+.msg-bot:has(.property-carousel),
+.msg-bot:has(.chat-chips) {
+    margin-bottom: 14px;
+}
+
+/* Ensure spacing when user message is followed by bot message */
+.msg-user + .msg-bot {
+    margin-top: 10px;
 }
 
 /* Bot message content - strict single column container */
