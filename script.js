@@ -2519,7 +2519,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Already asked this question, don't ask again - show results if we can
                 pendingQuestion = null;
             }
-            } else {
+            
+            if (!pendingQuestion) {
                 // All required slots filled - ready to show results
                 pendingQuestion = null; // Clear pending question
                 searchContext.readyToShowResults = true; // CRITICAL FLAG
