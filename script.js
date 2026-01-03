@@ -1440,8 +1440,34 @@ document.addEventListener('DOMContentLoaded', function() {
             chatMessages.addEventListener('scroll', handleScroll, { passive: true });
         }
 
-        // Scroll messages to bottom (with smooth behavior and throttling)
-        // Uses anchor element for ChatGPT-style scrolling
+        // ChatGPT-style scroll: Scroll message to appear under header
+        // This makes new messages appear near the top, not stuck at bottom
+        function scrollMessageIntoView(msgElement, options = {}) {
+            if (!chatMessages || !msgElement) return;
+            
+            // Only scroll if user is near bottom (don't fight user scroll)
+            if (!isUserNearBottom && !options.force) {
+                return;
+            }
+
+            const behavior = options.behavior || 'smooth';
+            
+            // Use scrollIntoView with block: "start" so message appears under header
+            // scroll-margin-top CSS handles the offset automatically
+            if (options.immediate) {
+                msgElement.scrollIntoView({ behavior: 'auto', block: 'start' });
+            } else {
+                // Throttle scroll calls during typing
+                if (scrollTimeout) {
+                    clearTimeout(scrollTimeout);
+                }
+                scrollTimeout = setTimeout(() => {
+                    msgElement.scrollIntoView({ behavior: behavior, block: 'start' });
+                }, 50);
+            }
+        }
+
+        // Legacy scrollToBottom for backward compatibility (uses anchor)
         function scrollToBottom(options = {}) {
             if (!chatMessages) return;
             
@@ -1506,8 +1532,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 status: 'sent'
             };
             messages.push(message);
-            renderMessage(message);
-            scrollToBottom();
+            const msgElement = renderMessage(message);
+            // ChatGPT-style: Scroll new message to appear under header
+            if (msgElement) {
+                requestAnimationFrame(() => {
+                    scrollMessageIntoView(msgElement, { behavior: 'smooth' });
+                });
+            }
             return msgId;
         }
 
@@ -1521,8 +1552,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 status: 'typing'
             };
             messages.push(message);
-            renderMessage(message);
-            scrollToBottom();
+            const msgElement = renderMessage(message);
+            // ChatGPT-style: Scroll new message to appear under header
+            if (msgElement) {
+                requestAnimationFrame(() => {
+                    scrollMessageIntoView(msgElement, { behavior: 'smooth' });
+                });
+            }
             return msgId;
         }
 

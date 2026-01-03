@@ -1945,6 +1945,8 @@ html, body {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    /* ChatGPT-style: scroll margin so messages appear under header when scrolled into view */
+    scroll-margin-top: calc(var(--header-h, 68px) + env(safe-area-inset-top) + 8px);
 }
 
 .msg-user {
