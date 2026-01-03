@@ -1699,13 +1699,15 @@ html, body {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    z-index: 1;
+    z-index: 1; /* Lower than header so messages scroll behind it */
     background: transparent;
-    display: block; /* important - changed from flex */
+    display: block;
     padding: 0 16px; /* only side padding here */
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
+    /* Allow messages to scroll behind header - no top padding/clipping */
+    position: relative;
 }
 
 /* Chat stack wrapper - controls top anchoring + safe padding */
