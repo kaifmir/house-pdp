@@ -2701,12 +2701,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 pendingQuestion = null;
             }
             
-            // Check if we have enough to show results (DEMO-FRIENDLY)
+            // CRITICAL: Only show results if NO pending question AND we have enough info
+            // Never show cards in the same turn as a clarifying question
             const canShow = hasEnoughToShowResults(chatState);
             
             if (!pendingQuestion && canShow) {
                 // All required slots filled OR we have enough - ready to show results
-                pendingQuestion = null; // Clear pending question
                 chatState.readyToShowResults = true; // CRITICAL FLAG
                 
                 // Natural response with inferred city (don't announce inference explicitly)
@@ -2721,18 +2721,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     responseText = 'Here are a few options.';
                 }
                 
-                // Get filtered results (ONLY when readyToShowResults is true)
+                // Get filtered results (ONLY when readyToShowResults is true AND no pending question)
                 const filtered = filterProperties();
                 results = filtered.length > 0 ? filtered.slice(0, 3) : getFallbackResults();
                 
-                // Optional chips for refinement (only if not asking a question)
-                // These are refinement chips, not question chips
-                const category = chatState.category || chatState.intentType;
-                if (category === 'rent' || category === 'pg') {
-                    chips = ['Under ₹20k', '₹20-30k', '₹30-50k'].slice(0, 6);
-                } else if (category === 'buy' || category === 'projects') {
-                    chips = ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr'].slice(0, 6);
+                // Optional refinement chips (only if budget not set and we're showing results)
+                if (!chatState.budget && !chatState.budgetMin && !chatState.budgetMax && chatState.category) {
+                    const category = chatState.category || chatState.intentType;
+                    if (category === 'rent' || category === 'pg') {
+                        chips = ['Under ₹20k', '₹20-30k', '₹30-50k'].slice(0, 6);
+                    } else if (category === 'buy' || category === 'projects') {
+                        chips = ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr'].slice(0, 6);
+                    }
                 }
+            } else if (pendingQuestion) {
+                // If there's a pending question, DO NOT show results
+                results = null;
+                chatState.readyToShowResults = false;
             }
 
             return {
