@@ -1468,21 +1468,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Set chat offsets dynamically (header + composer heights)
-        // Sets padding-top and padding-bottom on #chat-stack (not #chat-messages)
-        // Messages scroll behind header, so we only need padding on the inner stack
+        // Sets padding-top and padding-bottom on #chat-messages
+        // Makes first message appear 16px under header (always)
         function setChatOffsets() {
             const header = document.querySelector(".chat-top-bar");
             const composer = document.querySelector(".chat-input-bar");
-            const stack = document.getElementById("chat-stack");
-            if (!header || !composer || !stack) return;
+            const messages = document.getElementById("chat-messages");
+            if (!header || !composer || !messages) return;
             
             const headerH = Math.ceil(header.getBoundingClientRect().height);
             const composerH = Math.ceil(composer.getBoundingClientRect().height);
             
-            // Set padding on #chat-stack (inner wrapper) so messages can scroll behind header
-            // Top padding: 16px below header (messages start here but can scroll up behind header)
-            stack.style.paddingTop = "16px";
-            stack.style.paddingBottom = (composerH + 16) + "px";
+            // Set padding directly on #chat-messages
+            messages.style.paddingTop = (headerH + 16) + "px";
+            messages.style.paddingBottom = (composerH + 16) + "px";
             
             // Update CSS variables for other uses
             document.documentElement.style.setProperty('--header-height', headerH + 'px');
@@ -3171,39 +3170,51 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Default fallback image URL (must always work)
-        const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?auto=format&fit=crop&w=800&q=60';
+        // Local aesthetic interior images (saved locally for faster loading)
+        const LOCAL_IMAGES = [
+            'images/property/interior1.jpg',
+            'images/property/interior2.jpg',
+            'images/property/interior3.jpg',
+            'images/property/interior4.jpg',
+            'images/property/interior5.jpg',
+            'images/property/interior6.jpg',
+            'images/property/interior7.jpg',
+            'images/property/interior8.jpg'
+        ];
         
-        // City-based Unsplash image mapping (curated, reliable IDs)
+        const DEFAULT_FALLBACK_IMAGE = LOCAL_IMAGES[0];
+        
+        // City-based image mapping using local images (rotated for variety)
         const CITY_IMAGE_MAP = {
             'delhi': [
-                'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?auto=format&fit=crop&w=800&q=60'
+                LOCAL_IMAGES[0],
+                LOCAL_IMAGES[1],
+                LOCAL_IMAGES[2]
             ],
             'mumbai': [
-                'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1560448204-61dc36dc5d4a?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?auto=format&fit=crop&w=800&q=60'
+                LOCAL_IMAGES[3],
+                LOCAL_IMAGES[4],
+                LOCAL_IMAGES[5]
             ],
             'bangalore': [
-                'https://images.unsplash.com/photo-1560448204-61dc36dc5d4b?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800&q=60'
+                LOCAL_IMAGES[6],
+                LOCAL_IMAGES[7],
+                LOCAL_IMAGES[0]
             ],
             'pune': [
-                'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?auto=format&fit=crop&w=800&q=60'
+                LOCAL_IMAGES[1],
+                LOCAL_IMAGES[2],
+                LOCAL_IMAGES[3]
             ],
             'gurgaon': [
-                'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1560448204-61dc36dc5d4a?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800&q=60'
+                LOCAL_IMAGES[4],
+                LOCAL_IMAGES[5],
+                LOCAL_IMAGES[6]
             ],
             'noida': [
-                'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?auto=format&fit=crop&w=800&q=60',
-                'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?auto=format&fit=crop&w=800&q=60'
+                LOCAL_IMAGES[7],
+                LOCAL_IMAGES[0],
+                LOCAL_IMAGES[1]
             ]
         };
         

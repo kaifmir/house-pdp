@@ -2185,8 +2185,8 @@ html, body {
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
-    padding: 8px 16px 12px;
-    margin: 0 -16px; /* makes carousel edge align with chat */
+    padding: 8px 16px 12px; /* Left and right padding of 16px */
+    margin: 0; /* Removed negative margin to allow proper padding */
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
