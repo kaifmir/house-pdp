@@ -1555,7 +1555,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Called during bot "type one letter at a time" streaming
         function scrollToBottomTyping(msgElement = null) {
             // During typing, force scroll to keep latest text visible
-            scrollToBottomIfNeeded({ force: true, immediate: true });
+            scrollChatToBottom(true);
         }
 
         // Add user message
@@ -1633,14 +1633,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 msgDiv.appendChild(botMessage);
             }
 
-            // Insert before spacer/anchor to keep them at the end
+            // Remove spacer if it exists (it breaks layout)
+            removeChatSpacer();
+            
+            // Insert message at the end (before anchor if it exists)
             const anchor = document.getElementById('chat-end');
             if (anchor) {
                 chatMessages.insertBefore(msgDiv, anchor);
             } else {
                 chatMessages.appendChild(msgDiv);
-                // Ensure anchor exists
-                ensureChatElements();
             }
 
             // Trigger animation
