@@ -1468,25 +1468,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Set chat offsets dynamically (header + composer heights)
-        // Sets padding on #chat-stack (not #chat-messages) so messages can scroll behind header
+        // Sets padding-top and padding-bottom on #chat-stack (not #chat-messages)
         // Messages scroll behind header, so we only need padding on the inner stack
         function setChatOffsets() {
             const header = document.querySelector(".chat-top-bar");
             const composer = document.querySelector(".chat-input-bar");
             const stack = document.getElementById("chat-stack");
-            const messages = document.getElementById("chat-messages");
-            if (!header || !composer || !stack || !messages) return;
+            if (!header || !composer || !stack) return;
             
             const headerH = Math.ceil(header.getBoundingClientRect().height);
             const composerH = Math.ceil(composer.getBoundingClientRect().height);
             
-            // Remove padding-top from #chat-messages so content can scroll behind header
-            messages.style.paddingTop = "0px";
-            messages.style.paddingBottom = "0px";
-            
-            // Set padding on #chat-stack (inner wrapper) so messages start below header
-            // Top padding: header height + 16px (messages start here but can scroll up behind header)
-            stack.style.paddingTop = (headerH + 16) + "px";
+            // Set padding on #chat-stack (inner wrapper) so messages can scroll behind header
+            // Top padding: 16px below header (messages start here but can scroll up behind header)
+            stack.style.paddingTop = "16px";
             stack.style.paddingBottom = (composerH + 16) + "px";
             
             // Update CSS variables for other uses
