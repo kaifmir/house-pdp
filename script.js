@@ -1839,8 +1839,104 @@ document.addEventListener('DOMContentLoaded', function() {
                 params.budget = amount;
             }
 
-            // City/Locality - more comprehensive
-            const cities = [
+            // Locality → City mapping (AUTO-INFERENCE - MANDATORY)
+            // If user mentions a locality, automatically infer the city
+            const localityToCityMap = {
+                // Delhi localities
+                'rohini': 'delhi',
+                'dwarka': 'delhi',
+                'janakpuri': 'delhi',
+                'rajouri garden': 'delhi',
+                'pitampura': 'delhi',
+                'vasant kunj': 'delhi',
+                'saket': 'delhi',
+                'lajpat nagar': 'delhi',
+                'defence colony': 'delhi',
+                'greater kailash': 'delhi',
+                'connaught place': 'delhi',
+                'karol bagh': 'delhi',
+                'laxmi nagar': 'delhi',
+                'mayur vihar': 'delhi',
+                'noida': 'noida',
+                'sector': 'noida', // Generic sector - will need confirmation if ambiguous
+                
+                // Mumbai localities
+                'andheri': 'mumbai',
+                'bandra': 'mumbai',
+                'borivali': 'mumbai',
+                'powai': 'mumbai',
+                'worli': 'mumbai',
+                'lower parel': 'mumbai',
+                'kurla': 'mumbai',
+                'chembur': 'mumbai',
+                'vashi': 'mumbai',
+                'navi mumbai': 'mumbai',
+                'thane': 'mumbai',
+                'malad': 'mumbai',
+                'juhu': 'mumbai',
+                'santacruz': 'mumbai',
+                'goregaon': 'mumbai',
+                
+                // Bangalore localities
+                'indiranagar': 'bangalore',
+                'koramangala': 'bangalore',
+                'whitefield': 'bangalore',
+                'marathahalli': 'bangalore',
+                'electronic city': 'bangalore',
+                'hsr layout': 'bangalore',
+                'btm layout': 'bangalore',
+                'jayanagar': 'bangalore',
+                'malleshwaram': 'bangalore',
+                'rajajinagar': 'bangalore',
+                'hebbal': 'bangalore',
+                'yeshwanthpur': 'bangalore',
+                
+                // Gurgaon localities
+                'dlf phase 1': 'gurgaon',
+                'dlf phase 2': 'gurgaon',
+                'dlf phase 3': 'gurgaon',
+                'dlf phase 4': 'gurgaon',
+                'dlf phase 5': 'gurgaon',
+                'sector 43': 'gurgaon',
+                'sector 29': 'gurgaon',
+                'sector 56': 'gurgaon',
+                'sector 57': 'gurgaon',
+                'sector 58': 'gurgaon',
+                'cyber city': 'gurgaon',
+                'gurugram': 'gurgaon',
+                'gurgaon': 'gurgaon',
+                
+                // Pune localities
+                'hinjewadi': 'pune',
+                'wakad': 'pune',
+                'baner': 'pune',
+                'koregaon park': 'pune',
+                'viman nagar': 'pune',
+                'kharadi': 'pune',
+                'hadapsar': 'pune',
+                
+                // Hyderabad localities
+                'gachibowli': 'hyderabad',
+                'hitech city': 'hyderabad',
+                'banjara hills': 'hyderabad',
+                'jubilee hills': 'hyderabad',
+                'secunderabad': 'hyderabad',
+                
+                // Kolkata localities
+                'salt lake': 'kolkata',
+                'new town': 'kolkata',
+                'park street': 'kolkata',
+                'sector v': 'kolkata',
+                
+                // Chennai localities
+                'omr': 'chennai',
+                'porur': 'chennai',
+                'velachery': 'chennai',
+                't nagar': 'chennai'
+            };
+            
+            // Direct city names (explicit mentions)
+            const cityNames = [
                 { name: 'gurgaon', aliases: ['gurgaon', 'gurugram'] },
                 { name: 'mumbai', aliases: ['mumbai', 'bombay'] },
                 { name: 'bangalore', aliases: ['bangalore', 'bengaluru'] },
@@ -1849,19 +1945,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 { name: 'noida', aliases: ['noida'] },
                 { name: 'chennai', aliases: ['chennai', 'madras'] },
                 { name: 'hyderabad', aliases: ['hyderabad'] },
-                { name: 'kolkata', aliases: ['kolkata', 'calcutta'] },
-                { name: 'indiranagar', aliases: ['indiranagar'] },
-                { name: 'koramangala', aliases: ['koramangala'] },
-                { name: 'andheri', aliases: ['andheri'] },
-                { name: 'whitefield', aliases: ['whitefield'] },
-                { name: 'dwarka', aliases: ['dwarka'] }
+                { name: 'kolkata', aliases: ['kolkata', 'calcutta'] }
             ];
             
-            for (const city of cities) {
+            // First, check for explicit city mentions
+            for (const city of cityNames) {
                 if (city.aliases.some(alias => lower.includes(alias))) {
                     params.city = city.name;
                     break;
                 }
+            }
+            
+            // If no explicit city, infer from locality (AUTO-INFERENCE)
+            if (!params.city) {
+                for (const [locality, city] of Object.entries(localityToCityMap)) {
+                    // Check if locality appears in the text (word boundary aware)
+                    const localityPattern = new RegExp(`\\b${locality.replace(/\s+/g, '\\s+')}\\b`, 'i');
+                    if (localityPattern.test(lower)) {
+                        params.city = city;
+                        // Also store locality for reference
+                        params.locality = locality;
+                        break;
+                    }
+                }
+            }
+            
+            // Handle ambiguous cases (e.g., "sector 15" could be Noida/Gurgaon/Faridabad)
+            // For now, if we see just "sector" without a city, we'll ask for clarification
+            if (!params.city && lower.match(/\bsector\s+\d+/i) && !lower.match(/\b(noida|gurgaon|faridabad|delhi)\b/i)) {
+                // Will be handled in getPendingQuestion with clarification
+                params.locality = lower.match(/\bsector\s+\d+/i)[0];
             }
 
             // Type (for additional filtering)
@@ -1888,14 +2001,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Get pending question based on missing required slots
+        // CRITICAL: Never ask for city if it can be inferred from locality
         function getPendingQuestion() {
             // Priority order: category → cityOrLocality → bhkOrType → budget
             if (!searchContext.mode) {
                 return 'category';
             }
+            
+            // AUTO-INFERENCE CHECK: If locality exists but city doesn't, try to infer
+            if (!searchContext.city && searchContext.locality) {
+                // Try to infer city from locality (should have been done in extractParams, but double-check)
+                const inferredCity = inferCityFromLocality(searchContext.locality);
+                if (inferredCity) {
+                    searchContext.city = inferredCity;
+                    // City is now set, continue to next check
+                } else {
+                    // Locality exists but can't be inferred - ask for clarification
+                    return 'cityOrLocality';
+                }
+            }
+            
+            // Only ask for city/locality if both are missing
             if (!searchContext.city && !searchContext.locality) {
                 return 'cityOrLocality';
             }
+            
             if (!searchContext.bhk && !searchContext.type) {
                 return 'bhkOrType';
             }
@@ -1903,6 +2033,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 return 'budget';
             }
             return null; // All required slots filled
+        }
+        
+        // Infer city from locality (helper function)
+        function inferCityFromLocality(locality) {
+            if (!locality) return null;
+            
+            const localityToCityMap = {
+                'rohini': 'delhi', 'dwarka': 'delhi', 'janakpuri': 'delhi', 'rajouri garden': 'delhi',
+                'pitampura': 'delhi', 'vasant kunj': 'delhi', 'saket': 'delhi', 'lajpat nagar': 'delhi',
+                'andheri': 'mumbai', 'bandra': 'mumbai', 'borivali': 'mumbai', 'powai': 'mumbai',
+                'worli': 'mumbai', 'lower parel': 'mumbai', 'kurla': 'mumbai', 'chembur': 'mumbai',
+                'indiranagar': 'bangalore', 'koramangala': 'bangalore', 'whitefield': 'bangalore',
+                'marathahalli': 'bangalore', 'electronic city': 'bangalore', 'hsr layout': 'bangalore',
+                'dlf phase 1': 'gurgaon', 'dlf phase 2': 'gurgaon', 'sector 43': 'gurgaon',
+                'sector 29': 'gurgaon', 'cyber city': 'gurgaon', 'gurugram': 'gurgaon',
+                'hinjewadi': 'pune', 'wakad': 'pune', 'baner': 'pune', 'koregaon park': 'pune',
+                'gachibowli': 'hyderabad', 'hitech city': 'hyderabad',
+                'salt lake': 'kolkata', 'new town': 'kolkata'
+            };
+            
+            const normalizedLocality = locality.toLowerCase().trim();
+            return localityToCityMap[normalizedLocality] || null;
         }
 
         // Check if we can show results - all required slots must be filled
@@ -1944,9 +2096,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 responseText = 'Select a category.';
                 chips = ['Rent', 'Buy', 'PG', 'Commercial', 'Plot', 'Projects'].slice(0, 6);
             } else if (pendingQuestion === 'cityOrLocality') {
-                // Chip only mode - minimal prompt
-                responseText = 'Which city should I focus on?';
-                chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
+                // Check if we have a locality but need city clarification (ambiguous case)
+                if (searchContext.locality && !searchContext.city) {
+                    // Ambiguous locality (e.g., "sector 15" could be multiple cities)
+                    const localityDisplay = searchContext.locality.charAt(0).toUpperCase() + searchContext.locality.slice(1);
+                    responseText = `Just to confirm, is this for ${localityDisplay} in which city?`;
+                    chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
+                } else {
+                    // No locality or city - ask normally
+                    responseText = 'Which city should I focus on?';
+                    chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
+                }
             } else if (pendingQuestion === 'bhkOrType') {
                 // Chip only mode - minimal prompt
                 responseText = 'What configuration do you need?';
@@ -1963,7 +2123,18 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 // All required slots filled - show results
                 pendingQuestion = null; // Clear pending question
-                responseText = 'Here are a few options.';
+                
+                // Natural response with inferred city (don't announce inference explicitly)
+                // Use locality if available, otherwise city, otherwise generic
+                const locationText = searchContext.locality || searchContext.city || '';
+                if (locationText) {
+                    const displayLocation = locationText.split(' ').map(word => 
+                        word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join(' ');
+                    responseText = `Here are a few options in ${displayLocation}.`;
+                } else {
+                    responseText = 'Here are a few options.';
+                }
                 
                 // Get filtered results
                 const filtered = filterProperties();
