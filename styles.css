@@ -2367,13 +2367,9 @@ html, body {
 }
 
 /* Hide intro when chat starts */
+/* Hide intro when chat starts - remove centering, messages stack from top */
 .chat-screen.chat-started #chat-intro {
-    opacity: 0;
-    transform: translateY(-6px);
-    max-height: 0;
-    overflow: hidden;
-    pointer-events: none;
-    transition: opacity 160ms ease, transform 160ms ease, max-height 220ms ease;
+    display: none !important; /* Completely hide intro when chat starts */
 }
 
 /* Step 3: Composer - Fixed at bottom, positioned above keyboard using --kb-offset */
