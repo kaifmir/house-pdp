@@ -1594,8 +1594,8 @@ html, body {
     pointer-events: none;
     background: linear-gradient(
         to bottom,
-        var(--chat-bg, #F5F5F5) 0%,
-        var(--chat-bg, #F5F5F5) 50%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.6) 0%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.6) 50%,
         rgba(var(--chat-bg-rgb, 245, 245, 245), 0.2) 100%
     );
     z-index: -1;
