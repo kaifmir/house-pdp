@@ -1580,7 +1580,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Conversation context
         let searchContext = {
-            service: null, // 'rent' or 'buy'
+            mode: null, // 'rent', 'buy', 'pg', 'commercial', 'plot', 'projects'
             city: null,
             locality: null,
             budget: null,
@@ -1675,14 +1675,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return 'rent_buy_search';
             }
 
-            // Check for any housing-related keywords
+            // Check for any housing-related keywords (comprehensive)
             const housingKeywords = [
                 'bhk', 'rent', 'buy', 'apartment', 'house', 'villa', 'flat', 'property', 
                 'home', 'pg', 'commercial', 'office', 'plot', 'studio', 'rk', 'furnished', 
                 'budget', 'price', 'locality', 'area', 'near', 'metro', 'school', 'hospital', 
                 'park', 'sea', 'view', 'hills', 'quiet', 'safe', 'pet', 'senior', 'wheelchair', 
-                'vastu', 'invest', 'appreciation', 'gurgaon', 'mumbai', 'bangalore', 'delhi', 
-                'pune', 'noida', 'chennai', 'hyderabad', 'kolkata'
+                'vastu', 'invest', 'appreciation', 'project', 'projects', 'under construction', 
+                'ready to move', 'new project', 'gurgaon', 'mumbai', 'bangalore', 'delhi', 
+                'pune', 'noida', 'chennai', 'hyderabad', 'kolkata', 'koramangala', 'indiranagar',
+                'andheri', 'whitefield', 'dwarka', 'powai', 'rohini', 'sector'
             ];
             
             const hasHousingKeyword = housingKeywords.some(keyword => normalized.includes(keyword));
@@ -1724,7 +1726,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'rent_buy_search';
         }
 
-        // Extract parameters from text - more tolerant
+        // Extract parameters from text - supports all modes
         function extractParams(text) {
             if (!text || typeof text !== 'string') {
                 return {};
@@ -1733,11 +1735,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const lower = text.trim().toLowerCase();
             const params = {};
 
-            // Service (rent/buy) - more tolerant matching
-            if (lower.match(/\b(rent|renting|for rent)\b/i)) {
-                params.service = 'rent';
-            } else if (lower.match(/\b(buy|buying|purchase|for sale)\b/i)) {
-                params.service = 'buy';
+            // Mode (Rent/Buy/PG/Commercial/Plot/Projects) - priority order
+            if (lower.match(/\b(pg|paying guest|paying\s+guest)\b/i)) {
+                params.mode = 'pg';
+            } else if (lower.match(/\b(commercial|office|shop|retail|warehouse)\b/i)) {
+                params.mode = 'commercial';
+            } else if (lower.match(/\b(plot|land|plot\s+for\s+sale)\b/i)) {
+                params.mode = 'plot';
+            } else if (lower.match(/\b(project|projects|new project|under construction|ready to move|r2m|new launch)\b/i)) {
+                params.mode = 'projects';
+            } else if (lower.match(/\b(rent|renting|for rent|to rent)\b/i)) {
+                params.mode = 'rent';
+            } else if (lower.match(/\b(buy|buying|purchase|for sale|to buy)\b/i)) {
+                params.mode = 'buy';
             }
 
             // BHK - handle all variants: 3bhk, 3 bhk, 3-bhk, 3 BHK, etc.
@@ -1786,26 +1796,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Type
+            // Type (for additional filtering)
             if (lower.match(/\bvilla\b/i)) params.type = 'Villa';
-            else if (lower.match(/\bplot\b/i)) params.type = 'Plot';
-            else if (lower.match(/\bpg\b/i)) params.type = 'PG';
-            else if (lower.match(/\b(commercial|office)\b/i)) params.type = 'Commercial';
             else if (lower.match(/\b(studio|1rk)\b/i)) params.type = 'Studio';
 
             return params;
         }
 
-        // Check what's missing
+        // Check what's missing - priority order: mode → location → budget → bhk
         function getMissingParams() {
             const missing = [];
-            if (!searchContext.service) missing.push('service');
+            if (!searchContext.mode) missing.push('mode');
             if (!searchContext.city && !searchContext.locality) missing.push('location');
             if (!searchContext.budget) missing.push('budget');
+            if (!searchContext.bhk) missing.push('bhk');
             return missing;
         }
 
-        // Generate bot response - demo-friendly (always shows results)
+        // Get next missing param (only one at a time)
+        function getNextMissingParam() {
+            const missing = getMissingParams();
+            return missing.length > 0 ? missing[0] : null;
+        }
+
+        // Generate bot response - demo-friendly (always shows results, one question at a time)
         function generateBotResponse(intent, userText) {
             const params = extractParams(userText);
             
@@ -1816,51 +1830,55 @@ document.addEventListener('DOMContentLoaded', function() {
             const results = filterProperties();
             const resultCount = results.length > 0 ? results.length : getFallbackResults().length;
 
-            const missing = getMissingParams();
+            // Get next missing param (only one at a time)
+            const nextMissing = getNextMissingParam();
+            
             let responseText = '';
             let chips = [];
-            let showResults = true;
 
-            // Generate context-aware response
-            if (intent === 'rent_buy_search' || !searchContext.service) {
-                if (!searchContext.service) {
-                    responseText = 'Here are a few close matches — tell me Rent or Buy and I\'ll refine the results.';
-                    chips = ['Rent', 'Buy'];
-                    if (searchContext.bhk) chips.push(`${searchContext.bhk}BHK`);
-                    if (searchContext.city) chips.push(searchContext.city);
-                } else {
-                    responseText = `I found ${resultCount} properties for ${searchContext.service === 'rent' ? 'rent' : 'purchase'}:`;
-                    if (searchContext.bhk) chips.push(`${searchContext.bhk}BHK`);
-                    if (!searchContext.budget) {
-                        chips.push(...(searchContext.service === 'rent' 
-                            ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+']
-                            : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+']));
-                    }
-                }
-            } else if (intent === 'type_search') {
-                responseText = `Here are some ${searchContext.type || 'properties'} options:`;
-                chips = ['1BHK', '2BHK', '3BHK', '4BHK+'];
-            } else if (intent === 'lifestyle_search') {
-                responseText = 'I\'ll try my best with available data. Here are properties matching your preferences:';
-                chips = ['Quiet', 'Green', 'Sea view', 'Near parks'];
-            } else if (intent === 'commute_search') {
-                responseText = 'Here are properties near metro/landmarks:';
-                chips = ['Near Metro', '15 min', '30 min', '45 min'];
+            // Generate sweet, minimal response (1-2 lines max)
+            if (nextMissing === 'mode') {
+                // Mode missing - ask once with all options
+                responseText = 'Is this for Rent, Buy, PG, Commercial, Plot, or Projects?';
+                chips = ['Rent', 'Buy', 'PG', 'Commercial', 'Plot', 'Projects'].slice(0, 6);
+            } else if (nextMissing === 'location') {
+                // Location missing
+                const modeText = searchContext.mode ? `${searchContext.mode} ` : '';
+                responseText = `Which city or locality are you interested in?`;
+                chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
+            } else if (nextMissing === 'budget') {
+                // Budget missing
+                const isRent = searchContext.mode === 'rent' || searchContext.mode === 'pg';
+                responseText = isRent 
+                    ? 'What\'s your budget per month?'
+                    : 'What\'s your total budget?';
+                chips = isRent
+                    ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+'].slice(0, 6)
+                    : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+'].slice(0, 6);
+            } else if (nextMissing === 'bhk') {
+                // BHK missing
+                responseText = 'How many bedrooms?';
+                chips = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK+'].slice(0, 6);
             } else {
-                responseText = `I found ${resultCount} properties matching your search:`;
-            }
-
-            // If location missing, add location chips
-            if (!searchContext.city && !searchContext.locality) {
-                chips.push('Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune');
+                // All required params present - show results summary
+                const modeText = searchContext.mode ? `${searchContext.mode} ` : '';
+                const locationText = searchContext.city || searchContext.locality || '';
+                responseText = `Here are ${resultCount} ${modeText}properties${locationText ? ` in ${locationText}` : ''}:`;
+                
+                // Optional chips for refinement (only if not asking a question)
+                if (searchContext.mode === 'rent' || searchContext.mode === 'pg') {
+                    chips = ['Under ₹20k', '₹20-30k', '₹30-50k'].slice(0, 6);
+                } else if (searchContext.mode === 'buy' || searchContext.mode === 'projects') {
+                    chips = ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr'].slice(0, 6);
+                }
             }
 
             return {
                 text: responseText,
                 results: results.length > 0 ? results.slice(0, 3) : getFallbackResults(),
-                chips: chips,
-                summary: generateSummary(),
-                followUp: missing.length > 0 ? getFollowUpQuestion(missing[0]) : null
+                chips: chips.length > 0 ? chips : null, // Only show chips if we have them
+                summary: null, // Removed summary for cleaner UI
+                followUp: null // No separate follow-up - everything in one response
             };
         }
 
@@ -1869,37 +1887,23 @@ document.addEventListener('DOMContentLoaded', function() {
             return mockProperties.slice(0, 3);
         }
 
-        // Get follow-up question
-        function getFollowUpQuestion(missing) {
-            if (missing === 'service') {
-                return {
-                    text: 'Are you looking to rent or buy?',
-                    chips: ['Rent', 'Buy']
-                };
-            } else if (missing === 'location') {
-                return {
-                    text: 'Which city or locality are you interested in?',
-                    chips: ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune']
-                };
-            } else if (missing === 'budget') {
-                const unit = searchContext.service === 'rent' ? 'per month' : 'total';
-                return {
-                    text: `What's your budget (₹ ${unit})?`,
-                    chips: searchContext.service === 'rent' 
-                        ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+']
-                        : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+']
-                };
-            }
-            return null;
-        }
+        // Removed getFollowUpQuestion - now handled in generateBotResponse
 
         // Filter properties based on context - demo-friendly (loose matching)
         function filterProperties() {
             let filtered = [...mockProperties];
             
             // Apply filters (loose matching for demo)
-            if (searchContext.service) {
-                filtered = filtered.filter(prop => prop.priceUnit === searchContext.service);
+            if (searchContext.mode) {
+                // Map mode to priceUnit for filtering
+                if (searchContext.mode === 'rent' || searchContext.mode === 'pg') {
+                    filtered = filtered.filter(prop => prop.priceUnit === 'rent');
+                } else if (searchContext.mode === 'buy' || searchContext.mode === 'projects' || searchContext.mode === 'plot') {
+                    filtered = filtered.filter(prop => prop.priceUnit === 'buy');
+                } else if (searchContext.mode === 'commercial') {
+                    // Commercial properties might have different structure - for now, show all
+                    filtered = filtered;
+                }
             }
             if (searchContext.city) {
                 filtered = filtered.filter(prop => prop.city.toLowerCase() === searchContext.city.toLowerCase());
@@ -1911,9 +1915,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 filtered = filtered.filter(prop => prop.type === searchContext.type);
             }
             if (searchContext.budget) {
-                if (searchContext.service === 'rent') {
+                const isRent = searchContext.mode === 'rent' || searchContext.mode === 'pg';
+                if (isRent) {
                     filtered = filtered.filter(prop => prop.price <= searchContext.budget * 1.2); // Allow 20% tolerance
-                } else if (searchContext.service === 'buy') {
+                } else {
                     filtered = filtered.filter(prop => prop.price <= searchContext.budget * 1.2);
                 }
             }
@@ -1926,21 +1931,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return filtered;
         }
 
-        // Generate search summary
+        // Generate search summary (removed - using cleaner UI)
         function generateSummary() {
-            const parts = [];
-            if (searchContext.service) parts.push(searchContext.service === 'rent' ? 'Rent' : 'Buy');
-            if (searchContext.bhk) parts.push(`${searchContext.bhk}BHK`);
-            if (searchContext.city) parts.push(searchContext.city);
-            if (searchContext.budget) {
-                const budgetStr = searchContext.budget >= 10000000 
-                    ? `₹${searchContext.budget / 10000000}Cr`
-                    : searchContext.budget >= 100000
-                    ? `₹${searchContext.budget / 100000}L`
-                    : `₹${searchContext.budget / 1000}k`;
-                parts.push(`≤ ${budgetStr}`);
-            }
-            return parts.join(' • ');
+            return null; // Not used anymore
         }
 
         // Strict renderBotTurn function - enforces layout contract
@@ -2133,12 +2126,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('renderSummary is deprecated - use renderBotTurn');
         }
 
-        // Handle chip click
+        // Handle chip click - supports all modes
         function handleChipClick(chipText) {
             const lower = chipText.toLowerCase();
             
-            if (lower === 'rent' || lower === 'buy') {
-                searchContext.service = lower;
+            // Mode chips
+            if (lower === 'rent' || lower === 'buy' || lower === 'pg' || lower === 'commercial' || lower === 'plot' || lower === 'projects') {
+                searchContext.mode = lower;
                 addUserMessage(chipText);
                 setTimeout(() => {
                     handleHousingIntent(chipText);
@@ -2157,9 +2151,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     handleHousingIntent(chipText);
                 }, 200);
+            } else if (lower.match(/\d+\s*(bhk|rk)/i)) {
+                // BHK chip (e.g., "2BHK", "3BHK")
+                const bhkMatch = lower.match(/(\d+)\s*(bhk|rk)/i);
+                if (bhkMatch) {
+                    searchContext.bhk = parseInt(bhkMatch[1]);
+                }
+                addUserMessage(chipText);
+                setTimeout(() => {
+                    handleHousingIntent(chipText);
+                }, 200);
             } else {
                 // City or other
-                const cities = ['gurgaon', 'mumbai', 'bangalore', 'delhi', 'pune'];
+                const cities = ['gurgaon', 'mumbai', 'bangalore', 'delhi', 'pune', 'noida'];
                 if (cities.some(c => chipText.toLowerCase().includes(c))) {
                     searchContext.city = chipText;
                 }
@@ -2168,6 +2172,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     handleHousingIntent(chipText);
                 }, 200);
             }
+        }
+
+        // Detect gibberish (random characters, no meaningful words)
+        function detectGibberish(text) {
+            if (!text || typeof text !== 'string') {
+                return false;
+            }
+            
+            const normalized = text.trim().toLowerCase();
+            
+            // Very short (1-2 chars) is not gibberish
+            if (normalized.length <= 2) {
+                return false;
+            }
+            
+            // Check if it's mostly random characters (no vowels, repeated chars, etc.)
+            const hasVowels = /[aeiou]/i.test(normalized);
+            const hasRepeatedChars = /(.)\1{3,}/.test(normalized); // Same char 4+ times
+            const hasMeaningfulWords = /\b(rent|buy|pg|commercial|plot|project|bhk|delhi|mumbai|bangalore|gurgaon|pune|noida|hi|hello|hey|thanks|thank|you|what|where|how|when|why|is|are|the|a|an|in|on|at|for|to|of|with|from)\b/i.test(normalized);
+            
+            // If no vowels, lots of repeated chars, and no meaningful words → likely gibberish
+            if (!hasVowels && hasRepeatedChars && !hasMeaningfulWords) {
+                return true;
+            }
+            
+            // If very short and no meaningful words
+            if (normalized.length < 5 && !hasMeaningfulWords) {
+                return true;
+            }
+            
+            return false;
         }
 
         // Generate greeting response with housing redirect
@@ -2183,9 +2218,32 @@ document.addEventListener('DOMContentLoaded', function() {
             return greetings[Math.floor(Math.random() * greetings.length)];
         }
 
-        // Generate polite redirect for non-housing questions
-        function generateRedirectResponse() {
-            return "I can't help with that, but I can help you find a home 😊 What are you looking for — rent or buy?";
+        // Generate witty redirect for non-housing questions
+        function generateRedirectResponse(userText) {
+            const normalized = userText ? userText.trim().toLowerCase() : '';
+            
+            // Weather-related
+            if (normalized.match(/\b(weather|temperature|rain|sunny|cloudy|forecast|aqi|air quality)\b/i)) {
+                return "I can't check live weather here 😅 but I can help you find a bright, sunny home. Which city are you searching in — and rent or buy?";
+            }
+            
+            // Random trivia / general knowledge
+            if (normalized.match(/\b(what|who|when|where|why|how|tell me|explain|define|meaning|height|tall|big|small)\b/i)) {
+                return "That's a fun one 😄 I'm best at homes though. Tell me your city + budget and I'll pull options.";
+            }
+            
+            // Default witty redirect
+            const redirects = [
+                "I can't help with that, but I can help you find a home 😊 What are you looking for — rent or buy?",
+                "That's outside my expertise 😅 but I'm great at finding homes! Which city are you interested in?",
+                "I'm focused on homes right now 😊 Tell me: Rent, Buy, PG, Commercial, Plot, or Projects?"
+            ];
+            return redirects[Math.floor(Math.random() * redirects.length)];
+        }
+
+        // Generate gibberish response
+        function generateGibberishResponse() {
+            return "Oops 😅 didn't catch that. Tell me what you want: Rent / Buy / PG / Commercial / Plot / Projects?";
         }
 
         // Main housing intent handler with debug logging
@@ -2194,8 +2252,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const raw = userText;
             const normalized = userText ? userText.trim().toLowerCase() : '';
             
-            // Step 2: Detect greeting and housing intent
+            // Step 2: Routing logic order (strict priority)
+            // 1. Detect gibberish first
+            if (detectGibberish(userText)) {
+                const gibberishText = generateGibberishResponse();
+                typeBotReply(gibberishText);
+                return;
+            }
+            
+            // 2. Detect greeting
             const isGreeting = detectGreeting(userText);
+            
+            // 3. Detect housing intent
             const intent = detectIntent(userText);
             const slots = extractParams(userText);
             const isCore = intent !== null;
@@ -2211,8 +2279,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 typeBotReply(greetingText);
                 return;
             } else if (!isGreeting && !isCore) {
-                // Non-housing question - polite redirect
-                const redirectText = generateRedirectResponse();
+                // Non-housing question - witty redirect
+                const redirectText = generateRedirectResponse(userText);
                 typeBotReply(redirectText);
                 return;
             }
@@ -2228,7 +2296,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Debug logging
                 const matchedSignals = [];
-                if (slots.service) matchedSignals.push('service');
+                if (slots.mode) matchedSignals.push('mode');
                 if (slots.bhk) matchedSignals.push('bhk');
                 if (slots.city) matchedSignals.push('city');
                 if (slots.budget) matchedSignals.push('budget');
