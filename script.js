@@ -3218,18 +3218,12 @@ document.addEventListener('DOMContentLoaded', function() {
             ]
         };
         
-        // Helper function to get listing image based on city with unique sig
+        // Helper function to get listing image based on city (using local images)
         function getListingImage(city) {
             const cityKey = (city || '').toLowerCase();
-            const images = CITY_IMAGE_MAP[cityKey] || CITY_IMAGE_MAP['delhi']; // Default to Delhi
-            // Return random image from city-specific set with unique sig parameter
-            const baseUrl = images[Math.floor(Math.random() * images.length)];
-            const sig = Math.floor(Math.random() * 10000);
-            // Convert to new format with sig if not already present
-            if (baseUrl.includes('auto=format')) {
-                return baseUrl.replace('auto=format', `auto=format&sig=${sig}`);
-            }
-            return `${baseUrl}&sig=${sig}`;
+            const images = CITY_IMAGE_MAP[cityKey] || LOCAL_IMAGES; // Default to all local images
+            // Return random image from city-specific set
+            return images[Math.floor(Math.random() * images.length)];
         }
 
         // Create property card element with modern design and Unsplash images
