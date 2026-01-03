@@ -997,7 +997,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let dragging = false;
         let dragStartX = 0;
         let dragStartOffset = 0;
-        let lastMoveAt = 0;
+        let lastMoveTs = 0;
         let resumeTimer = null;
         
         // Momentum scrolling
@@ -1011,11 +1011,12 @@ document.addEventListener('DOMContentLoaded', function() {
             pausedUntil = Date.now() + ms;
         }
 
-        function scheduleResume(ms = 900) {
+        function resumeSoon(ms = 900) {
             clearTimeout(resumeTimer);
             resumeTimer = setTimeout(() => {
                 dragging = false;
-                pausedUntil = Date.now() + 200; // tiny delay then rAF continues
+                // don't leave paused forever
+                pausedUntil = Date.now() + 100;
             }, ms);
         }
 
@@ -1025,6 +1026,8 @@ document.addEventListener('DOMContentLoaded', function() {
             last = t;
 
             const halfWidth = track.scrollWidth / 2; // since 2x duplicate
+
+            const canAutoMove = !dragging && Date.now() >= pausedUntil;
 
             if (dragging) {
                 // Don't animate during drag
@@ -1036,13 +1039,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Stop when velocity is too low
                 if (Math.abs(momentumVelocity) < minVelocity) {
                     momentumVelocity = 0;
-                    pausedUntil = 0; // Resume auto-scroll immediately
+                    pausedUntil = Date.now() + 100; // small delay then resume
                 }
                 
                 // Wrap position during momentum
                 x = wrapPosition(x);
                 track.style.transform = `translate3d(${x}px,0,0)`;
-            } else if (Date.now() >= pausedUntil) {
+            } else if (canAutoMove) {
                 // Auto-scroll
                 x -= speed * dt; // move left (use + for right)
                 // wrap when we've moved one full set
@@ -1070,9 +1073,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         marquee.addEventListener('pointerdown', (e) => {
             dragging = true;
-            lastMoveAt = performance.now();
+            lastMoveTs = performance.now();
             momentumVelocity = 0; // stop any existing momentum
-            pausedUntil = Date.now() + 999999; // freeze while dragging
+            pause(999999); // freeze auto while dragging
             if (marquee.setPointerCapture) {
                 marquee.setPointerCapture(e.pointerId);
             }
@@ -1084,7 +1087,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         marquee.addEventListener('pointermove', (e) => {
             if (!dragging) return;
-            lastMoveAt = performance.now();
+            lastMoveTs = performance.now();
             const now = performance.now();
             const dt = (now - lastDragTime) / 1000; // seconds
             const dx = e.clientX - dragStartX;
@@ -1107,7 +1110,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Wrap position on end to ensure we're in valid range for seamless loop
             x = wrapPosition(x);
             track.style.transform = `translate3d(${x}px,0,0)`;
-            scheduleResume(900);
+            resumeSoon(900);
         }
         marquee.addEventListener('pointerup', endDrag);
         marquee.addEventListener('pointercancel', endDrag);
@@ -1117,9 +1120,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Also support touch events for older browsers (Android fallback)
         marquee.addEventListener('touchstart', (e) => {
             dragging = true;
-            lastMoveAt = performance.now();
+            lastMoveTs = performance.now();
             momentumVelocity = 0; // stop any existing momentum
-            pausedUntil = Date.now() + 999999;
+            pause(999999);
             dragStartX = e.touches[0].clientX;
             dragStartOffset = x;
             lastDragX = e.touches[0].clientX;
@@ -1128,7 +1131,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         marquee.addEventListener('touchmove', (e) => {
             if (!dragging) return;
-            lastMoveAt = performance.now();
+            lastMoveTs = performance.now();
             const now = performance.now();
             const dt = (now - lastDragTime) / 1000; // seconds
             const dx = e.touches[0].clientX - dragStartX;
@@ -1150,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Failsafe: if user stopped moving for 200ms, end drag
         setInterval(() => {
-            if (dragging && performance.now() - lastMoveAt > 200) {
+            if (dragging && (performance.now() - lastMoveTs > 200)) {
                 endDrag();
             }
         }, 150);
