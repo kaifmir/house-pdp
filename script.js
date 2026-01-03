@@ -2364,16 +2364,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // If no explicit city, infer from locality (AUTO-INFERENCE)
+            // If no explicit city, infer from locality (AUTO-INFERENCE - STRICT ENFORCEMENT)
+            // Match longest locality first to avoid partial matches
             if (!params.city) {
-                for (const [locality, city] of Object.entries(localityToCityMap)) {
+                const sortedLocalities = Object.keys(localityToCityMap).sort((a, b) => b.length - a.length);
+                for (const locality of sortedLocalities) {
                     // Check if locality appears in the text (word boundary aware)
                     const localityPattern = new RegExp(`\\b${locality.replace(/\s+/g, '\\s+')}\\b`, 'i');
                     if (localityPattern.test(searchText)) {
-                        params.city = city;
+                        params.city = localityToCityMap[locality];
                         // Also store locality for reference
                         params.locality = locality;
                         break;
+                    }
+                }
+            }
+            
+            // Handle city/locality conflicts (if user mentions both and they conflict)
+            if (params.city && params.locality) {
+                const inferredCity = localityToCityMap[params.locality.toLowerCase()];
+                if (inferredCity && inferredCity !== params.city.toLowerCase()) {
+                    // Conflict detected - city explicitly mentioned conflicts with locality
+                    // For now, trust explicit city mention over locality inference
+                    // But log for debugging
+                    if (DEBUG || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        console.warn('City/locality conflict:', {
+                            explicitCity: params.city,
+                            locality: params.locality,
+                            inferredCity: inferredCity,
+                            action: 'Using explicit city'
+                        });
                     }
                 }
             }
@@ -2905,15 +2925,50 @@ document.addEventListener('DOMContentLoaded', function() {
             return existingMsgId || msgEl.id;
         }
 
-        // Unsplash image URLs for property cards
-        const unsplashImages = [
-            'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=520&h=280&fit=crop&auto=format',
-            'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=520&h=280&fit=crop&auto=format',
-            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=520&h=280&fit=crop&auto=format',
-            'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?w=520&h=280&fit=crop&auto=format',
-            'https://images.unsplash.com/photo-1560448204-61dc36dc5d4a?w=520&h=280&fit=crop&auto=format',
-            'https://images.unsplash.com/photo-1560448204-61dc36dc5d4b?w=520&h=280&fit=crop&auto=format'
-        ];
+        // Default fallback image URL (must always work)
+        const DEFAULT_FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?auto=format&fit=crop&w=800&q=60';
+        
+        // City-based Unsplash image mapping (curated, reliable IDs)
+        const CITY_IMAGE_MAP = {
+            'delhi': [
+                'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?auto=format&fit=crop&w=800&q=60'
+            ],
+            'mumbai': [
+                'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1560448204-61dc36dc5d4a?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?auto=format&fit=crop&w=800&q=60'
+            ],
+            'bangalore': [
+                'https://images.unsplash.com/photo-1560448204-61dc36dc5d4b?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800&q=60'
+            ],
+            'pune': [
+                'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?auto=format&fit=crop&w=800&q=60'
+            ],
+            'gurgaon': [
+                'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1560448204-61dc36dc5d4a?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&w=800&q=60'
+            ],
+            'noida': [
+                'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?auto=format&fit=crop&w=800&q=60',
+                'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?auto=format&fit=crop&w=800&q=60'
+            ]
+        };
+        
+        // Helper function to get listing image based on city
+        function getListingImage(city) {
+            const cityKey = (city || '').toLowerCase();
+            const images = CITY_IMAGE_MAP[cityKey] || CITY_IMAGE_MAP['delhi']; // Default to Delhi
+            // Return random image from city-specific set
+            return images[Math.floor(Math.random() * images.length)];
+        }
 
         // Create property card element with modern design and Unsplash images
         function createPropertyCard(prop) {
@@ -2930,12 +2985,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const localityLine = prop.tags.length > 0 ? `Near ${prop.tags[0]}` : prop.locality;
             const amenityChips = prop.amenities.slice(0, 3).map(a => `<span class="property-amenity-chip">${a}</span>`).join('');
             
-            // Randomly select an Unsplash image
-            const imageUrl = unsplashImages[Math.floor(Math.random() * unsplashImages.length)];
+            // Get city-specific image (reliable, curated)
+            const imageUrl = getListingImage(prop.city);
             
             card.innerHTML = `
                 <div class="property-card-image">
-                    <img src="${imageUrl}" alt="${title}" loading="lazy" />
+                    <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.src='${DEFAULT_FALLBACK_IMAGE}'; this.onerror=null;" />
                 </div>
                 <div class="property-card-content">
                     <div class="property-card-title">${title}</div>
