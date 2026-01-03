@@ -1936,14 +1936,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return null; // Not used anymore
         }
 
-        // Strict renderBotTurn function - enforces layout contract
+        // Strict renderBotTurn function - enforces layout contract (no duplicates)
         function renderBotTurn(options, existingMsgId = null) {
-            const { text, chips, carousel, followUp } = options;
+            const { text, chips, carousel } = options;
             
-            // Guardrails: prevent duplicates
-            if (followUp && chips && followUp.chips) {
-                console.warn('Both chips and followUp.chips provided - using followUp only');
-            }
+            // Strict contract: only text, chips, carousel - no followUp (handled in generateBotResponse)
             
             let msgEl;
             if (existingMsgId) {
@@ -1965,7 +1962,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const botMessage = document.createElement('div');
             botMessage.className = 'bot-message-content';
             
-            // 1. BotText (optional, max 2 lines)
+            // 1. BotText (optional)
             if (text) {
                 const textEl = document.createElement('div');
                 textEl.className = 'bot-text';
@@ -1973,8 +1970,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 botMessage.appendChild(textEl);
             }
             
-            // 2. ChipsRow (optional, 1 row or wrapped grid) - left-aligned
-            if (chips && chips.length > 0 && !followUp) {
+            // 2. ChipsRow (optional) - left-aligned
+            if (chips && chips.length > 0) {
                 const chipsContainer = document.createElement('div');
                 chipsContainer.className = 'chat-chips';
                 
@@ -2014,31 +2011,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 carouselContainer.appendChild(scrollWrapper);
                 botMessage.appendChild(carouselContainer);
-            }
-            
-            // 4. FollowUpQuestion (optional) - only if no chips already rendered
-            if (followUp && followUp.text) {
-                const followUpText = document.createElement('div');
-                followUpText.className = 'bot-text bot-followup-text';
-                followUpText.textContent = followUp.text;
-                botMessage.appendChild(followUpText);
-                
-                if (followUp.chips && followUp.chips.length > 0) {
-                    const followUpChips = document.createElement('div');
-                    followUpChips.className = 'chat-chips';
-                    
-                    followUp.chips.forEach(chipText => {
-                        const chip = document.createElement('button');
-                        chip.className = 'chat-chip';
-                        chip.textContent = chipText;
-                        chip.addEventListener('click', () => {
-                            handleChipClick(chipText);
-                        });
-                        followUpChips.appendChild(chip);
-                    });
-                    
-                    botMessage.appendChild(followUpChips);
-                }
             }
             
             // Append to message element
@@ -2209,11 +2181,11 @@ document.addEventListener('DOMContentLoaded', function() {
         function generateGreetingResponse() {
             const greetings = [
                 "Hey 😊 How can I help you today with your home search?",
-                "Hi there! 😊 What are you looking for — rent or buy?",
-                "Hello 👋 Tell me your city and budget, and I'll pull up some options.",
-                "Hi! 😊 Ready to find your perfect home? What are you looking for — rent or buy?",
-                "Hey there! 👋 I can help you find a place. What city are you interested in?",
-                "Hello! 😊 Let's find you a home. Are you looking to rent or buy?"
+                "Hi there! 😊 How can I help you today with your home search?",
+                "Hello 👋 How can I help you today with your home search?",
+                "Hi! 😊 How can I help you today with your home search?",
+                "Hey there! 👋 How can I help you today with your home search?",
+                "Hello! 😊 How can I help you today with your home search?"
             ];
             return greetings[Math.floor(Math.random() * greetings.length)];
         }
@@ -2224,7 +2196,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Weather-related
             if (normalized.match(/\b(weather|temperature|rain|sunny|cloudy|forecast|aqi|air quality)\b/i)) {
-                return "I can't check live weather here 😅 but I can help you find a bright, sunny home. Which city are you searching in — and rent or buy?";
+                return "I cannot check live weather here 😅 but I can help you find a sunny well lit home. Which city are you searching in and is it rent or buy?";
             }
             
             // Random trivia / general knowledge
@@ -2234,7 +2206,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Default witty redirect
             const redirects = [
-                "I can't help with that, but I can help you find a home 😊 What are you looking for — rent or buy?",
+                "I cannot help with that, but I can help you find a home 😊 Which city are you searching in and is it rent or buy?",
                 "That's outside my expertise 😅 but I'm great at finding homes! Which city are you interested in?",
                 "I'm focused on homes right now 😊 Tell me: Rent, Buy, PG, Commercial, Plot, or Projects?"
             ];
@@ -2348,11 +2320,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Render using strict contract after typing completes
                     setTimeout(() => {
                         // Render using strict contract (reuse existing message)
+                        // No followUp - everything is in one response (text + chips + carousel)
                         renderBotTurn({
                             text: response.text,
-                            chips: response.followUp ? null : response.chips, // Only show chips if no follow-up
-                            carousel: response.results || null,
-                            followUp: response.followUp || null
+                            chips: response.chips || null,
+                            carousel: response.results || null
                         }, msgId);
                     }, 100);
                 }

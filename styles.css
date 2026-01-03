@@ -1691,18 +1691,16 @@ html, body {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     z-index: 1;
-    /* 16px padding from left and right, everything fills in between */
-    padding: 0 16px;
-    padding-top: 0;
-    padding-bottom: calc(var(--composer-height, 72px) + env(safe-area-inset-bottom));
     background: transparent;
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 0;
+    gap: 12px;
     font-family: 'Inter', sans-serif;
-    z-index: 1;
     box-sizing: border-box;
+    padding: 16px;
+    width: 100%;
+    max-width: 100%;
 }
 
 /* Hero Intro Block - wraps greeting + pills */
@@ -1925,19 +1923,13 @@ html, body {
    STRICT LAYOUT CONTRACT - Response Hierarchy Rules
    ============================================================================ */
 
-/* Container rules - single column */
-.chat-messages {
-    width: 100%;
-    box-sizing: border-box;
-}
-
+/* Message row */
 .msg {
     display: flex;
-    margin: 10px 16px;
+    width: 100%;
     box-sizing: border-box;
-    width: calc(100% - 32px);
-    max-width: 100%;
-    overflow: hidden;
+    margin: 0;
+    padding: 0;
 }
 
 .msg-user {
@@ -1952,27 +1944,35 @@ html, body {
 .bot-message-content {
     display: flex;
     flex-direction: column;
-    width: 100%;
+    align-self: flex-start;
+    text-align: left;
     max-width: min(92vw, 360px);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.4;
+    padding: 0;
+    background: none;
     box-sizing: border-box;
-    overflow: hidden;
     gap: 0;
 }
 
 /* User bubble */
 .bubble {
-    background: #F5F0E8;
+    background: #E9E9E9;
     color: #111;
-    padding: 10px 12px;
-    border-radius: 16px;
+    padding: 10px 14px;
+    border-radius: 18px;
     max-width: min(80vw, 320px);
-    line-height: 1.25;
+    text-align: left;
+    line-height: 1.4;
     word-break: break-word;
+    overflow-wrap: break-word;
     box-sizing: border-box;
 }
 
 .msg-user .bubble {
-    background: #EFE6DB;
+    background: #E9E9E9;
     color: #111;
 }
 
@@ -1993,12 +1993,13 @@ html, body {
     width: 100%;
     max-width: 100%;
     color: #111;
-    line-height: 1.35;
+    line-height: 1.4;
     box-sizing: border-box;
     padding: 0;
     margin: 0;
     word-wrap: break-word;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
+    text-align: left;
 }
 
 .bot-followup-text {
