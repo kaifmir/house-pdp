@@ -1733,13 +1733,17 @@ document.addEventListener('DOMContentLoaded', function() {
             locality: null,
             bhk: null,
             budget: null,
-            furnished: null,
-            amenities: [],
+            propertyType: null, // optional
+            amenities: [], // optional
             readyToShowResults: false // CRITICAL: Only show cards when this is true
         };
 
         // Pending question state - tracks what question is currently being asked
         let pendingQuestion = null; // null or one of: 'category', 'cityOrLocality', 'bhkOrType', 'budget'
+        
+        // Track last question to avoid repeats
+        let lastQuestionKey = null;
+        let lastQuestionValueSnapshot = null;
         
         // Backward compatibility: map mode to intentType
         Object.defineProperty(searchContext, 'mode', {
@@ -1880,55 +1884,140 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'rent_buy_search';
         }
 
-        // Extract parameters from text - supports all modes
+        // Normalize text: lowercase, trim, collapse spaces, remove spaces around single letters
+        function normalizeText(raw) {
+            if (!raw || typeof raw !== 'string') return '';
+            
+            let normalized = raw
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, ' ') // Collapse multiple spaces
+                .replace(/\s+([a-z])\s+/g, '$1') // Remove spaces around single letters: "R ohini" -> "rohini"
+                .replace(/[^\w\s₹,]/g, ' ') // Remove punctuation except numbers, currency, commas
+                .replace(/[,]/g, ' ') // Convert commas to spaces
+                .replace(/\s+/g, ' ') // Collapse spaces again
+                .trim();
+            
+            return normalized;
+        }
+
+        // Typo correction dictionary - fixes common misspellings
+        function correctTypos(normalized) {
+            if (!normalized) return normalized;
+            
+            let corrected = normalized;
+            
+            // BHK variants
+            corrected = corrected.replace(/\b(\d+)\s*(bhl|bkh|bk|bh)\b/g, '$1bhk');
+            corrected = corrected.replace(/\b(\d+)\s*b\s*h\s*k\b/g, '$1bhk');
+            corrected = corrected.replace(/\b(\d+)\s*b\s*h\s*l\b/g, '$1bhk');
+            corrected = corrected.replace(/\b1\s*r\s*k\b/g, '1rk');
+            corrected = corrected.replace(/\br\s*k\b/g, 'rk');
+            corrected = corrected.replace(/\bstudio\b/g, 'studio');
+            corrected = corrected.replace(/\bstudeo\b/g, 'studio');
+            
+            // Mode variants
+            corrected = corrected.replace(/\brnt\b/g, 'rent');
+            corrected = corrected.replace(/\bren\b/g, 'rent');
+            corrected = corrected.replace(/\bbiy\b/g, 'buy');
+            corrected = corrected.replace(/\bbyu\b/g, 'buy');
+            corrected = corrected.replace(/\bpurchse\b/g, 'purchase');
+            corrected = corrected.replace(/\bp\s*g\b/g, 'pg');
+            corrected = corrected.replace(/\bpaying\s+guest\b/g, 'pg');
+            
+            // Budget variants
+            corrected = corrected.replace(/\b(\d+)\s*k\b/g, '$1k');
+            corrected = corrected.replace(/\b(\d+)\s*,\s*(\d{3})\b/g, '$1$2'); // 30,000 -> 30000
+            corrected = corrected.replace(/\b(\d+)\s*l\b/g, '$1l');
+            corrected = corrected.replace(/\b(\d+)\s*lac\b/g, '$1l');
+            corrected = corrected.replace(/\b(\d+)\s*lakh\b/g, '$1l');
+            corrected = corrected.replace(/\b(\d+)\s*cr\b/g, '$1cr');
+            corrected = corrected.replace(/\b(\d+)\s*crore\b/g, '$1cr');
+            
+            // Locality spacing fixes
+            corrected = corrected.replace(/\bvasantkunj\b/g, 'vasant kunj');
+            corrected = corrected.replace(/\bgolfcourseroad\b/g, 'golf course road');
+            corrected = corrected.replace(/\bdlfphase\s*(\d+)\b/g, 'dlf phase $1');
+            corrected = corrected.replace(/\bsector\s*(\d+)\b/g, 'sector $1');
+            
+            return corrected;
+        }
+
+        // Extract parameters from text - supports all modes with typo tolerance
         function extractParams(text) {
             if (!text || typeof text !== 'string') {
                 return {};
             }
 
-            const lower = text.trim().toLowerCase();
+            // Normalize and correct typos
+            const normalized = normalizeText(text);
+            const corrected = correctTypos(normalized);
+            
             const params = {};
 
-            // Mode (Rent/Buy/PG/Commercial/Plot/Projects) - priority order
-            if (lower.match(/\b(pg|paying guest|paying\s+guest)\b/i)) {
+            // Mode (Rent/Buy/PG/Commercial/Plot/Projects) - priority order (use corrected text)
+            if (corrected.match(/\bpg\b/)) {
                 params.mode = 'pg';
-            } else if (lower.match(/\b(commercial|office|shop|retail|warehouse)\b/i)) {
+            } else if (corrected.match(/\b(commercial|office|shop|retail|warehouse)\b/)) {
                 params.mode = 'commercial';
-            } else if (lower.match(/\b(plot|land|plot\s+for\s+sale)\b/i)) {
+            } else if (corrected.match(/\b(plot|land)\b/)) {
                 params.mode = 'plot';
-            } else if (lower.match(/\b(project|projects|new project|under construction|ready to move|r2m|new launch)\b/i)) {
+            } else if (corrected.match(/\b(project|projects|new project|under construction|ready to move|r2m|new launch)\b/)) {
                 params.mode = 'projects';
-            } else if (lower.match(/\b(rent|renting|for rent|to rent)\b/i)) {
+            } else if (corrected.match(/\b(rent|renting|for rent|to rent)\b/)) {
                 params.mode = 'rent';
-            } else if (lower.match(/\b(buy|buying|purchase|for sale|to buy)\b/i)) {
+            } else if (corrected.match(/\b(buy|buying|purchase|for sale|to buy)\b/)) {
                 params.mode = 'buy';
             }
 
-            // BHK - handle all variants: 3bhk, 3 bhk, 3-bhk, 3 BHK, etc.
-            const bhkMatch = lower.match(/(\d+)\s*[-]?\s*(bhk|b\s*h\s*k|bedroom|bed|rk)/i);
+            // BHK - handle all variants (use corrected text)
+            const bhkMatch = corrected.match(/(\d+)\s*(bhk|rk|bedroom|bed)/);
             if (bhkMatch) {
                 params.bhk = parseInt(bhkMatch[1]);
             }
 
-            // Budget - more flexible matching
-            const budgetMatch = lower.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)\s*(\d+)\s*(k|thousand|lakh|lac|cr|crore|million)/i);
+            // Budget - more flexible matching (use corrected text)
+            // Match: "under 30k", "30k", "30,000", "50l", "1cr", etc.
+            const budgetMatch = corrected.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)?\s*(\d+)\s*(k|l|cr|crore|lakh|lac)/);
             if (budgetMatch) {
                 let amount = parseInt(budgetMatch[1]);
                 const unit = budgetMatch[2].toLowerCase();
-                if (unit === 'k' || unit === 'thousand') {
+                if (unit === 'k') {
                     amount = amount * 1000;
-                } else if (unit === 'lakh' || unit === 'lac') {
+                } else if (unit === 'l' || unit === 'lakh' || unit === 'lac') {
                     amount = amount * 100000;
                 } else if (unit === 'cr' || unit === 'crore') {
                     amount = amount * 10000000;
                 }
                 params.budget = amount;
             }
+            
+            // Also try matching raw numbers with context
+            if (!params.budget) {
+                const rawBudgetMatch = corrected.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)\s*(\d{4,})/);
+                if (rawBudgetMatch) {
+                    const num = parseInt(rawBudgetMatch[1]);
+                    // If it's 4-5 digits, assume thousands (rent)
+                    if (num >= 1000 && num < 100000) {
+                        params.budget = num;
+                    }
+                    // If it's 6-7 digits, assume lakhs (buy)
+                    else if (num >= 100000 && num < 10000000) {
+                        params.budget = num;
+                    }
+                    // If it's 8+ digits, assume crores (buy)
+                    else if (num >= 10000000) {
+                        params.budget = num;
+                    }
+                }
+            }
 
             // Locality → City mapping (AUTO-INFERENCE - MANDATORY)
             // COMPREHENSIVE DATASET: Top 30+ localities per city
             // If user mentions ANY locality from this list → city is auto-resolved
             // The bot MUST NEVER ask "Which city?" if a locality is present
+            // Use corrected text for matching
+            let matchedLocality = null;
             const localityToCityMap = {
                 // Delhi localities (30)
                 'vasant kunj': 'delhi',
@@ -2323,7 +2412,48 @@ document.addEventListener('DOMContentLoaded', function() {
         // CRITICAL: This function NEVER asks for something the user already provided
         // Params are extracted and context is updated BEFORE checking pending questions
         function generateBotResponse(intent, userText) {
+            // Normalize and extract params
+            const raw = userText;
+            const normalized = normalizeText(raw);
+            const corrected = correctTypos(normalized);
             const params = extractParams(userText);
+            
+            // Debug logging (dev mode)
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                const slotsAfterParse = { ...searchContext, ...params };
+                console.log('🔍 Parse Debug:', {
+                    raw,
+                    normalized: params._normalized || normalized,
+                    corrected: params._corrected || corrected,
+                    matchedLocality: params._matchedLocality,
+                    inferredCity: params.city,
+                    slotsAfterParse: {
+                        intentType: slotsAfterParse.intentType,
+                        city: slotsAfterParse.city,
+                        locality: slotsAfterParse.locality,
+                        bhk: slotsAfterParse.bhk,
+                        budget: slotsAfterParse.budget
+                    },
+                    pendingQuestion: null, // Will be set below
+                    willShowResults: false // Will be set below
+                });
+            }
+            
+            // CRITICAL: Check if user answered the last question
+            // If they did, don't ask it again
+            if (lastQuestionKey === 'category' && params.mode) {
+                lastQuestionKey = null;
+                lastQuestionValueSnapshot = null;
+            } else if (lastQuestionKey === 'cityOrLocality' && (params.city || params.locality)) {
+                lastQuestionKey = null;
+                lastQuestionValueSnapshot = null;
+            } else if (lastQuestionKey === 'bhkOrType' && (params.bhk || params.propertyType)) {
+                lastQuestionKey = null;
+                lastQuestionValueSnapshot = null;
+            } else if (lastQuestionKey === 'budget' && params.budget) {
+                lastQuestionKey = null;
+                lastQuestionValueSnapshot = null;
+            }
             
             // CRITICAL: Update context FIRST - this ensures we remember what user said
             // Example: If user says "I want to rent 3bhk", mode='rent' and bhk=3 are set here
@@ -2333,6 +2463,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Determine pending question based on missing required slots
             // This will NOT include anything the user just provided in params
             pendingQuestion = getPendingQuestion();
+            
+            // Update debug log with final state
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                const canShow = canShowResults();
+                console.log('🔍 Final State:', {
+                    pendingQuestion,
+                    willShowResults: canShow
+                });
+            }
             
             let responseText = '';
             let chips = [];
@@ -2346,21 +2485,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 chips = ['Rent', 'Buy', 'PG', 'Commercial', 'Plot', 'Projects'].slice(0, 6);
             } else if (pendingQuestion === 'cityOrLocality') {
                 // Check if we have a locality but need city clarification (ambiguous case)
-                if (searchContext.locality && !searchContext.city) {
+                if (searchContext.locality && !searchContext.city && lastQuestionKey !== 'cityOrLocality') {
                     // Ambiguous locality (e.g., "sector 15" could be multiple cities)
                     const localityDisplay = searchContext.locality.charAt(0).toUpperCase() + searchContext.locality.slice(1);
                     responseText = `Just to confirm, is this for ${localityDisplay} in which city?`;
                     chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
-                } else {
+                    lastQuestionKey = 'cityOrLocality';
+                } else if (!searchContext.locality && !searchContext.city && lastQuestionKey !== 'cityOrLocality') {
                     // No locality or city - ask normally (minimal text since chips show options)
                     responseText = 'Select a city.';
                     chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
+                    lastQuestionKey = 'cityOrLocality';
+                } else {
+                    // Already asked, don't ask again
+                    pendingQuestion = null;
                 }
-            } else if (pendingQuestion === 'bhkOrType') {
+            } else if (pendingQuestion === 'bhkOrType' && lastQuestionKey !== 'bhkOrType') {
                 // Chip only mode - minimal prompt (chips show options)
                 responseText = 'Select configuration.';
                 chips = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK+'].slice(0, 6);
-            } else if (pendingQuestion === 'budget') {
+                lastQuestionKey = 'bhkOrType';
+            } else if (pendingQuestion === 'budget' && lastQuestionKey !== 'budget') {
                 // Budget question - polite but minimal (chips show ranges)
                 const isRent = searchContext.intentType === 'rent' || searchContext.intentType === 'pg';
                 responseText = isRent 
@@ -2369,6 +2514,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 chips = isRent
                     ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+'].slice(0, 6)
                     : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+'].slice(0, 6);
+                lastQuestionKey = 'budget';
+            } else if (pendingQuestion && lastQuestionKey === pendingQuestion) {
+                // Already asked this question, don't ask again - show results if we can
+                pendingQuestion = null;
+            }
             } else {
                 // All required slots filled - ready to show results
                 pendingQuestion = null; // Clear pending question
