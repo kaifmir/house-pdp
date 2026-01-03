@@ -1945,6 +1945,144 @@ html, body {
     line-height: 1.35;
 }
 
+/* Chat Chips */
+.chat-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    max-width: min(78%, 560px);
+}
+
+.chat-chip {
+    background: #F5F0E8;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    color: #111;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.chat-chip:active {
+    transform: scale(0.98);
+    background: #EFE6DB;
+}
+
+/* Search Summary */
+.search-summary {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 12px;
+    font-size: 13px;
+    color: #666;
+    max-width: min(78%, 560px);
+    font-family: 'Inter', sans-serif;
+}
+
+/* Property Results */
+.property-results {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: min(78%, 560px);
+}
+
+.property-card {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.property-image {
+    width: 100%;
+    height: 180px;
+    background: linear-gradient(135deg, #F5F5F5 0%, #EBEBEB 100%);
+    position: relative;
+}
+
+.property-image::after {
+    content: '🏠';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    opacity: 0.3;
+}
+
+.property-info {
+    padding: 16px;
+}
+
+.property-price {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: 4px;
+    font-family: 'Inter', sans-serif;
+}
+
+.property-details {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 8px;
+    font-family: 'Inter', sans-serif;
+}
+
+.property-tags {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 12px;
+    font-family: 'Inter', sans-serif;
+}
+
+.property-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-view,
+.btn-enquire {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-view {
+    background: #F5F0E8;
+    color: #111;
+}
+
+.btn-view:active {
+    background: #EFE6DB;
+    transform: scale(0.98);
+}
+
+.btn-enquire {
+    background: #000;
+    color: #fff;
+}
+
+.btn-enquire:active {
+    background: #333;
+    transform: scale(0.98);
+}
+
 /* Hide intro when chat starts */
 .chat-screen.chat-started #chat-intro {
     opacity: 0;

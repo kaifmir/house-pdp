@@ -1522,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Trigger bot reply after 200ms
             setTimeout(() => {
-                typeBotReply('Hi');
+                handleHousingIntent(text);
             }, 200);
         }
 
@@ -1536,5 +1536,391 @@ document.addEventListener('DOMContentLoaded', function() {
                 handleSend();
             }
         });
+
+        // ============================================================================
+        // CORE HOUSING CONVERSATIONS
+        // ============================================================================
+        // Intent detection, slot filling, and conversation flow
+        // ============================================================================
+
+        // Mock property data
+        const mockProperties = [
+            { id: 1, city: 'Gurgaon', locality: 'Sector 43', price: 25000, priceUnit: 'rent', bhk: 2, type: 'Apartment', furnished: 'Semi', amenities: ['Parking', 'Lift', 'Power Backup'], tags: ['Near Metro'], images: [] },
+            { id: 2, city: 'Gurgaon', locality: 'DLF Phase 1', price: 35000, priceUnit: 'rent', bhk: 3, type: 'Apartment', furnished: 'Fully', amenities: ['Gym', 'Pool', 'Parking'], tags: ['Gated'], images: [] },
+            { id: 3, city: 'Mumbai', locality: 'Andheri', price: 18000, priceUnit: 'rent', bhk: 1, type: 'Apartment', furnished: 'Unfurnished', amenities: ['Lift'], tags: [], images: [] },
+            { id: 4, city: 'Bangalore', locality: 'Indiranagar', price: 45000, priceUnit: 'rent', bhk: 3, type: 'Apartment', furnished: 'Fully', amenities: ['Gym', 'Pool', 'Parking', 'Clubhouse'], tags: ['Near Metro', 'Quiet'], images: [] },
+            { id: 5, city: 'Noida', locality: 'Sector 62', price: 7000000, priceUnit: 'buy', bhk: 2, type: 'Apartment', furnished: 'Semi', amenities: ['Parking', 'Lift'], tags: [], images: [] },
+            { id: 6, city: 'Pune', locality: 'Koregaon Park', price: 55000, priceUnit: 'rent', bhk: 3, type: 'Villa', furnished: 'Fully', amenities: ['Gym', 'Pool', 'Parking', 'Garden'], tags: ['Quiet', 'Green'], images: [] },
+            { id: 7, city: 'Mumbai', locality: 'Powai', price: 50000, priceUnit: 'rent', bhk: 2, type: 'Apartment', furnished: 'Fully', amenities: ['Gym', 'Pool', 'Parking'], tags: ['Near Metro'], images: [] },
+            { id: 8, city: 'Bangalore', locality: 'Whitefield', price: 30000, priceUnit: 'rent', bhk: 2, type: 'Apartment', furnished: 'Semi', amenities: ['Parking', 'Lift'], tags: [], images: [] },
+            { id: 9, city: 'Gurgaon', locality: 'Sector 29', price: 8500000, priceUnit: 'buy', bhk: 3, type: 'Apartment', furnished: 'Semi', amenities: ['Gym', 'Pool', 'Parking'], tags: ['Gated'], images: [] },
+            { id: 10, city: 'Delhi', locality: 'Dwarka', price: 22000, priceUnit: 'rent', bhk: 2, type: 'Apartment', furnished: 'Unfurnished', amenities: ['Parking', 'Lift'], tags: ['Near Metro'], images: [] }
+        ];
+
+        // Conversation context
+        let searchContext = {
+            service: null, // 'rent' or 'buy'
+            city: null,
+            locality: null,
+            budget: null,
+            budgetUnit: null, // 'month' or 'total'
+            bhk: null,
+            type: null,
+            amenities: [],
+            tags: [],
+            commute: null,
+            commuteTime: null
+        };
+
+        // Intent detection
+        function detectIntent(text) {
+            const lower = text.toLowerCase();
+            
+            // Check for housing keywords
+            const housingKeywords = ['bhk', 'rent', 'buy', 'apartment', 'house', 'villa', 'flat', 'property', 'home', 'pg', 'commercial', 'office', 'plot', 'studio', '1rk', 'furnished', 'budget', 'price', 'gurgaon', 'mumbai', 'bangalore', 'delhi', 'pune', 'noida', 'chennai', 'hyderabad', 'kolkata', 'locality', 'area', 'near', 'metro', 'school', 'hospital', 'park', 'sea', 'view', 'hills', 'quiet', 'safe', 'pet', 'senior', 'wheelchair', 'vastu', 'invest', 'appreciation'];
+            
+            const hasHousingIntent = housingKeywords.some(keyword => lower.includes(keyword));
+            
+            if (!hasHousingIntent) {
+                return null; // Not a housing intent
+            }
+
+            // Detect specific intents
+            if (lower.match(/\d+\s*(bhk|rk|bedroom)/i) || lower.includes('bhk') || lower.includes('bedroom')) {
+                return 'rent_buy_search';
+            }
+            if (lower.match(/(villa|plot|office|pg|commercial|studio|row house)/i)) {
+                return 'type_search';
+            }
+            if (lower.match(/(hills|sea view|quiet|green|parks|cafes|no traffic|vibe|lifestyle)/i)) {
+                return 'lifestyle_search';
+            }
+            if (lower.match(/(near|commute|office|metro|airport|landmark|minutes?|min)/i)) {
+                return 'commute_search';
+            }
+            if (lower.match(/(cheapest|budget|under|price|₹|rs|rupees?|lakh|lac|cr|crore)/i)) {
+                return 'budget_search';
+            }
+            if (lower.match(/(furnished|move.?in|possession|ready)/i)) {
+                return 'furnished_search';
+            }
+            if (lower.match(/(pool|gym|clubhouse|parking|backup|lift|gated|amenit)/i)) {
+                return 'amenities_search';
+            }
+            if (lower.match(/(pet|senior|wheelchair|accessible|vastu)/i)) {
+                return 'special_needs';
+            }
+            if (lower.match(/(school|kids|safe|hospital|family)/i)) {
+                return 'family_search';
+            }
+            if (lower.match(/(invest|appreciation|upcoming|trend|roi)/i)) {
+                return 'investment_search';
+            }
+
+            // Default to rent/buy search if housing keywords present
+            return 'rent_buy_search';
+        }
+
+        // Extract parameters from text
+        function extractParams(text) {
+            const lower = text.toLowerCase();
+            const params = {};
+
+            // Service (rent/buy)
+            if (lower.includes('rent') || lower.includes('renting')) {
+                params.service = 'rent';
+            } else if (lower.includes('buy') || lower.includes('purchase') || lower.includes('buying')) {
+                params.service = 'buy';
+            }
+
+            // BHK
+            const bhkMatch = lower.match(/(\d+)\s*(bhk|bedroom|bed|rk)/i);
+            if (bhkMatch) {
+                params.bhk = parseInt(bhkMatch[1]);
+            }
+
+            // Budget
+            const budgetMatch = lower.match(/(?:under|upto|max|budget|₹|rs|rupees?)\s*(\d+)\s*(k|thousand|lakh|lac|cr|crore|million)/i);
+            if (budgetMatch) {
+                let amount = parseInt(budgetMatch[1]);
+                const unit = budgetMatch[2].toLowerCase();
+                if (unit === 'k' || unit === 'thousand') {
+                    amount = amount * 1000;
+                } else if (unit === 'lakh' || unit === 'lac') {
+                    amount = amount * 100000;
+                } else if (unit === 'cr' || unit === 'crore') {
+                    amount = amount * 10000000;
+                }
+                params.budget = amount;
+            }
+
+            // City/Locality
+            const cities = ['gurgaon', 'mumbai', 'bangalore', 'delhi', 'pune', 'noida', 'chennai', 'hyderabad', 'kolkata', 'indiranagar', 'koramangala', 'andheri', 'whitefield', 'cyber city', 'dwarka'];
+            for (const city of cities) {
+                if (lower.includes(city)) {
+                    params.city = city;
+                    break;
+                }
+            }
+
+            // Type
+            if (lower.includes('villa')) params.type = 'Villa';
+            else if (lower.includes('plot')) params.type = 'Plot';
+            else if (lower.includes('pg')) params.type = 'PG';
+            else if (lower.includes('commercial') || lower.includes('office')) params.type = 'Commercial';
+            else if (lower.includes('studio') || lower.includes('1rk')) params.type = 'Studio';
+
+            return params;
+        }
+
+        // Check what's missing
+        function getMissingParams() {
+            const missing = [];
+            if (!searchContext.service) missing.push('service');
+            if (!searchContext.city && !searchContext.locality) missing.push('location');
+            if (!searchContext.budget) missing.push('budget');
+            return missing;
+        }
+
+        // Generate bot response
+        function generateBotResponse(intent, userText) {
+            const params = extractParams(userText);
+            
+            // Update context
+            Object.assign(searchContext, params);
+
+            const missing = getMissingParams();
+
+            // If missing mandatory params, ask one question
+            if (missing.length > 0) {
+                const question = missing[0];
+                if (question === 'service') {
+                    return {
+                        text: 'Are you looking to rent or buy?',
+                        chips: ['Rent', 'Buy']
+                    };
+                } else if (question === 'location') {
+                    return {
+                        text: 'Which city or locality are you interested in?',
+                        chips: ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune']
+                    };
+                } else if (question === 'budget') {
+                    const unit = searchContext.service === 'rent' ? 'per month' : 'total';
+                    return {
+                        text: `What's your budget (₹ ${unit})?`,
+                        chips: searchContext.service === 'rent' 
+                            ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+']
+                            : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+']
+                    };
+                }
+            }
+
+            // All params present - show results
+            const results = filterProperties();
+            if (results.length === 0) {
+                return {
+                    text: 'I couldn\'t find exact matches. Would you like to expand your search?',
+                    chips: ['Increase Budget', 'Nearby Areas', 'Different BHK'],
+                    summary: generateSummary()
+                };
+            }
+
+            return {
+                text: `I found ${results.length} properties matching your criteria:`,
+                results: results.slice(0, 10),
+                summary: generateSummary()
+            };
+        }
+
+        // Filter properties based on context
+        function filterProperties() {
+            return mockProperties.filter(prop => {
+                if (searchContext.service && prop.priceUnit !== searchContext.service) return false;
+                if (searchContext.city && prop.city.toLowerCase() !== searchContext.city.toLowerCase()) return false;
+                if (searchContext.bhk && prop.bhk !== searchContext.bhk) return false;
+                if (searchContext.type && prop.type !== searchContext.type) return false;
+                if (searchContext.budget) {
+                    if (searchContext.service === 'rent' && prop.price > searchContext.budget) return false;
+                    if (searchContext.service === 'buy' && prop.price > searchContext.budget) return false;
+                }
+                return true;
+            });
+        }
+
+        // Generate search summary
+        function generateSummary() {
+            const parts = [];
+            if (searchContext.service) parts.push(searchContext.service === 'rent' ? 'Rent' : 'Buy');
+            if (searchContext.bhk) parts.push(`${searchContext.bhk}BHK`);
+            if (searchContext.city) parts.push(searchContext.city);
+            if (searchContext.budget) {
+                const budgetStr = searchContext.budget >= 10000000 
+                    ? `₹${searchContext.budget / 10000000}Cr`
+                    : searchContext.budget >= 100000
+                    ? `₹${searchContext.budget / 100000}L`
+                    : `₹${searchContext.budget / 1000}k`;
+                parts.push(`≤ ${budgetStr}`);
+            }
+            return parts.join(' • ');
+        }
+
+        // Render chips
+        function renderChips(chips, msgId) {
+            if (!chips || chips.length === 0) return;
+            
+            const msgEl = document.getElementById(msgId);
+            if (!msgEl) return;
+
+            const chipsContainer = document.createElement('div');
+            chipsContainer.className = 'chat-chips';
+            
+            chips.forEach(chipText => {
+                const chip = document.createElement('button');
+                chip.className = 'chat-chip';
+                chip.textContent = chipText;
+                chip.addEventListener('click', () => {
+                    handleChipClick(chipText);
+                });
+                chipsContainer.appendChild(chip);
+            });
+
+            msgEl.appendChild(chipsContainer);
+            scrollToBottom();
+        }
+
+        // Render search summary
+        function renderSummary(summary, msgId) {
+            if (!summary) return;
+            
+            const msgEl = document.getElementById(msgId);
+            if (!msgEl) return;
+
+            const summaryEl = document.createElement('div');
+            summaryEl.className = 'search-summary';
+            summaryEl.textContent = summary;
+            msgEl.appendChild(summaryEl);
+            scrollToBottom();
+        }
+
+        // Render property results
+        function renderResults(results, msgId) {
+            if (!results || results.length === 0) return;
+            
+            const msgEl = document.getElementById(msgId);
+            if (!msgEl) return;
+
+            const resultsContainer = document.createElement('div');
+            resultsContainer.className = 'property-results';
+
+            results.forEach(prop => {
+                const card = document.createElement('div');
+                card.className = 'property-card';
+                
+                const price = prop.priceUnit === 'rent' 
+                    ? `₹${(prop.price / 1000).toFixed(0)}k/month`
+                    : prop.price >= 10000000
+                    ? `₹${(prop.price / 10000000).toFixed(1)}Cr`
+                    : `₹${(prop.price / 100000).toFixed(0)}L`;
+                
+                card.innerHTML = `
+                    <div class="property-image"></div>
+                    <div class="property-info">
+                        <div class="property-price">${price}</div>
+                        <div class="property-details">${prop.bhk}BHK • ${prop.type} • ${prop.locality}</div>
+                        <div class="property-tags">${prop.amenities.slice(0, 3).join(' • ')}</div>
+                        <div class="property-actions">
+                            <button class="btn-view">View Details</button>
+                            <button class="btn-enquire">Enquire</button>
+                        </div>
+                    </div>
+                `;
+                
+                resultsContainer.appendChild(card);
+            });
+
+            msgEl.appendChild(resultsContainer);
+            scrollToBottom();
+        }
+
+        // Handle chip click
+        function handleChipClick(chipText) {
+            const lower = chipText.toLowerCase();
+            
+            if (lower === 'rent' || lower === 'buy') {
+                searchContext.service = lower;
+                addUserMessage(chipText);
+                setTimeout(() => {
+                    handleHousingIntent(chipText);
+                }, 200);
+            } else if (chipText.includes('₹') || chipText.includes('k') || chipText.includes('L') || chipText.includes('Cr')) {
+                // Budget chip
+                const match = chipText.match(/(\d+)(k|L|Cr)/i);
+                if (match) {
+                    let amount = parseInt(match[1]);
+                    if (match[2].toLowerCase() === 'k') amount *= 1000;
+                    else if (match[2].toLowerCase() === 'l') amount *= 100000;
+                    else if (match[2].toLowerCase() === 'cr') amount *= 10000000;
+                    searchContext.budget = amount;
+                }
+                addUserMessage(chipText);
+                setTimeout(() => {
+                    handleHousingIntent(chipText);
+                }, 200);
+            } else {
+                // City or other
+                const cities = ['gurgaon', 'mumbai', 'bangalore', 'delhi', 'pune'];
+                if (cities.some(c => chipText.toLowerCase().includes(c))) {
+                    searchContext.city = chipText;
+                }
+                addUserMessage(chipText);
+                setTimeout(() => {
+                    handleHousingIntent(chipText);
+                }, 200);
+            }
+        }
+
+        // Main housing intent handler
+        function handleHousingIntent(userText) {
+            const intent = detectIntent(userText);
+            
+            if (!intent) {
+                // Not a housing intent - return "Hi"
+                typeBotReply('Hi');
+                return;
+            }
+
+            const response = generateBotResponse(intent, userText);
+            const msgId = addBotMessage('');
+            
+            // Type out the text
+            let i = 0;
+            const fullText = response.text;
+            
+            if (typewriterTimer) {
+                clearInterval(typewriterTimer);
+            }
+
+            typewriterTimer = setInterval(() => {
+                i++;
+                updateMessageText(msgId, fullText.slice(0, i));
+                if (i >= fullText.length) {
+                    clearInterval(typewriterTimer);
+                    typewriterTimer = null;
+                    
+                    // Render additional UI after typing completes
+                    setTimeout(() => {
+                        if (response.chips) {
+                            renderChips(response.chips, msgId);
+                        }
+                        if (response.summary) {
+                            renderSummary(response.summary, msgId);
+                        }
+                        if (response.results) {
+                            renderResults(response.results, msgId);
+                        }
+                    }, 100);
+                }
+            }, 55);
+        }
     })();
 });
