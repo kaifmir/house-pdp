@@ -3173,131 +3173,126 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // 4. Detect housing intent (CORE) - STRICT ROUTING: GREETING → CORE → OTHER
                 const intent = detectIntent(userText);
-            const slots = extractParams(userText);
-            const isCore = intent !== null;
-            
-            // 5. Detect platform comparisons (NON-CORE - text only)
-            if (detectPlatformComparison(userText) && !isCore) {
-                const redirectText = generateRedirectResponse(userText);
-                typeBotReply(redirectText); // TEXT ONLY - no UI components
-                return;
-            }
-            
-            // 6. Detect broker requests (NON-CORE - text only)
-            if (detectBrokerRequest(userText) && !isCore) {
-                const redirectText = generateRedirectResponse(userText);
-                typeBotReply(redirectText); // TEXT ONLY - no UI components
-                return;
-            }
-            
-            // Step 3: Priority routing - if both greeting and housing, prioritize housing (CORE)
-            if (isGreeting && isCore) {
-                // Mixed: greeting + housing query (e.g., "Hi, 3bhk in Rohini")
-                // Treat as CORE housing, skip greeting-only response
-                console.log('Intent Detection: Mixed greeting + housing - prioritizing housing');
-            } else if (isGreeting && !isCore) {
-                // Pure greeting - respond with greeting + redirect (TEXT ONLY)
-                const greetingText = generateGreetingResponse();
-                typeBotReply(greetingText); // TEXT ONLY - no UI components
-                return;
-            } else if (!isGreeting && !isCore) {
-                // Non-housing question - redirect (TEXT ONLY)
-                const redirectText = generateRedirectResponse(userText);
-                typeBotReply(redirectText); // TEXT ONLY - no UI components
-                return;
-            }
-            
-            // Step 4: Get results count for debug (only if housing intent)
-            if (isCore) {
-                const tempContext = { ...searchContext, ...slots };
-                const oldContext = { ...searchContext };
-                Object.assign(searchContext, slots);
-                const results = filterProperties();
-                const resultCount = results.length;
-                Object.assign(searchContext, oldContext); // Restore for actual processing
+                const slots = extractParams(userText);
+                const isCore = intent !== null || !!(slots.category || slots.intentType || slots.city || slots.locality || slots.bhk || slots.budget);
                 
-                // Debug logging
-                const matchedSignals = [];
-                if (slots.mode) matchedSignals.push('mode');
-                if (slots.bhk) matchedSignals.push('bhk');
-                if (slots.city) matchedSignals.push('city');
-                if (slots.budget) matchedSignals.push('budget');
-                if (slots.type) matchedSignals.push('type');
-                
-                const debugInfo = {
-                    normalized: normalized,
-                    isCore: isCore,
-                    isGreeting: isGreeting,
-                    matchedSignals: matchedSignals,
-                    slots: slots,
-                    resultCount: resultCount
-                };
-                console.log('Intent Detection:', debugInfo);
-            }
-            
-            // Step 5: Route based on intent
-            if (!intent) {
-                // Fallback for unmapped intents (NON-CORE - text only)
-                const redirectText = generateRedirectResponse(userText);
-                typeBotReply(redirectText); // TEXT ONLY - no UI components
-                return;
-            }
-
-            // Step 5: Handle core housing intent
-            Object.assign(searchContext, slots); // Update context for real
-            const response = generateBotResponse(intent, userText);
-            
-            // Set bot responding state and update button
-            isBotResponding = true;
-            updateSendButtonState();
-            
-            // Use strict renderBotTurn contract
-            const msgId = addBotMessage('');
-            const msgEl = document.getElementById(msgId);
-            if (!msgEl) return;
-            
-            // Type out the text first
-            let i = 0;
-            const fullText = response.text;
-            
-            if (typewriterTimer) {
-                clearInterval(typewriterTimer);
-            }
-
-            typewriterTimer = setInterval(() => {
-                // Check if user stopped the response
-                if (!isBotResponding) {
-                    clearInterval(typewriterTimer);
-                    typewriterTimer = null;
-                    // Finalize message in current state
-                    renderBotTurn({
-                        text: fullText.slice(0, i),
-                        chips: response.chips || null,
-                        carousel: response.results || null
-                    }, msgId);
+                // 5. Detect platform comparisons (NON-CORE - text only)
+                if (detectPlatformComparison(userText) && !isCore) {
+                    const redirectText = generateRedirectResponse(userText);
+                    typeBotReply(redirectText); // TEXT ONLY - no UI components
                     return;
                 }
                 
-                i++;
-                updateMessageText(msgId, fullText.slice(0, i));
-                if (i >= fullText.length) {
-                    clearInterval(typewriterTimer);
-                    typewriterTimer = null;
-                    isBotResponding = false;
-                    updateSendButtonState();
+                // 6. Detect broker requests (NON-CORE - text only)
+                if (detectBrokerRequest(userText) && !isCore) {
+                    const redirectText = generateRedirectResponse(userText);
+                    typeBotReply(redirectText); // TEXT ONLY - no UI components
+                    return;
+                }
+                
+                // Step 3: Priority routing - if both greeting and housing, prioritize housing (CORE)
+                if (isGreeting && isCore) {
+                    // Mixed: greeting + housing query (e.g., "Hi, 3bhk in Rohini")
+                    // Treat as CORE housing, skip greeting-only response
+                    console.log('Intent Detection: Mixed greeting + housing - prioritizing housing');
+                } else if (isGreeting && !isCore) {
+                    // Pure greeting - respond with greeting + redirect (TEXT ONLY)
+                    const greetingText = generateGreetingResponse();
+                    typeBotReply(greetingText); // TEXT ONLY - no UI components
+                    return;
+                } else if (!isGreeting && !isCore) {
+                    // Non-housing question - redirect (TEXT ONLY)
+                    const redirectText = generateRedirectResponse(userText);
+                    typeBotReply(redirectText); // TEXT ONLY - no UI components
+                    return;
+                }
+                
+                // Step 4: Debug logging for CORE housing intents
+                if (isCore) {
+                    const matchedSignals = [];
+                    if (slots.category || slots.intentType || slots.mode) matchedSignals.push('category');
+                    if (slots.bhk) matchedSignals.push('bhk');
+                    if (slots.city) matchedSignals.push('city');
+                    if (slots.locality) matchedSignals.push('locality');
+                    if (slots.budget || slots.budgetMin || slots.budgetMax) matchedSignals.push('budget');
+                    if (slots.propertyType || slots.type) matchedSignals.push('propertyType');
                     
-                    // Render using strict contract after typing completes
-                    setTimeout(() => {
-                        // Render using strict contract (reuse existing message)
-                        // No followUp - everything is in one response (text + chips + carousel)
+                    // Debug logging
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        console.log('🔍 Intent Detection:', {
+                            normalized: normalized,
+                            isCore: isCore,
+                            isGreeting: isGreeting,
+                            detectedIntent: intent,
+                            matchedSignals: matchedSignals,
+                            extractedSlots: slots
+                        });
+                    }
+                }
+                
+                // Step 5: Route based on intent
+                if (!intent && !isCore) {
+                    // Fallback for unmapped intents (NON-CORE - text only)
+                    const redirectText = generateRedirectResponse(userText);
+                    typeBotReply(redirectText); // TEXT ONLY - no UI components
+                    return;
+                }
+
+                // Step 6: Handle core housing intent
+                // Note: generateBotResponse will merge slots into chatState (without overwriting with null)
+                const response = generateBotResponse(intent, userText);
+                
+                // Set bot responding state and update button
+                isBotResponding = true;
+                updateSendButtonState();
+                
+                // Use strict renderBotTurn contract
+                const msgId = addBotMessage('');
+                const msgEl = document.getElementById(msgId);
+                if (!msgEl) return;
+                
+                // Type out the text first
+                let i = 0;
+                const fullText = response.text;
+                
+                if (typewriterTimer) {
+                    clearInterval(typewriterTimer);
+                }
+
+                typewriterTimer = setInterval(() => {
+                    // Check if user stopped the response
+                    if (!isBotResponding) {
+                        clearInterval(typewriterTimer);
+                        typewriterTimer = null;
+                        // Finalize message in current state
                         renderBotTurn({
-                            text: response.text,
+                            text: fullText.slice(0, i),
                             chips: response.chips || null,
                             carousel: response.results || null
                         }, msgId);
-                    }, 100);
-                }
-            }, 55);
+                        return;
+                    }
+                    
+                    i++;
+                    updateMessageText(msgId, fullText.slice(0, i));
+                    if (i >= fullText.length) {
+                        clearInterval(typewriterTimer);
+                        typewriterTimer = null;
+                        isBotResponding = false;
+                        updateSendButtonState();
+                        
+                        // Render using strict contract after typing completes
+                        setTimeout(() => {
+                            // Render using strict contract (reuse existing message)
+                            // No followUp - everything is in one response (text + chips + carousel)
+                            renderBotTurn({
+                                text: response.text,
+                                chips: response.chips || null,
+                                carousel: response.results || null
+                            }, msgId);
+                        }, 100);
+                    }
+                }, 55);
             } catch (error) {
                 // Fallback: safe bot response if parsing fails
                 console.error('Error handling housing intent:', error);
