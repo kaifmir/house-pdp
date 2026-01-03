@@ -1699,15 +1699,13 @@ html, body {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    z-index: 1; /* Lower than header so messages scroll behind it */
+    z-index: 1;
     background: transparent;
-    display: block;
+    display: block; /* important - changed from flex */
     padding: 0 16px; /* only side padding here */
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
-    /* Allow messages to scroll behind header - no top padding/clipping */
-    position: relative;
 }
 
 /* Chat stack wrapper - controls top anchoring + safe padding */
@@ -1718,9 +1716,8 @@ html, body {
     justify-content: flex-start;
     gap: 16px;
     min-height: 100%;
-    /* Top padding: 16px below header (messages start here but can scroll up behind header) */
-    /* Bottom padding: large space below last message - responsive to viewport height */
-    padding-bottom: 50vh;
+    /* padding-top and padding-bottom removed - set on #chat-messages instead */
+    padding-bottom: 50vh; /* Large space below last message - responsive to viewport height */
     box-sizing: border-box;
 }
 
