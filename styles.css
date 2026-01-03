@@ -1592,15 +1592,8 @@ html, body {
     content: "";
     position: absolute;
     inset: 0;
-    bottom: -30px; /* Extend below header for smooth fade */
     pointer-events: none;
-    background: linear-gradient(
-        to bottom,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.4) 0%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.35) 50%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.2) 80%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0) 100%
-    );
+    background: rgba(var(--chat-bg-rgb, 245, 245, 245), 0.4);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     z-index: -1; /* Behind content */
