@@ -2179,43 +2179,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Generate greeting response with housing redirect
         function generateGreetingResponse() {
-            const greetings = [
-                "Hey 😊 How can I help you today with your home search?",
-                "Hi there! 😊 How can I help you today with your home search?",
-                "Hello 👋 How can I help you today with your home search?",
-                "Hi! 😊 How can I help you today with your home search?",
-                "Hey there! 👋 How can I help you today with your home search?",
-                "Hello! 😊 How can I help you today with your home search?"
-            ];
-            return greetings[Math.floor(Math.random() * greetings.length)];
+            // Exact pattern: "Hello. How can I help you today with your home search?"
+            return "Hello. How can I help you today with your home search?";
         }
 
-        // Generate witty redirect for non-housing questions
+        // Generate polite redirect for non-housing questions
         function generateRedirectResponse(userText) {
-            const normalized = userText ? userText.trim().toLowerCase() : '';
-            
-            // Weather-related
-            if (normalized.match(/\b(weather|temperature|rain|sunny|cloudy|forecast|aqi|air quality)\b/i)) {
-                return "I cannot check live weather here 😅 but I can help you find a sunny well lit home. Which city are you searching in and is it rent or buy?";
-            }
-            
-            // Random trivia / general knowledge
-            if (normalized.match(/\b(what|who|when|where|why|how|tell me|explain|define|meaning|height|tall|big|small)\b/i)) {
-                return "That's a fun one 😄 I'm best at homes though. Tell me your city + budget and I'll pull options.";
-            }
-            
-            // Default witty redirect
-            const redirects = [
-                "I cannot help with that, but I can help you find a home 😊 Which city are you searching in and is it rent or buy?",
-                "That's outside my expertise 😅 but I'm great at finding homes! Which city are you interested in?",
-                "I'm focused on homes right now 😊 Tell me: Rent, Buy, PG, Commercial, Plot, or Projects?"
-            ];
-            return redirects[Math.floor(Math.random() * redirects.length)];
+            // Exact pattern: "I can help with home search and property related questions. What kind of place are you looking for?"
+            return "I can help with home search and property related questions. What kind of place are you looking for?";
         }
 
         // Generate gibberish response
         function generateGibberishResponse() {
-            return "Oops 😅 didn't catch that. Tell me what you want: Rent / Buy / PG / Commercial / Plot / Projects?";
+            return "I didn't catch that. Tell me what you want: Rent, Buy, PG, Commercial, Plot, or Projects?";
         }
 
         // Main housing intent handler with debug logging
