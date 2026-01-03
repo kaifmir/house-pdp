@@ -1026,7 +1026,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Stop when velocity is too low
                 if (Math.abs(momentumVelocity) < minVelocity) {
                     momentumVelocity = 0;
-                    pausedUntil = Date.now() + 900; // pause before auto-resume
+                    pausedUntil = 0; // Resume auto-scroll immediately
                 }
                 
                 // Wrap position during momentum
