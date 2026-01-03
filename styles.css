@@ -2371,6 +2371,7 @@ html, body {
     height: 20px;
     display: block;
     flex-shrink: 0;
+    color: currentColor;
 }
 
 .btn-view {

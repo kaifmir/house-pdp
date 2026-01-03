@@ -3157,10 +3157,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const imageUrl = getListingImage(prop.city);
             const finalImageUrl = imageUrl.includes('sig=') ? imageUrl : `${imageUrl}&sig=${sig}`;
             
-            // Better heart icon SVG (not squeezed)
-            const heartIcon = `<svg width="20" height="20" viewBox="0 0 20 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 17.35L8.55 16.03C3.4 11.36 0 8.28 0 4.5C0 1.96 1.96 0 4.5 0C6.24 0 7.91 0.81 9 2.09C10.09 0.81 11.76 0 13.5 0C16.04 0 18 1.96 18 4.5C18 8.28 14.6 11.36 9.45 16.04L10 17.35Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>`;
+            // Heart icon SVG
+            const heartIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,224S24,168,24,102A54,54,0,0,1,78,48c22.59,0,41.94,12.31,50,32,8.06-19.69,27.41-32,50-32a54,54,0,0,1,54,54C232,168,128,224,128,224Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>`;
             
             card.innerHTML = `
                 <div class="property-card__imgwrap">
