@@ -1920,13 +1920,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Generate bot response - strict sequencing with pendingQuestion
+        // CRITICAL: This function NEVER asks for something the user already provided
+        // Params are extracted and context is updated BEFORE checking pending questions
         function generateBotResponse(intent, userText) {
             const params = extractParams(userText);
             
-            // Update context
+            // CRITICAL: Update context FIRST - this ensures we remember what user said
+            // Example: If user says "I want to rent 3bhk", mode='rent' and bhk=3 are set here
+            // Then getPendingQuestion() will NOT return 'category' because mode is already set
             Object.assign(searchContext, params);
 
             // Determine pending question based on missing required slots
+            // This will NOT include anything the user just provided in params
             pendingQuestion = getPendingQuestion();
             
             let responseText = '';
