@@ -1440,85 +1440,58 @@ document.addEventListener('DOMContentLoaded', function() {
             chatMessages.addEventListener('scroll', handleScroll, { passive: true });
         }
 
-        // ChatGPT-style scroll: Scroll message to appear under header
-        // This makes new messages appear near the top, not stuck at bottom
+        // Legacy function - kept for compatibility but not used
+        // Chat layout now uses stick-to-bottom auto-scroll
         function scrollMessageIntoView(msgElement, options = {}) {
-            if (!chatMessages || !msgElement) return;
+            // This function is deprecated - use scrollToBottom instead
+            scrollToBottom(options);
+        }
+
+        // Legacy scrollToBottom for backward compatibility (uses anchor)
+        // Scroll messages to bottom - stick to bottom unless user scrolled up
+        // Chat layout: stack from top, scroll behind header, stick-to-bottom auto-scroll
+        function scrollToBottom(options = {}) {
+            if (!chatMessages) return;
             
-            // Only scroll if user is near bottom (don't fight user scroll)
-            if (!isUserNearBottom && !options.force) {
+            // Only scroll if user is at bottom (don't fight user scroll)
+            if (!isAtBottom && !options.force) {
                 return;
             }
 
-            const behavior = options.behavior || 'smooth';
+            // Use requestAnimationFrame twice to avoid iOS timing issues
+            const doScroll = () => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
             
-            // Use scrollIntoView with block: "start" so message appears under header
-            // scroll-margin-top CSS handles the offset automatically
             if (options.immediate) {
-                msgElement.scrollIntoView({ behavior: 'auto', block: 'start' });
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(doScroll);
+                });
             } else {
                 // Throttle scroll calls during typing
                 if (scrollTimeout) {
                     clearTimeout(scrollTimeout);
                 }
                 scrollTimeout = setTimeout(() => {
-                    msgElement.scrollIntoView({ behavior: behavior, block: 'start' });
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(doScroll);
+                    });
                 }, 50);
             }
         }
 
-        // Legacy scrollToBottom for backward compatibility (uses anchor)
-        function scrollToBottom(options = {}) {
-            if (!chatMessages) return;
-            
-            // Only scroll if user is near bottom (don't fight user scroll)
-            if (!isUserNearBottom && !options.force) {
-                return;
-            }
-
-            const behavior = options.behavior || 'smooth';
-            
-            // Use anchor element for reliable scrolling
-            const chatEnd = document.getElementById('chat-end');
-            if (chatEnd) {
-                if (options.immediate) {
-                    chatEnd.scrollIntoView({ behavior: 'auto', block: 'end' });
-                } else {
-                    // Throttle scroll calls during typing
-                    if (scrollTimeout) {
-                        clearTimeout(scrollTimeout);
-                    }
-                    scrollTimeout = setTimeout(() => {
-                        chatEnd.scrollIntoView({ behavior: behavior, block: 'end' });
-                    }, 50);
-                }
-            } else {
-                // Fallback to scrollTo if anchor doesn't exist
-                if (options.immediate) {
-                    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'auto' });
-                } else {
-                    if (scrollTimeout) {
-                        clearTimeout(scrollTimeout);
-                    }
-                    scrollTimeout = setTimeout(() => {
-                        chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: behavior });
-                    }, 50);
-                }
-            }
-        }
-
-        // Throttled scroll for typing animation
-        function scrollToBottomTyping() {
-            if (!isUserNearBottom) return;
+        // Throttled scroll for typing animation - stick to bottom during streaming
+        function scrollToBottomTyping(msgElement = null) {
+            if (!isAtBottom) return; // Don't scroll if user scrolled up
             
             if (typingScrollRaf) {
                 cancelAnimationFrame(typingScrollRaf);
             }
             
             typingScrollRaf = requestAnimationFrame(() => {
-                if (chatMessages) {
-                    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
-                }
+                // Always scroll to bottom during typing to keep latest content visible
+                scrollToBottom({ immediate: true }); // Use immediate for smooth streaming
+                typingScrollRaf = null;
             });
         }
 
