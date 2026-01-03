@@ -1745,8 +1745,21 @@ html, body {
 }
 
 /* When chat starts, remove intro centering - messages stack from top */
+/* When chat starts, hide intro completely - removes layout impact */
+.chat-screen.chat-started #chat-intro,
+#chat-intro[style*="display: none"] {
+    display: none !important;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    pointer-events: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* Legacy selector for compatibility */
 .chat-screen.chat-started .chat-intro {
-    display: none; /* Completely hide intro when chat starts */
+    display: none !important;
 }
 
 .chat-intro.is-hidden {
