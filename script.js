@@ -3252,10 +3252,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             const amenityChips = prop.amenities.slice(0, 3).map(a => `<span class="property-chip">${a}</span>`).join('');
             
-            // Get city-specific image with unique sig parameter
-            const sig = Math.floor(Math.random() * 10000);
-            const imageUrl = getListingImage(prop.city);
-            const finalImageUrl = imageUrl.includes('sig=') ? imageUrl : `${imageUrl}&sig=${sig}`;
+            // Get city-specific image (local path)
+            const finalImageUrl = getListingImage(prop.city);
             
             // Heart icon SVGs - outline (default) and filled (clicked)
             const heartIconOutline = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,224S24,168,24,102A54,54,0,0,1,78,48c22.59,0,41.94,12.31,50,32,8.06-19.69,27.41-32,50-32a54,54,0,0,1,54,54C232,168,128,224,128,224Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>`;
