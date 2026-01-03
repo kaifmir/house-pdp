@@ -2214,8 +2214,8 @@ html, body {
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
-    padding: 8px 16px 12px;
-    margin: 0 -16px;
+    padding: 8px 0 12px; /* Vertical padding only */
+    margin: 0 16px; /* 16px left and right margin for proper spacing */
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
