@@ -1378,13 +1378,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const chatInput = document.getElementById('chat-input');
         const chatSendBtn = document.getElementById('chat-send-btn');
         const chatMessages = document.getElementById('chat-messages');
-        
-        // Add scroll listener to track if user is near bottom
-        if (chatMessages) {
-            chatMessages.addEventListener('scroll', handleScroll, { passive: true });
-            // Initialize near bottom state
-            isUserNearBottom = checkIfNearBottom();
-        }
         const chatIntro = document.getElementById('chat-intro');
         const chatScreen = document.getElementById('chat-screen');
 
@@ -1415,6 +1408,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Update isUserNearBottom on scroll
         function handleScroll() {
+            isUserNearBottom = checkIfNearBottom();
+        }
+
+        // Add scroll listener to track if user is near bottom (after functions are defined)
+        if (chatMessages) {
+            chatMessages.addEventListener('scroll', handleScroll, { passive: true });
+            // Initialize near bottom state
             isUserNearBottom = checkIfNearBottom();
         }
 
