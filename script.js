@@ -3058,7 +3058,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 checkOverflow(msgEl);
             });
             
-            scrollToBottom();
+            scrollChatToBottom(true);
             return existingMsgId || msgEl.id;
         }
 
