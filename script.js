@@ -1385,6 +1385,35 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Debug flag for logging (must be declared before use)
         const DEBUG = false;
+        
+        // Ensure chat-stack wrapper exists (ChatGPT-style stacking)
+        function ensureChatStack() {
+            const messages = document.getElementById("chat-messages");
+            if (!messages) return;
+            
+            let stack = document.getElementById("chat-stack");
+            if (stack) return;
+            
+            stack = document.createElement("div");
+            stack.id = "chat-stack";
+            stack.className = "chat-stack";
+            
+            // Move all existing children into stack
+            while (messages.firstChild) {
+                stack.appendChild(messages.firstChild);
+            }
+            messages.appendChild(stack);
+            
+            // Ensure sentinel exists at end
+            if (!document.getElementById("chat-end")) {
+                const end = document.createElement("div");
+                end.id = "chat-end";
+                stack.appendChild(end);
+            }
+        }
+        
+        // Initialize chat stack on load
+        ensureChatStack();
 
         // Helper to get chat messages element
         function getChatMessagesEl() {
@@ -1417,32 +1446,32 @@ document.addEventListener('DOMContentLoaded', function() {
             scrollToBottomIfNeeded({ force });
         }
         
-        // Set chat offsets dynamically (header + composer heights)
+        // Set chat insets dynamically (header + composer heights)
         // Makes first message appear 16px under header (always)
-        function setChatOffsets() {
+        function setChatInsets() {
             const header = document.querySelector(".chat-top-bar");
-            const composer = document.querySelector(".chat-input-wrapper") || document.querySelector(".chat-input-bar");
-            const messages = document.getElementById("chat-messages");
-            if (!header || !messages) return;
+            const composer = document.querySelector(".chat-input-bar");
+            const stack = document.getElementById("chat-stack");
+            if (!header || !composer || !stack) return;
             
             const headerH = Math.ceil(header.getBoundingClientRect().height);
-            const composerH = composer ? Math.ceil(composer.getBoundingClientRect().height) : 80;
+            const composerH = Math.ceil(composer.getBoundingClientRect().height);
             
-            messages.style.paddingTop = (headerH + 16) + "px";
-            messages.style.paddingBottom = (composerH + 16) + "px";
+            stack.style.setProperty("--chat-top-pad", (headerH + 16) + "px");
+            stack.style.setProperty("--chat-bottom-pad", (composerH + 16) + "px");
             
             // Update CSS variables for other uses
             document.documentElement.style.setProperty('--header-height', headerH + 'px');
             document.documentElement.style.setProperty('--composer-h', composerH + 'px');
         }
         
-        // Initialize offsets on load and resize
+        // Initialize insets on load and resize
         requestAnimationFrame(() => {
-            requestAnimationFrame(setChatOffsets);
+            requestAnimationFrame(setChatInsets);
         });
-        window.addEventListener("resize", setChatOffsets);
+        window.addEventListener("resize", setChatInsets);
         if (window.visualViewport) {
-            window.visualViewport.addEventListener("resize", setChatOffsets);
+            window.visualViewport.addEventListener("resize", setChatInsets);
         }
 
         // Remove chat-spacer completely (it breaks layout)
@@ -1593,7 +1622,7 @@ document.addEventListener('DOMContentLoaded', function() {
             messages.push(message);
             const msgElement = renderMessage(message);
             // Auto-scroll to latest message after append
-            scrollChatToBottom(true);
+            scrollChatToBottom({ force: true });
             return msgId;
         }
 
