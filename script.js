@@ -3083,6 +3083,10 @@ document.addEventListener('DOMContentLoaded', function() {
             Object.assign(searchContext, slots); // Update context for real
             const response = generateBotResponse(intent, userText);
             
+            // Set bot responding state and update button
+            isBotResponding = true;
+            updateSendButtonState();
+            
             // Use strict renderBotTurn contract
             const msgId = addBotMessage('');
             const msgEl = document.getElementById(msgId);
@@ -3097,11 +3101,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             typewriterTimer = setInterval(() => {
+                // Check if user stopped the response
+                if (!isBotResponding) {
+                    clearInterval(typewriterTimer);
+                    typewriterTimer = null;
+                    // Finalize message in current state
+                    renderBotTurn({
+                        text: fullText.slice(0, i),
+                        chips: response.chips || null,
+                        carousel: response.results || null
+                    }, msgId);
+                    return;
+                }
+                
                 i++;
                 updateMessageText(msgId, fullText.slice(0, i));
                 if (i >= fullText.length) {
                     clearInterval(typewriterTimer);
                     typewriterTimer = null;
+                    isBotResponding = false;
+                    updateSendButtonState();
                     
                     // Render using strict contract after typing completes
                     setTimeout(() => {
