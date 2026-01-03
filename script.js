@@ -1383,48 +1383,86 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!chatInput || !chatSendBtn || !chatMessages || !chatIntro) return;
 
-        // Measure header height and set CSS variable for proper padding
-        // Pin message stack to top (16px below header), never center
-        function measureHeaderHeight() {
-            const header = document.querySelector('.chat-top-bar');
-            if (header) {
-                const height = header.offsetHeight;
-                document.documentElement.style.setProperty('--header-height', `${height}px`);
-            }
+        // Helper to get chat messages element
+        function getChatMessagesEl() {
+            return document.getElementById("chat-messages");
         }
         
-        // Measure header on load and resize (after layout is ready)
-        requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                measureHeaderHeight();
-            });
-        });
-        
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', measureHeaderHeight);
+        // Basic "near bottom" detector (so we don't steal scroll if user scrolled up)
+        function isUserNearBottom(el, thresholdPx = 120) {
+            if (!el) return false;
+            return (el.scrollHeight - (el.scrollTop + el.clientHeight)) < thresholdPx;
         }
-        window.addEventListener('resize', measureHeaderHeight);
-
-        // Initialize spacer and anchor elements for ChatGPT-style layout
-        function ensureChatElements() {
-            // Add spacer if it doesn't exist
-            // Remove chat-spacer if it exists (it breaks layout)
-            const existingSpacer = document.getElementById('chat-spacer');
-            if (existingSpacer) {
-                existingSpacer.remove();
-            }
+        
+        // This is the function your code is calling but it's missing
+        function scrollToBottomIfNeeded({ force = false } = {}) {
+            const el = getChatMessagesEl();
+            if (!el) return;
             
-            // Add anchor if it doesn't exist
-            let anchor = document.getElementById('chat-end');
-            if (!anchor) {
-                anchor = document.createElement('div');
-                anchor.id = 'chat-end';
-                chatMessages.appendChild(anchor);
+            if (force || isUserNearBottom(el)) {
+                // RAF twice helps iOS + dynamic height changes
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        el.scrollTop = el.scrollHeight;
+                    });
+                });
             }
         }
         
-        // Initialize on load
-        ensureChatElements();
+        // Some parts of your code call scrollChatToBottom; alias it properly
+        function scrollChatToBottom(force = true) {
+            scrollToBottomIfNeeded({ force });
+        }
+        
+        // Set chat offsets dynamically (header + composer heights)
+        // Makes first message appear 16px under header (always)
+        function setChatOffsets() {
+            const header = document.querySelector(".chat-top-bar");
+            const composer = document.querySelector(".chat-input-wrapper") || document.querySelector(".chat-input-bar");
+            const messages = document.getElementById("chat-messages");
+            if (!header || !messages) return;
+            
+            const headerH = Math.ceil(header.getBoundingClientRect().height);
+            const composerH = composer ? Math.ceil(composer.getBoundingClientRect().height) : 80;
+            
+            messages.style.paddingTop = (headerH + 16) + "px";
+            messages.style.paddingBottom = (composerH + 16) + "px";
+            
+            // Update CSS variables for other uses
+            document.documentElement.style.setProperty('--header-height', headerH + 'px');
+            document.documentElement.style.setProperty('--composer-h', composerH + 'px');
+        }
+        
+        // Initialize offsets on load and resize
+        requestAnimationFrame(() => {
+            requestAnimationFrame(setChatOffsets);
+        });
+        window.addEventListener("resize", setChatOffsets);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener("resize", setChatOffsets);
+        }
+
+        // Remove chat-spacer completely (it breaks layout)
+        // This must be called on load and whenever messages are added
+        function removeChatSpacer() {
+            const spacer = document.getElementById("chat-spacer");
+            if (spacer) {
+                spacer.remove();
+            }
+        }
+        
+        // Initialize on load - remove spacer immediately
+        removeChatSpacer();
+        
+        // Also remove spacer after any DOM manipulation
+        const originalAppendChild = Node.prototype.appendChild;
+        Node.prototype.appendChild = function(child) {
+            const result = originalAppendChild.call(this, child);
+            if (child.id === 'chat-spacer') {
+                child.remove();
+            }
+            return result;
+        };
 
         // Messages state
         const messages = [];
