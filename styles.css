@@ -1710,7 +1710,7 @@ html, body {
     gap: 16px;
     min-height: 100%;
     /* padding-top and padding-bottom removed - set on #chat-messages instead */
-    padding-bottom: 400px; /* Large space below last message */
+    padding-bottom: 50vh; /* Large space below last message - responsive to viewport height */
     box-sizing: border-box;
 }
 
