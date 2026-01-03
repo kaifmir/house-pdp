@@ -1198,7 +1198,7 @@ button, .property-type-card {
 }
 
 .bottom-sheet-body {
-    padding: 60px 24px 24px;
+    padding: 60px 24px calc(100px + env(safe-area-inset-bottom));
     overflow-y: hidden;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -1646,6 +1646,13 @@ html, body {
     padding: 0;
     margin: 0;
     box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+}
+
+.chips-marquee:active {
+    cursor: grabbing;
 }
 
 /* Edge fade (works everywhere) */
@@ -1679,6 +1686,9 @@ html, body {
     will-change: transform;
     transform: translate3d(0, 0, 0);
     -webkit-transform: translate3d(0, 0, 0);
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: auto;
 }
 
 /* Each chip set contains 2 rows */

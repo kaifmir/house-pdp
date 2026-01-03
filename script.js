@@ -1023,6 +1023,17 @@ document.addEventListener('DOMContentLoaded', function() {
         requestAnimationFrame(loop);
 
         // Manual drag (keeps it smooth + works on iOS)
+        function wrapPosition(pos) {
+            const halfWidth = track.scrollWidth / 2;
+            // Wrap continuously for seamless loop
+            if (pos >= halfWidth) {
+                return pos - halfWidth;
+            } else if (pos <= -halfWidth) {
+                return pos + halfWidth;
+            }
+            return pos;
+        }
+
         marquee.addEventListener('pointerdown', (e) => {
             dragging = true;
             pause(999999); // freeze auto while dragging
@@ -1031,10 +1042,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             dragStartX = e.clientX;
             dragStartOffset = x;
+            e.preventDefault();
         });
 
         marquee.addEventListener('pointermove', (e) => {
             if (!dragging) return;
+            e.preventDefault();
             const dx = e.clientX - dragStartX;
             x = dragStartOffset + dx;
             track.style.transform = `translate3d(${x}px,0,0)`;
@@ -1043,25 +1056,29 @@ document.addEventListener('DOMContentLoaded', function() {
         function endDrag() {
             if (!dragging) return;
             dragging = false;
+            // Wrap position on end to ensure we're in valid range for seamless loop
+            x = wrapPosition(x);
+            track.style.transform = `translate3d(${x}px,0,0)`;
             pausedUntil = Date.now() + 900; // resume after a beat
         }
         marquee.addEventListener('pointerup', endDrag);
         marquee.addEventListener('pointercancel', endDrag);
 
-        // Also support touch events for older browsers
+        // Also support touch events for older browsers (non-passive to prevent scrolling)
         marquee.addEventListener('touchstart', (e) => {
             dragging = true;
             pause(999999);
             dragStartX = e.touches[0].clientX;
             dragStartOffset = x;
-        }, { passive: true });
+        }, { passive: false });
 
         marquee.addEventListener('touchmove', (e) => {
             if (!dragging) return;
+            e.preventDefault(); // Prevent page scroll
             const dx = e.touches[0].clientX - dragStartX;
             x = dragStartOffset + dx;
             track.style.transform = `translate3d(${x}px,0,0)`;
-        }, { passive: true });
+        }, { passive: false });
 
         marquee.addEventListener('touchend', endDrag, { passive: true });
         marquee.addEventListener('touchcancel', endDrag, { passive: true });
