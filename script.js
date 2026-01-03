@@ -1593,6 +1593,55 @@ document.addEventListener('DOMContentLoaded', function() {
             commuteTime: null
         };
 
+        // Greeting detection - high recall
+        function detectGreeting(text) {
+            if (!text || typeof text !== 'string') {
+                return false;
+            }
+
+            const normalized = text.trim().toLowerCase();
+            
+            // Check for emoji-only greetings
+            const emojiOnly = /^[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+$/u;
+            if (emojiOnly.test(text.trim())) {
+                // Check if it's a greeting emoji
+                if (text.includes('👋') || text.includes('🙂') || text.includes('🙏') || text.includes('😊')) {
+                    return true;
+                }
+            }
+            
+            // Standalone greeting words
+            const standaloneGreetings = /^(hi|hello|hey|yo|sup|wassup|whats\s*up)$/i;
+            if (standaloneGreetings.test(normalized)) {
+                return true;
+            }
+            
+            // Greeting phrases (must be at start or standalone)
+            const greetingPhrases = [
+                /^(hi|hello|hey|yo)[\s,]/i,
+                /^(whats\s*up|sup|wassup)[\s,?!]*$/i,
+                /^(how\s+are\s+you|how\s+r\s+u|hru)[\s,?!]*$/i,
+                /^(good\s+(morning|afternoon|evening))[\s,?!]*$/i,
+                /^(thanks|thank\s+you)[\s,?!]*$/i
+            ];
+            
+            for (const pattern of greetingPhrases) {
+                if (pattern.test(normalized)) {
+                    // For "thanks/thank you", only treat as greeting if it's short and not followed by housing query
+                    if (normalized.match(/^(thanks|thank\s+you)/i)) {
+                        // If it's just "thanks" or "thank you" (short), treat as greeting
+                        if (normalized.length < 20) {
+                            return true;
+                        }
+                    } else {
+                        return true;
+                    }
+                }
+            }
+            
+            return false;
+        }
+
         // Intent detection - tolerant and comprehensive
         function detectIntent(text) {
             if (!text || typeof text !== 'string') {
@@ -2121,46 +2170,86 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        // Generate greeting response with housing redirect
+        function generateGreetingResponse() {
+            const greetings = [
+                "Hey 😊 How can I help you today with your home search?",
+                "Hi there! 😊 What are you looking for — rent or buy?",
+                "Hello 👋 Tell me your city and budget, and I'll pull up some options.",
+                "Hi! 😊 Ready to find your perfect home? What are you looking for — rent or buy?",
+                "Hey there! 👋 I can help you find a place. What city are you interested in?",
+                "Hello! 😊 Let's find you a home. Are you looking to rent or buy?"
+            ];
+            return greetings[Math.floor(Math.random() * greetings.length)];
+        }
+
+        // Generate polite redirect for non-housing questions
+        function generateRedirectResponse() {
+            return "I can't help with that, but I can help you find a home 😊 What are you looking for — rent or buy?";
+        }
+
         // Main housing intent handler with debug logging
         function handleHousingIntent(userText) {
             // Step 1: Read input value (already done, but ensure we have it)
             const raw = userText;
             const normalized = userText ? userText.trim().toLowerCase() : '';
             
-            // Step 2: Detect intent + slots
+            // Step 2: Detect greeting and housing intent
+            const isGreeting = detectGreeting(userText);
             const intent = detectIntent(userText);
             const slots = extractParams(userText);
             const isCore = intent !== null;
             
-            // Step 3: Get results count for debug
-            const tempContext = { ...searchContext, ...slots };
-            const oldContext = { ...searchContext };
-            Object.assign(searchContext, slots);
-            const results = filterProperties();
-            const resultCount = results.length;
-            Object.assign(searchContext, oldContext); // Restore for actual processing
+            // Step 3: Priority routing - if both greeting and housing, prioritize housing
+            if (isGreeting && isCore) {
+                // Mixed: greeting + housing query (e.g., "Hi, 3bhk in Rohini")
+                // Treat as CORE housing, skip greeting-only response
+                console.log('Intent Detection: Mixed greeting + housing - prioritizing housing');
+            } else if (isGreeting && !isCore) {
+                // Pure greeting - respond with sweet greeting + redirect
+                const greetingText = generateGreetingResponse();
+                typeBotReply(greetingText);
+                return;
+            } else if (!isGreeting && !isCore) {
+                // Non-housing question - polite redirect
+                const redirectText = generateRedirectResponse();
+                typeBotReply(redirectText);
+                return;
+            }
             
-            // Debug logging
-            const matchedSignals = [];
-            if (slots.service) matchedSignals.push('service');
-            if (slots.bhk) matchedSignals.push('bhk');
-            if (slots.city) matchedSignals.push('city');
-            if (slots.budget) matchedSignals.push('budget');
-            if (slots.type) matchedSignals.push('type');
+            // Step 4: Get results count for debug (only if housing intent)
+            if (isCore) {
+                const tempContext = { ...searchContext, ...slots };
+                const oldContext = { ...searchContext };
+                Object.assign(searchContext, slots);
+                const results = filterProperties();
+                const resultCount = results.length;
+                Object.assign(searchContext, oldContext); // Restore for actual processing
+                
+                // Debug logging
+                const matchedSignals = [];
+                if (slots.service) matchedSignals.push('service');
+                if (slots.bhk) matchedSignals.push('bhk');
+                if (slots.city) matchedSignals.push('city');
+                if (slots.budget) matchedSignals.push('budget');
+                if (slots.type) matchedSignals.push('type');
+                
+                const debugInfo = {
+                    normalized: normalized,
+                    isCore: isCore,
+                    isGreeting: isGreeting,
+                    matchedSignals: matchedSignals,
+                    slots: slots,
+                    resultCount: resultCount
+                };
+                console.log('Intent Detection:', debugInfo);
+            }
             
-            const debugInfo = {
-                normalized: normalized,
-                isCore: isCore,
-                matchedSignals: matchedSignals,
-                slots: slots,
-                resultCount: resultCount
-            };
-            console.log('Intent Detection:', debugInfo);
-            
-            // Step 4: Route based on intent
+            // Step 5: Route based on intent
             if (!intent) {
-                // Not a housing intent - return "Hi"
-                typeBotReply('Hi');
+                // Should not reach here if greeting/redirect handled above, but fallback
+                const redirectText = generateRedirectResponse();
+                typeBotReply(redirectText);
                 return;
             }
 
