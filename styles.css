@@ -2013,6 +2013,7 @@ html, body {
     word-wrap: break-word;
     overflow-wrap: anywhere;
     text-align: left;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'San Francisco', system-ui, sans-serif;
 }
 
 .bot-followup-text {
