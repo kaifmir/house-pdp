@@ -2138,10 +2138,13 @@ html, body {
 }
 
 /* Property Carousel - horizontal scroll, below chips/text */
+/* Break out of parent max-width constraint to allow full-width scrolling */
 .property-carousel {
     margin-top: 16px;
-    width: 100%;
-    max-width: 100vw; /* Allow full viewport width for scrolling */
+    width: 100vw; /* Full viewport width */
+    max-width: 100vw;
+    margin-left: calc(-50vw + 50%); /* Center and break out of parent */
+    margin-right: calc(-50vw + 50%);
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
@@ -2149,9 +2152,7 @@ html, body {
     -ms-overflow-style: none; /* Hide scrollbar on IE/Edge */
     box-sizing: border-box;
     scroll-snap-type: x mandatory;
-    margin-left: -16px; /* Offset padding to allow full-width scroll */
-    margin-right: -16px;
-    padding-left: 16px; /* Add padding back for first card */
+    padding-left: 16px; /* Add padding for first card */
     padding-right: 16px; /* Add padding for last card */
 }
 
