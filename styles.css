@@ -1718,8 +1718,9 @@ html, body {
     justify-content: flex-start;
     gap: 16px;
     min-height: 100%;
-    /* padding-top and padding-bottom removed - set on #chat-messages instead */
-    padding-bottom: 50vh; /* Large space below last message - responsive to viewport height */
+    /* Top padding: 16px below header (messages start here but can scroll up behind header) */
+    /* Bottom padding: large space below last message - responsive to viewport height */
+    padding-bottom: 50vh;
     box-sizing: border-box;
 }
 
