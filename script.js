@@ -3039,19 +3039,21 @@ document.addEventListener('DOMContentLoaded', function() {
             // 3. CarouselRow (optional, horizontal scroll) - below chips/text
             // Safety gate: Never show cards if pendingQuestion exists
             if (safeCarousel && safeCarousel.length > 0) {
+                // Create bot-results wrapper
+                const resultsWrapper = document.createElement('div');
+                resultsWrapper.className = 'bot-results';
+                
+                // Create carousel container (no wrapper needed - direct flex)
                 const carouselContainer = document.createElement('div');
                 carouselContainer.className = 'property-carousel';
-                
-                const scrollWrapper = document.createElement('div');
-                scrollWrapper.className = 'property-carousel-wrapper';
 
                 safeCarousel.forEach(prop => {
                     const card = createPropertyCard(prop);
-                    scrollWrapper.appendChild(card);
+                    carouselContainer.appendChild(card);
                 });
 
-                carouselContainer.appendChild(scrollWrapper);
-                botMessage.appendChild(carouselContainer);
+                resultsWrapper.appendChild(carouselContainer);
+                botMessage.appendChild(resultsWrapper);
             }
             
             // Append to message element
@@ -3103,12 +3105,18 @@ document.addEventListener('DOMContentLoaded', function() {
             ]
         };
         
-        // Helper function to get listing image based on city
+        // Helper function to get listing image based on city with unique sig
         function getListingImage(city) {
             const cityKey = (city || '').toLowerCase();
             const images = CITY_IMAGE_MAP[cityKey] || CITY_IMAGE_MAP['delhi']; // Default to Delhi
-            // Return random image from city-specific set
-            return images[Math.floor(Math.random() * images.length)];
+            // Return random image from city-specific set with unique sig parameter
+            const baseUrl = images[Math.floor(Math.random() * images.length)];
+            const sig = Math.floor(Math.random() * 10000);
+            // Convert to new format with sig if not already present
+            if (baseUrl.includes('auto=format')) {
+                return baseUrl.replace('auto=format', `auto=format&sig=${sig}`);
+            }
+            return `${baseUrl}&sig=${sig}`;
         }
 
         // Create property card element with modern design and Unsplash images
@@ -3129,34 +3137,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 const tag = prop.tags[0];
                 localityLine = tag.toLowerCase().startsWith('near') ? tag : `Near ${tag}`;
             }
-            const amenityChips = prop.amenities.slice(0, 3).map(a => `<span class="property-amenity-chip">${a}</span>`).join('');
+            const amenityChips = prop.amenities.slice(0, 3).map(a => `<span class="property-chip">${a}</span>`).join('');
             
-            // Get city-specific image (reliable, curated) with better fallback
+            // Get city-specific image with unique sig parameter
+            const sig = Math.floor(Math.random() * 10000);
             const imageUrl = getListingImage(prop.city);
+            const finalImageUrl = imageUrl.includes('sig=') ? imageUrl : `${imageUrl}&sig=${sig}`;
             
             // Better heart icon SVG (not squeezed)
-            const heartIcon = `<svg width="20" height="18" viewBox="0 0 20 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            const heartIcon = `<svg width="20" height="20" viewBox="0 0 20 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M10 17.35L8.55 16.03C3.4 11.36 0 8.28 0 4.5C0 1.96 1.96 0 4.5 0C6.24 0 7.91 0.81 9 2.09C10.09 0.81 11.76 0 13.5 0C16.04 0 18 1.96 18 4.5C18 8.28 14.6 11.36 9.45 16.04L10 17.35Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>`;
             
             card.innerHTML = `
-                <div class="property-card-image">
-                    <img src="${imageUrl}" alt="${title}" loading="eager" onerror="this.onerror=null; this.src='${DEFAULT_FALLBACK_IMAGE}';" />
+                <div class="property-card__imgwrap">
+                    <img class="property-card__img" src="${finalImageUrl}" alt="${title}" loading="eager" onerror="this.onerror=null; this.src='${DEFAULT_FALLBACK_IMAGE}';" />
                 </div>
-                <div class="property-card-content">
-                    <div class="property-card-title">${title}</div>
-                    <div class="property-card-price">${price}</div>
-                    <div class="property-card-location">${localityLine}</div>
-                    <div class="property-card-amenities">${amenityChips}</div>
-                    <div class="property-card-footer">
-                        <button class="property-card-cta">View details</button>
-                        <button class="property-card-shortlist" aria-label="Shortlist">${heartIcon}</button>
+                <div class="property-card__body">
+                    <div class="property-card__title">${title}</div>
+                    <div class="property-card__price">${price}</div>
+                    <div class="property-card__meta">${localityLine}</div>
+                    <div class="property-card__chips">${amenityChips}</div>
+                    <div class="property-card__actions">
+                        <button class="property-cta">View details</button>
+                        <button class="property-like" aria-label="Shortlist">${heartIcon}</button>
                     </div>
                 </div>
             `;
             
             // Ensure image loads - add additional fallback after DOM insertion
-            const img = card.querySelector('.property-card-image img');
+            const img = card.querySelector('.property-card__img');
             if (img) {
                 img.addEventListener('error', function() {
                     if (this.src !== DEFAULT_FALLBACK_IMAGE) {
@@ -3172,10 +3182,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Add click handlers
-            card.querySelector('.property-card-cta').addEventListener('click', () => {
+            card.querySelector('.property-cta').addEventListener('click', () => {
                 console.log('View details:', prop);
             });
-            card.querySelector('.property-card-shortlist').addEventListener('click', () => {
+            card.querySelector('.property-like').addEventListener('click', () => {
                 console.log('Shortlist:', prop);
             });
             
