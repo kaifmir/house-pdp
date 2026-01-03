@@ -1666,14 +1666,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 bubble.textContent = message.text;
                 msgDiv.appendChild(bubble);
             } else {
-                // Use strict structure for bot messages
-                const botMessage = document.createElement('div');
-                botMessage.className = 'bot-message-content';
-                const textDiv = document.createElement('div');
-                textDiv.className = 'bot-text';
-                textDiv.textContent = message.text;
-                botMessage.appendChild(textDiv);
-                msgDiv.appendChild(botMessage);
+                // For bot messages: only create bot-message-content if text is not empty
+                // If text is empty, renderBotTurn() will create it later
+                if (message.text && message.text.trim() !== '') {
+                    const botMessage = document.createElement('div');
+                    botMessage.className = 'bot-message-content';
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'bot-text';
+                    textDiv.textContent = message.text;
+                    botMessage.appendChild(textDiv);
+                    msgDiv.appendChild(botMessage);
+                }
+                // If text is empty, don't create bot-message-content here
+                // renderBotTurn() will create it when called
             }
 
             // Remove spacer if it exists (it breaks layout)
