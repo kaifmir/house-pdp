@@ -2320,10 +2320,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Handle ambiguous cases (e.g., "sector 15" could be Noida/Gurgaon/Faridabad)
-            // For now, if we see just "sector" without a city, we'll ask for clarification
-            if (!params.city && lower.match(/\bsector\s+\d+/i) && !lower.match(/\b(noida|gurgaon|faridabad|delhi)\b/i)) {
-                // Will be handled in getPendingQuestion with clarification
-                params.locality = lower.match(/\bsector\s+\d+/i)[0];
+            // If we see just "sector" without a city, store locality for clarification
+            if (!params.city && lower.match(/\bsector\s+\d+/) && !lower.match(/\b(noida|gurgaon|faridabad|delhi)\b/)) {
+                const sectorMatch = lower.match(/\bsector\s+\d+/);
+                if (sectorMatch) {
+                    params.locality = sectorMatch[0];
+                }
             }
 
             // Type (for additional filtering)
