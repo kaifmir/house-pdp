@@ -1408,11 +1408,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Initialize spacer and anchor elements for ChatGPT-style layout
         function ensureChatElements() {
             // Add spacer if it doesn't exist
-            let spacer = document.getElementById('chat-spacer');
-            if (!spacer) {
-                spacer = document.createElement('div');
-                spacer.id = 'chat-spacer';
-                chatMessages.appendChild(spacer);
+            // Remove chat-spacer if it exists (it breaks layout)
+            const existingSpacer = document.getElementById('chat-spacer');
+            if (existingSpacer) {
+                existingSpacer.remove();
             }
             
             // Add anchor if it doesn't exist
@@ -1553,11 +1552,7 @@ document.addEventListener('DOMContentLoaded', function() {
             messages.push(message);
             const msgElement = renderMessage(message);
             // Auto-scroll to latest message after append
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    scrollToBottomIfNeeded({ immediate: true, force: true });
-                });
-            });
+            scrollChatToBottom(true);
             return msgId;
         }
 
