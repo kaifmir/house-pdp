@@ -1585,9 +1585,9 @@ html, body {
     margin: 0;
     flex-shrink: 0; /* Don't shrink */
     /* VisualViewport pinning: offsetTop accounts for iOS keyboard/layout viewport shifts */
-    /* Allow messages to be visible behind header */
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    /* Allow messages to be visible behind header - reduce blur for better transparency */
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .chat-top-bar::after {
@@ -1597,9 +1597,9 @@ html, body {
     pointer-events: none;
     background: linear-gradient(
         to bottom,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.4) 0%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.35) 30%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.2) 70%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.3) 0%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.25) 40%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.1) 80%,
         rgba(var(--chat-bg-rgb, 245, 245, 245), 0) 100%
     );
     z-index: -1;
