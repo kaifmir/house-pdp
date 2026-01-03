@@ -1577,8 +1577,25 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             messages.push(message);
             const msgElement = renderMessage(message);
-            // Scroll to bottom after adding user message (force true)
-            scrollToBottom({ force: true });
+            
+            // Scroll user's message to top of viewport with space below
+            if (msgElement) {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        // Get header height for offset
+                        const header = document.querySelector(".chat-top-bar");
+                        const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 68;
+                        
+                        // Scroll the user message to the top (accounting for header)
+                        const messagesContainer = document.getElementById("chat-messages");
+                        if (messagesContainer && msgElement) {
+                            const elementTop = msgElement.offsetTop;
+                            messagesContainer.scrollTop = elementTop - headerH - 16;
+                        }
+                    });
+                });
+            }
+            
             return msgId;
         }
 
