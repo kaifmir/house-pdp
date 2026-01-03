@@ -1597,9 +1597,9 @@ html, body {
     pointer-events: none;
     background: linear-gradient(
         to bottom,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.3) 0%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.25) 40%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.1) 80%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.2) 0%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.15) 30%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.05) 70%,
         rgba(var(--chat-bg-rgb, 245, 245, 245), 0) 100%
     );
     z-index: -1;
@@ -1608,7 +1608,7 @@ html, body {
 }
 
 .chat-back-btn {
-    background-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.2);
     border: none;
     border-radius: 50%;
     width: 44px;
@@ -1622,8 +1622,8 @@ html, body {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     pointer-events: all;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
     padding: 10px;
 }
 
@@ -1635,7 +1635,7 @@ html, body {
 }
 
 .chat-title-btn {
-    background-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.2);
     border: none;
     border-radius: 22px;
     padding: 12px 16px;
@@ -1648,8 +1648,8 @@ html, body {
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     pointer-events: all;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
     font-family: 'Rubik', sans-serif;
 }
 
