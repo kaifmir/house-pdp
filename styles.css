@@ -1598,8 +1598,9 @@ html, body {
     background: linear-gradient(
         to bottom,
         rgba(var(--chat-bg-rgb, 245, 245, 245), 0.4) 0%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.4) 50%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.2) 100%
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.35) 30%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.2) 70%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0) 100%
     );
     z-index: -1;
 }
