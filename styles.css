@@ -2360,10 +2360,21 @@ html, body {
     flex-shrink: 0;
     padding: 0;
     box-sizing: border-box;
+    color: #111;
 }
 
 .property-like:active {
     background: #F5F5F5;
+}
+
+.property-like--saved {
+    border-color: rgba(232, 0, 103, 0.3);
+    background: rgba(232, 0, 103, 0.05);
+    color: #E80067;
+}
+
+.property-like--saved:active {
+    background: rgba(232, 0, 103, 0.1);
 }
 
 .property-like svg {
@@ -2372,6 +2383,10 @@ html, body {
     display: block;
     flex-shrink: 0;
     color: currentColor;
+}
+
+.property-like--saved svg path {
+    fill: currentColor;
 }
 
 .btn-view {
