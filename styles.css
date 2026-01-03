@@ -1552,7 +1552,8 @@ html, body {
     left: 0;
     right: 0;
     z-index: 9999;
-    background: transparent !important;
+    background: none !important;
+    background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
     pointer-events: none;
