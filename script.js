@@ -1412,10 +1412,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Add scroll listener to track if user is near bottom (after functions are defined)
+        // Initialize near bottom state
         if (chatMessages) {
-            chatMessages.addEventListener('scroll', handleScroll, { passive: true });
-            // Initialize near bottom state
             isUserNearBottom = checkIfNearBottom();
+            chatMessages.addEventListener('scroll', handleScroll, { passive: true });
         }
 
         // Scroll messages to bottom (with smooth behavior and throttling)
