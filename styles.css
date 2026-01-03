@@ -1683,9 +1683,8 @@ html, body {
     font-family: 'Inter', sans-serif;
 }
 
-/* Chat layout: stack from top, scroll behind header, stick-to-bottom auto-scroll */
+/* Chat layout: ChatGPT-style - messages start under header, scroll behind it */
 /* Messages Area - ONLY scrollable region, positioned between header and composer */
-/* Pin message stack to top (16px below header), never center */
 .chat-messages {
     flex: 1 1 auto; /* Take remaining space */
     overflow-y: auto;
@@ -1696,19 +1695,18 @@ html, body {
     background: transparent;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start; /* CRITICAL: Stack from top, NOT center, NOT space-between */
     align-items: stretch;
-    gap: 16px; /* Increased spacing between user message and bot reply */
+    justify-content: flex-start; /* CRITICAL: Messages start from top, NOT centered */
+    gap: 12px; /* Vertical gap between messages */
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
-    /* Top padding: header height + 16px so first message sits 16px below header */
+    /* Padding: 16px left/right, 16px top (messages start 16px below header) */
     padding: 16px;
     padding-top: calc(var(--header-height, 68px) + 16px + env(safe-area-inset-top));
-    padding-bottom: calc(var(--composer-h, 80px) + 16px + env(safe-area-inset-bottom)); /* Bottom padding above input */
+    padding-bottom: calc(var(--composer-h, 80px) + 16px + env(safe-area-inset-bottom));
     width: 100%;
     max-width: 100%;
     min-height: 0; /* Critical for flex child to scroll */
-    scroll-padding-top: var(--header-height, 68px); /* Helpful for scrollIntoView */
 }
 
 /* Remove spacer - messages should stack naturally from top */
@@ -1962,13 +1960,13 @@ html, body {
 
 .msg-user {
     justify-content: flex-end;
-    margin-top: 4px;
+    margin: 0;
 }
 
 .msg-bot {
     justify-content: flex-start;
-    margin-top: 16px;
-    margin-bottom: 0;
+    margin: 0;
+    margin-top: 12px; /* Increased gap between user message and bot response */
 }
 
 /* Extra spacing after bot turn with cards or chips */
@@ -1988,11 +1986,11 @@ html, body {
     flex-direction: column;
     align-self: flex-start;
     text-align: left;
-    max-width: min(92vw, 360px);
+    max-width: 80%; /* ~80% max width for readability */
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
-    line-height: 1.4;
+    line-height: 1.5; /* Better line-height for readability */
     padding: 0;
     background: none;
     box-sizing: border-box;
@@ -2001,11 +1999,11 @@ html, body {
 
 /* User bubble */
 .bubble {
-    background: #E9E9E9;
+    background: #EDEDED; /* Solid light grey fill */
     color: #111;
     padding: 10px 14px;
     border-radius: 18px;
-    max-width: min(80vw, 320px);
+    max-width: 70%; /* ~70% max width */
     text-align: left;
     line-height: 1.4;
     word-break: break-word;

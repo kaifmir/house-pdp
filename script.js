@@ -1517,30 +1517,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Throttled scroll for typing animation - stick to bottom during streaming
         // Called during bot "type one letter at a time" streaming
         function scrollToBottomTyping(msgElement = null) {
-            if (!chatMessages) return;
-            
-            // If messages don't overflow, keep scrollTop at 0
-            if (chatMessages.scrollHeight <= chatMessages.clientHeight) {
-                chatMessages.scrollTop = 0;
-                return;
-            }
-            
-            // Don't scroll if user manually scrolled up (optional but ideal)
-            if (!isAtBottom) return;
-            
-            if (typingScrollRaf) {
-                cancelAnimationFrame(typingScrollRaf);
-            }
-            
-            typingScrollRaf = requestAnimationFrame(() => {
-                // Always scroll to bottom during typing to keep latest content visible
-                // Use immediate for smooth streaming without delay
-                chatMessages.scrollTo({
-                    top: chatMessages.scrollHeight,
-                    behavior: "auto"
-                });
-                typingScrollRaf = null;
-            });
+            // During typing, force scroll to keep latest text visible
+            scrollToBottomIfNeeded({ force: true, immediate: true });
         }
 
         // Add user message
@@ -1557,7 +1535,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Auto-scroll to latest message after append
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    scrollToBottom({ immediate: true, force: true });
+                    scrollToBottomIfNeeded({ immediate: true, force: true });
                 });
             });
             return msgId;
@@ -1577,7 +1555,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Auto-scroll to latest message after append
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    scrollToBottom({ immediate: true, force: true });
+                    scrollToBottomIfNeeded({ immediate: true, force: true });
                 });
             });
             return msgId;
@@ -2049,12 +2027,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return {};
             }
 
+            // CRITICAL: Define lower FIRST before any usage
+            const raw = String(text).trim();
+            const lower = raw.toLowerCase();
+            
             // Normalize and correct typos
             const normalized = normalizeText(text);
             const corrected = correctTypos(normalized);
             
-            // Declare lower once at the top for use throughout the function
-            const lower = corrected || normalized || '';
+            // Use corrected for matching, but keep lower for fallback
+            const searchText = corrected || normalized || lower;
             
             const params = {};
 
@@ -2080,21 +2062,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 params.intentType = 'buy'; // Backward compat
             }
 
-            // BHK - handle all variants (use corrected text)
-            const bhkMatch = corrected.match(/(\d+)\s*(bhk|rk|bedroom|bed)/);
+            // BHK - handle all variants with typo tolerance (use searchText)
+            // Handle: "3bhl", "3 bkh", "3bhk", "3 bhk", "3 b h k"
+            const bhkMatch = searchText.match(/(\d+)\s*(?:b\s*h\s*k|b\s*h\s*l|b\s*k\s*h|bhk|bhl|bkh|rk|bedroom|bed)/);
             if (bhkMatch) {
                 params.bhk = parseInt(bhkMatch[1]);
             }
 
-            // Budget - more flexible matching (use corrected text)
+            // Budget - more flexible matching (use searchText)
             // Match: "under 30k", "30k", "30,000", "50l", "1cr", "20-30k", etc.
             // Determine budget unit: if "rent" present or "/mo" → monthly, if "cr/lakh/l" → total
-            const isRent = corrected.match(/\b(rent|renting|for rent|to rent|pg)\b/);
-            const hasMonthlyIndicator = corrected.match(/\b\/mo\b/);
-            const hasTotalIndicator = corrected.match(/\b(cr|crore|l|lakh|lac)\b/);
+            const isRent = searchText.match(/\b(rent|renting|for rent|to rent|pg)\b/);
+            const hasMonthlyIndicator = searchText.match(/\b\/mo\b/);
+            const hasTotalIndicator = searchText.match(/\b(cr|crore|l|lakh|lac)\b/);
             
             // Budget range matching: "20-30k", "20 to 30k"
-            const rangeMatch = corrected.match(/(\d+)\s*[-to]\s*(\d+)\s*(k|l|cr|crore|lakh|lac)/);
+            const rangeMatch = searchText.match(/(\d+)\s*[-to]\s*(\d+)\s*(k|l|cr|crore|lakh|lac)/);
             if (rangeMatch) {
                 let minAmount = parseInt(rangeMatch[1]);
                 let maxAmount = parseInt(rangeMatch[2]);
@@ -2115,7 +2098,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 params.budget = maxAmount; // Backward compat: use max as single budget value
             } else {
                 // Single budget value
-                const budgetMatch = corrected.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)?\s*(\d+)\s*(k|l|cr|crore|lakh|lac)/);
+                const budgetMatch = searchText.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)?\s*(\d+)\s*(k|l|cr|crore|lakh|lac)/);
                 if (budgetMatch) {
                     let amount = parseInt(budgetMatch[1]);
                     const unit = budgetMatch[2].toLowerCase();
@@ -2132,7 +2115,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     params.budget = amount; // Backward compat
                 } else {
                     // Also try matching raw numbers with context
-                    const rawBudgetMatch = corrected.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)\s*(\d{4,})/);
+                    const rawBudgetMatch = searchText.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)\s*(\d{4,})/);
                     if (rawBudgetMatch) {
                         const num = parseInt(rawBudgetMatch[1]);
                         // If it's 4-5 digits, assume thousands (rent)
@@ -2373,9 +2356,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 { name: 'kolkata', aliases: ['kolkata', 'calcutta'] }
             ];
             
-            // First, check for explicit city mentions (use lower which is now defined)
+            // First, check for explicit city mentions (use searchText)
             for (const city of cityNames) {
-                if (city.aliases.some(alias => lower.includes(alias))) {
+                if (city.aliases.some(alias => searchText.includes(alias))) {
                     params.city = city.name;
                     break;
                 }
@@ -2386,7 +2369,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 for (const [locality, city] of Object.entries(localityToCityMap)) {
                     // Check if locality appears in the text (word boundary aware)
                     const localityPattern = new RegExp(`\\b${locality.replace(/\s+/g, '\\s+')}\\b`, 'i');
-                    if (localityPattern.test(lower)) {
+                    if (localityPattern.test(searchText)) {
                         params.city = city;
                         // Also store locality for reference
                         params.locality = locality;
@@ -2397,16 +2380,19 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Handle ambiguous cases (e.g., "sector 15" could be Noida/Gurgaon/Faridabad)
             // If we see just "sector" without a city, store locality for clarification
-            if (!params.city && lower.match(/\bsector\s+\d+/) && !lower.match(/\b(noida|gurgaon|faridabad|delhi)\b/)) {
-                const sectorMatch = lower.match(/\bsector\s+\d+/);
+            if (!params.city && searchText.match(/\bsector\s+\d+/) && !searchText.match(/\b(noida|gurgaon|faridabad|delhi)\b/)) {
+                const sectorMatch = searchText.match(/\bsector\s+\d+/);
                 if (sectorMatch) {
                     params.locality = sectorMatch[0];
                 }
             }
 
             // Type (for additional filtering)
-            if (lower.match(/\bvilla\b/i)) params.type = 'Villa';
-            else if (lower.match(/\b(studio|1rk)\b/i)) params.type = 'Studio';
+            if (searchText.match(/\bvilla\b/i)) params.propertyType = 'villa';
+            else if (searchText.match(/\b(studio|1rk)\b/i)) params.propertyType = 'studio';
+            else if (searchText.match(/\bapartment\b/i)) params.propertyType = 'apartment';
+            else if (searchText.match(/\brow\s+house\b/i)) params.propertyType = 'row house';
+            else if (searchText.match(/\boffice\b/i)) params.propertyType = 'office';
 
             return params;
         }
@@ -2648,20 +2634,23 @@ document.addEventListener('DOMContentLoaded', function() {
             // This will NOT include anything the user just provided in params
             pendingQuestion = getPendingQuestion();
             
-            // Update debug log with final state
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            // Debug logging (behind DEBUG flag)
+            if (DEBUG || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
                 const canShow = hasEnoughToShowResults(chatState);
-                console.log('🔍 Final State:', {
-                    chatStateAfter: {
+                console.log('🔍 State After User Action:', {
+                    chatState: {
                         category: chatState.category || chatState.intentType,
                         city: chatState.city,
                         locality: chatState.locality,
                         bhk: chatState.bhk,
-                        budget: chatState.budget || (chatState.budgetMin && chatState.budgetMax ? `${chatState.budgetMin}-${chatState.budgetMax}` : null)
+                        propertyType: chatState.propertyType,
+                        budget: chatState.budget || (chatState.budgetMin && chatState.budgetMax ? `${chatState.budgetMin}-${chatState.budgetMax}` : null),
+                        budgetUnit: chatState.budgetUnit
                     },
                     pendingQuestion,
                     hasEnoughToShowResults: canShow,
-                    willShowResults: canShow && !pendingQuestion
+                    willShowResults: canShow && !pendingQuestion,
+                    readyToShowResults: chatState.readyToShowResults
                 });
             }
             
@@ -2670,17 +2659,19 @@ document.addEventListener('DOMContentLoaded', function() {
             let results = null; // Only show results when pendingQuestion is null
 
             // STRICT RULE: If chips are shown, text must be minimal (no duplication)
-            // If there's a pending question, show only prompt + chips (no cards)
+            // IMPORTANT: If showing chips, do NOT repeat the same question text again
+            // If there's a pending question, show only prompt + chips (NO cards)
             if (pendingQuestion === 'category') {
-                // Chip only mode - minimal prompt (pills show options, no need to repeat)
+                // Chip only mode - minimal prompt (chips show options, no need to repeat)
                 responseText = 'Select a category.';
                 chips = ['Rent', 'Buy', 'PG', 'Commercial', 'Plot', 'Projects'].slice(0, 6);
+                lastQuestionKey = 'category';
             } else if (pendingQuestion === 'cityOrLocality') {
                 // Check if we have a locality but need city clarification (ambiguous case)
                 if (chatState.locality && !chatState.city && lastQuestionKey !== 'cityOrLocality') {
                     // Ambiguous locality (e.g., "sector 15" could be multiple cities)
                     const localityDisplay = chatState.locality.charAt(0).toUpperCase() + chatState.locality.slice(1);
-                    responseText = `Just to confirm, is this for ${localityDisplay} in which city?`;
+                    responseText = `Which city is ${localityDisplay} in?`;
                     chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
                     lastQuestionKey = 'cityOrLocality';
                 } else if (!chatState.locality && !chatState.city && lastQuestionKey !== 'cityOrLocality') {
@@ -2700,9 +2691,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (pendingQuestion === 'budget' && lastQuestionKey !== 'budget') {
                 // Budget question - polite but minimal (chips show ranges)
                 const isRent = chatState.category === 'rent' || chatState.category === 'pg' || chatState.intentType === 'rent' || chatState.intentType === 'pg';
-                responseText = isRent 
-                    ? 'Select a budget range.'
-                    : 'Select a budget range.';
+                responseText = 'Select a budget range.';
                 chips = isRent
                     ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+'].slice(0, 6)
                     : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+'].slice(0, 6);
@@ -2819,8 +2808,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Strict contract: only text, chips, carousel - no followUp (handled in generateBotResponse)
             
-            // CRITICAL SAFETY GATE: Never render cards unless readyToShowResults is true
-            // This prevents premature card display
+            // CRITICAL SAFETY GATE: Never render cards unless readyToShowResults is true AND no pending question
+            // This prevents premature card display and ensures cards only show after slot-filling
             const safeCarousel = (chatState.readyToShowResults && 
                                  pendingQuestion === null && 
                                  carousel && 
@@ -3103,7 +3092,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Generate greeting response with housing redirect (STRICT FORMAT)
         function generateGreetingResponse() {
             // Exact format: Polite acknowledgement + Redirect to housing + Open housing question
-            return "Hello. I can help you with property search and locality insights. What are you looking for?";
+            // No emojis, semi-professional tone
+            return "Hello. How can I help with your home search today?";
         }
 
         // Generate response for single letter or gibberish
