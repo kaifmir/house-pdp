@@ -1935,21 +1935,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // If there's a pending question, show only prompt + chips (no cards)
             if (pendingQuestion === 'category') {
-                // Chip only mode - minimal prompt
+                // Chip only mode - minimal prompt (pills show options, no need to repeat)
                 responseText = 'Select a category.';
                 chips = ['Rent', 'Buy', 'PG', 'Commercial', 'Plot', 'Projects'].slice(0, 6);
             } else if (pendingQuestion === 'cityOrLocality') {
                 // Chip only mode - minimal prompt
-                responseText = 'Select a city.';
+                responseText = 'Which city should I focus on?';
                 chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
             } else if (pendingQuestion === 'bhkOrType') {
                 // Chip only mode - minimal prompt
-                responseText = 'Select configuration.';
+                responseText = 'What configuration do you need?';
                 chips = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK+'].slice(0, 6);
             } else if (pendingQuestion === 'budget') {
-                // Chip only mode - minimal prompt
-                responseText = 'Select a budget range.';
+                // Chip only mode - polite and human prompt
                 const isRent = searchContext.mode === 'rent' || searchContext.mode === 'pg';
+                responseText = isRent 
+                    ? 'Could you share your budget range so I can narrow this down?'
+                    : 'What budget range are you considering?';
                 chips = isRent
                     ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+'].slice(0, 6)
                     : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+'].slice(0, 6);
@@ -2312,7 +2314,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Generate greeting response with housing redirect (STRICT FORMAT)
         function generateGreetingResponse() {
             // Exact format: Polite acknowledgement + Redirect to housing + Open housing question
-            return "Hello. I'm doing well, thank you. How can I help you today with finding a home?";
+            return "Hello. How can I help you with your property search today?";
         }
 
         // Generate response for single letter or gibberish
@@ -2330,7 +2332,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Weather-related
             if (normalized.match(/\b(weather|temperature|rain|sunny|cloudy|forecast|aqi|air quality)\b/i)) {
-                return "I can't help with the weather, but I can help you find a home that gets great sunlight or stays cool year-round. What kind of place are you looking for?";
+                return "I can't help with that, but I can help you find a home that gets great natural light. What are you looking for?";
             }
 
             // Platform comparison

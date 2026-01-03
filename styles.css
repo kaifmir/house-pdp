@@ -1939,7 +1939,8 @@ html, body {
 
 .msg-bot {
     justify-content: flex-start;
-    margin-top: 12px;
+    margin-top: 16px;
+    margin-bottom: 0;
 }
 
 /* Extra spacing after bot turn with cards or chips */
