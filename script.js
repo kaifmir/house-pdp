@@ -1643,23 +1643,27 @@ document.addEventListener('DOMContentLoaded', function() {
             { id: 10, city: 'Delhi', locality: 'Dwarka', price: 22000, priceUnit: 'rent', bhk: 2, type: 'Apartment', furnished: 'Unfurnished', amenities: ['Parking', 'Lift'], tags: ['Near Metro'], images: [] }
         ];
 
-        // Conversation context
+        // Conversation context - STATEFUL CONVERSATION STATE (NON-NEGOTIABLE)
+        // NEVER reset unless user explicitly says "start over"
         let searchContext = {
-            mode: null, // 'rent', 'buy', 'pg', 'commercial', 'plot', 'projects'
+            intentType: null, // 'rent', 'buy', 'pg', 'commercial', 'plot', 'projects'
             city: null,
             locality: null,
-            budget: null,
-            budgetUnit: null, // 'month' or 'total'
             bhk: null,
-            type: null,
+            budget: null,
+            furnished: null,
             amenities: [],
-            tags: [],
-            commute: null,
-            commuteTime: null
+            readyToShowResults: false // CRITICAL: Only show cards when this is true
         };
 
         // Pending question state - tracks what question is currently being asked
         let pendingQuestion = null; // null or one of: 'category', 'cityOrLocality', 'bhkOrType', 'budget'
+        
+        // Backward compatibility: map mode to intentType
+        Object.defineProperty(searchContext, 'mode', {
+            get: function() { return this.intentType; },
+            set: function(val) { this.intentType = val; }
+        });
 
         // Greeting detection - high recall
         function detectGreeting(text) {
@@ -1987,7 +1991,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check what's missing - priority order: mode → location → budget → bhk
         function getMissingParams() {
             const missing = [];
-            if (!searchContext.mode) missing.push('mode');
+            if (!searchContext.intentType) missing.push('mode');
             if (!searchContext.city && !searchContext.locality) missing.push('location');
             if (!searchContext.budget) missing.push('budget');
             if (!searchContext.bhk) missing.push('bhk');
@@ -2004,7 +2008,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // CRITICAL: Never ask for city if it can be inferred from locality
         function getPendingQuestion() {
             // Priority order: category → cityOrLocality → bhkOrType → budget
-            if (!searchContext.mode) {
+            // CRITICAL: Check intentType (backward compatibility via mode getter)
+            if (!searchContext.intentType) {
                 return 'category';
             }
             
@@ -2058,17 +2063,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Check if we can show results - all required slots must be filled
+        // CRITICAL: This is the ONLY gate for showing property cards
         function canShowResults() {
             // Required slots:
-            // 1. category must exist
+            // 1. intentType (mode) must exist
             // 2. cityOrLocality must exist
-            // 3. at least one of bhk or propertyType must exist
+            // 3. at least one of bhk or type must exist
             // 4. budget is required (ask budget first if missing)
-            return searchContext.mode && 
+            // 5. No pending question
+            const ready = searchContext.intentType && 
                    (searchContext.city || searchContext.locality) &&
                    (searchContext.bhk || searchContext.type) &&
                    searchContext.budget &&
                    pendingQuestion === null;
+            
+            // Update readyToShowResults flag
+            searchContext.readyToShowResults = ready;
+            return ready;
         }
 
         // Generate bot response - strict sequencing with pendingQuestion
@@ -2090,6 +2101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let chips = [];
             let results = null; // Only show results when pendingQuestion is null
 
+            // STRICT RULE: If chips are shown, text must be minimal (no duplication)
             // If there's a pending question, show only prompt + chips (no cards)
             if (pendingQuestion === 'category') {
                 // Chip only mode - minimal prompt (pills show options, no need to repeat)
@@ -2103,26 +2115,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     responseText = `Just to confirm, is this for ${localityDisplay} in which city?`;
                     chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
                 } else {
-                    // No locality or city - ask normally
-                    responseText = 'Which city should I focus on?';
+                    // No locality or city - ask normally (minimal text since chips show options)
+                    responseText = 'Select a city.';
                     chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
                 }
             } else if (pendingQuestion === 'bhkOrType') {
-                // Chip only mode - minimal prompt
-                responseText = 'What configuration do you need?';
+                // Chip only mode - minimal prompt (chips show options)
+                responseText = 'Select configuration.';
                 chips = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK+'].slice(0, 6);
             } else if (pendingQuestion === 'budget') {
-                // Chip only mode - polite and human prompt
-                const isRent = searchContext.mode === 'rent' || searchContext.mode === 'pg';
+                // Budget question - polite but minimal (chips show ranges)
+                const isRent = searchContext.intentType === 'rent' || searchContext.intentType === 'pg';
                 responseText = isRent 
-                    ? 'Could you share your budget range so I can narrow this down?'
-                    : 'What budget range are you considering?';
+                    ? 'Select a budget range.'
+                    : 'Select a budget range.';
                 chips = isRent
                     ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+'].slice(0, 6)
                     : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+'].slice(0, 6);
             } else {
-                // All required slots filled - show results
+                // All required slots filled - ready to show results
                 pendingQuestion = null; // Clear pending question
+                searchContext.readyToShowResults = true; // CRITICAL FLAG
                 
                 // Natural response with inferred city (don't announce inference explicitly)
                 // Use locality if available, otherwise city, otherwise generic
@@ -2136,14 +2149,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     responseText = 'Here are a few options.';
                 }
                 
-                // Get filtered results
+                // Get filtered results (ONLY when readyToShowResults is true)
                 const filtered = filterProperties();
                 results = filtered.length > 0 ? filtered.slice(0, 3) : getFallbackResults();
                 
                 // Optional chips for refinement (only if not asking a question)
-                if (searchContext.mode === 'rent' || searchContext.mode === 'pg') {
+                // These are refinement chips, not question chips
+                if (searchContext.intentType === 'rent' || searchContext.intentType === 'pg') {
                     chips = ['Under ₹20k', '₹20-30k', '₹30-50k'].slice(0, 6);
-                } else if (searchContext.mode === 'buy' || searchContext.mode === 'projects') {
+                } else if (searchContext.intentType === 'buy' || searchContext.intentType === 'projects') {
                     chips = ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr'].slice(0, 6);
                 }
             }
@@ -2173,9 +2187,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Map mode to priceUnit for filtering
                 if (searchContext.mode === 'rent' || searchContext.mode === 'pg') {
                     filtered = filtered.filter(prop => prop.priceUnit === 'rent');
-                } else if (searchContext.mode === 'buy' || searchContext.mode === 'projects' || searchContext.mode === 'plot') {
+                } else if (searchContext.intentType === 'buy' || searchContext.intentType === 'projects' || searchContext.intentType === 'plot') {
                     filtered = filtered.filter(prop => prop.priceUnit === 'buy');
-                } else if (searchContext.mode === 'commercial') {
+                } else if (searchContext.intentType === 'commercial') {
                     // Commercial properties might have different structure - for now, show all
                     filtered = filtered;
                 }
@@ -2190,7 +2204,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 filtered = filtered.filter(prop => prop.type === searchContext.type);
             }
             if (searchContext.budget) {
-                const isRent = searchContext.mode === 'rent' || searchContext.mode === 'pg';
+                const isRent = searchContext.intentType === 'rent' || searchContext.intentType === 'pg';
                 if (isRent) {
                     filtered = filtered.filter(prop => prop.price <= searchContext.budget * 1.2); // Allow 20% tolerance
                 } else {
@@ -2217,8 +2231,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Strict contract: only text, chips, carousel - no followUp (handled in generateBotResponse)
             
-            // Safety gate: Never render cards if pendingQuestion exists
-            const safeCarousel = (pendingQuestion === null && carousel && carousel.length > 0) ? carousel : null;
+            // CRITICAL SAFETY GATE: Never render cards unless readyToShowResults is true
+            // This prevents premature card display
+            const safeCarousel = (searchContext.readyToShowResults && 
+                                 pendingQuestion === null && 
+                                 carousel && 
+                                 carousel.length > 0) ? carousel : null;
             
             let msgEl;
             if (existingMsgId) {
@@ -2240,7 +2258,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const botMessage = document.createElement('div');
             botMessage.className = 'bot-message-content';
             
-            // 1. BotText (optional)
+            // 1. BotText (optional) - but if chips are shown, text should be minimal
+            // STRICT RULE: Don't duplicate what chips already communicate
             if (text) {
                 const textEl = document.createElement('div');
                 textEl.className = 'bot-text';
@@ -2490,7 +2509,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Generate greeting response with housing redirect (STRICT FORMAT)
         function generateGreetingResponse() {
             // Exact format: Polite acknowledgement + Redirect to housing + Open housing question
-            return "Hello. How can I help you with your property search today?";
+            return "Hello. I can help you with property search and locality insights. What are you looking for?";
         }
 
         // Generate response for single letter or gibberish
@@ -2501,7 +2520,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Generate polite redirect for non-housing questions (context-aware)
         function generateRedirectResponse(userText) {
             if (!userText) {
-                return "I can help you explore homes to rent, buy, or invest in. Tell me what you're looking for.";
+                return "I'm here to help with housing-related queries. Let me know what kind of home you're looking for.";
             }
 
             const normalized = userText.trim().toLowerCase();
@@ -2522,7 +2541,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Default redirect
-            return "I can help you explore homes to rent, buy, or invest in. Tell me what you're looking for.";
+            return "I'm here to help with housing-related queries. Let me know what kind of home you're looking for.";
         }
 
         // Generate gibberish response
