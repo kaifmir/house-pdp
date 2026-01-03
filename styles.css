@@ -2375,17 +2375,18 @@ html, body {
     display: none !important; /* Completely hide intro when chat starts */
 }
 
-/* Step 3: Composer - Fixed at bottom, positioned above keyboard using --kb-offset */
+/* Step 3: Composer - Sticky at bottom, positioned above keyboard using --kb-offset */
 .chat-input-bar {
     padding: 12px 16px;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
-    position: fixed;
+    position: sticky; /* Sticky at bottom */
+    bottom: 0;
     left: 0;
     right: 0;
-    bottom: var(--kb-offset);
-    z-index: 9999;
+    z-index: 50; /* Higher z-index for proper layering */
     background: transparent;
     pointer-events: none;
+    flex-shrink: 0; /* Don't shrink */
 }
 
 .chat-input-wrapper {
