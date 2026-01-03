@@ -1522,7 +1522,7 @@ html, body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--chat-bg);
+    background: linear-gradient(to bottom, #F5F5F5 0%, #EBEBEB 100%);
     z-index: 10002;
     width: 100%;
     max-width: 100%;
