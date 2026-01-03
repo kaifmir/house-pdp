@@ -1578,34 +1578,37 @@ html, body {
     background-color: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    pointer-events: none;
     transform: translate3d(0, var(--vv-top), 0);
     -webkit-transform: translate3d(0, var(--vv-top), 0);
     will-change: transform;
     margin: 0;
     flex-shrink: 0; /* Don't shrink */
     /* VisualViewport pinning: offsetTop accounts for iOS keyboard/layout viewport shifts */
-    /* Allow messages to be visible behind header - no blur for true transparency */
+    position: relative; /* Ensure ::before positioning works */
 }
 
-.chat-top-bar::after {
+.chat-top-bar::before {
     content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: -30px; /* Extend below header to ensure smooth fade at bottom edge */
+    inset: 0;
+    bottom: -30px; /* Extend below header for smooth fade */
     pointer-events: none;
     background: linear-gradient(
         to bottom,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.2) 0%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.15) 30%,
-        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.05) 70%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.4) 0%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.35) 50%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.2) 80%,
         rgba(var(--chat-bg-rgb, 245, 245, 245), 0) 100%
     );
-    z-index: -1;
-    /* Ensure it's behind everything */
-    opacity: 1;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: -1; /* Behind content */
+}
+
+/* Ensure buttons and content stay above the overlay */
+.chat-top-bar > * {
+    position: relative;
+    z-index: 1;
 }
 
 .chat-back-btn {
