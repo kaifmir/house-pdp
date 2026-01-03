@@ -1692,6 +1692,7 @@ html, body {
 
 /* Chat layout: ChatGPT-style - messages start under header, scroll behind it */
 /* Messages Area - ONLY scrollable region, positioned between header and composer */
+/* Fills from top (0) to top edge of input bar */
 .chat-messages {
     flex: 1 1 auto; /* Take remaining space */
     min-height: 0;
@@ -1706,6 +1707,8 @@ html, body {
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
+    /* Fill from top to input bar - height is managed by flex and padding */
+    position: relative;
 }
 
 /* Chat stack wrapper - controls top anchoring + safe padding */
