@@ -997,6 +997,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let dragging = false;
         let dragStartX = 0;
         let dragStartOffset = 0;
+        let lastMoveAt = 0;
+        let resumeTimer = null;
         
         // Momentum scrolling
         let momentumVelocity = 0;
@@ -1007,6 +1009,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function pause(ms = 1000) {
             pausedUntil = Date.now() + ms;
+        }
+
+        function scheduleResume(ms = 900) {
+            clearTimeout(resumeTimer);
+            resumeTimer = setTimeout(() => {
+                dragging = false;
+                pausedUntil = Date.now() + 200; // tiny delay then rAF continues
+            }, ms);
         }
 
         function loop(t) {
@@ -1060,8 +1070,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         marquee.addEventListener('pointerdown', (e) => {
             dragging = true;
+            lastMoveAt = performance.now();
             momentumVelocity = 0; // stop any existing momentum
-            pause(999999); // freeze auto while dragging
+            pausedUntil = Date.now() + 999999; // freeze while dragging
             if (marquee.setPointerCapture) {
                 marquee.setPointerCapture(e.pointerId);
             }
@@ -1069,12 +1080,11 @@ document.addEventListener('DOMContentLoaded', function() {
             dragStartOffset = x;
             lastDragX = e.clientX;
             lastDragTime = performance.now();
-            e.preventDefault();
         });
 
         marquee.addEventListener('pointermove', (e) => {
             if (!dragging) return;
-            e.preventDefault();
+            lastMoveAt = performance.now();
             const now = performance.now();
             const dt = (now - lastDragTime) / 1000; // seconds
             const dx = e.clientX - dragStartX;
@@ -1097,17 +1107,19 @@ document.addEventListener('DOMContentLoaded', function() {
             // Wrap position on end to ensure we're in valid range for seamless loop
             x = wrapPosition(x);
             track.style.transform = `translate3d(${x}px,0,0)`;
-            // Momentum will continue scrolling, auto-scroll will resume after momentum stops
-            // (momentum loop handles the pause)
+            scheduleResume(900);
         }
         marquee.addEventListener('pointerup', endDrag);
         marquee.addEventListener('pointercancel', endDrag);
+        marquee.addEventListener('lostpointercapture', endDrag);
+        window.addEventListener('blur', endDrag);
 
-        // Also support touch events for older browsers (non-passive to prevent scrolling)
+        // Also support touch events for older browsers (Android fallback)
         marquee.addEventListener('touchstart', (e) => {
             dragging = true;
+            lastMoveAt = performance.now();
             momentumVelocity = 0; // stop any existing momentum
-            pause(999999);
+            pausedUntil = Date.now() + 999999;
             dragStartX = e.touches[0].clientX;
             dragStartOffset = x;
             lastDragX = e.touches[0].clientX;
@@ -1116,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         marquee.addEventListener('touchmove', (e) => {
             if (!dragging) return;
-            e.preventDefault(); // Prevent page scroll
+            lastMoveAt = performance.now();
             const now = performance.now();
             const dt = (now - lastDragTime) / 1000; // seconds
             const dx = e.touches[0].clientX - dragStartX;
@@ -1135,6 +1147,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
         marquee.addEventListener('touchend', endDrag, { passive: true });
         marquee.addEventListener('touchcancel', endDrag, { passive: true });
+
+        // Failsafe: if user stopped moving for 200ms, end drag
+        setInterval(() => {
+            if (dragging && performance.now() - lastMoveAt > 200) {
+                endDrag();
+            }
+        }, 150);
     })();
     
     // Step 3: Reliable keyboard detection for chat-intro hide/show
