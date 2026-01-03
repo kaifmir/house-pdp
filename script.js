@@ -3156,8 +3156,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 checkOverflow(msgEl);
             });
             
-            // Scroll to bottom after rendering
-            scrollToBottom({ force: true });
+            // Don't scroll if we're keeping user message at top
+            // Bot response will appear below user message naturally
+            if (!keepUserMessageAtTop) {
+                scrollToBottom({ force: true });
+            }
             return existingMsgId || msgEl.id;
         }
 
