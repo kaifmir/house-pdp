@@ -1593,6 +1593,9 @@ document.addEventListener('DOMContentLoaded', function() {
             commuteTime: null
         };
 
+        // Pending question state - tracks what question is currently being asked
+        let pendingQuestion = null; // null or one of: 'category', 'cityOrLocality', 'bhkOrType', 'budget'
+
         // Greeting detection - high recall
         function detectGreeting(text) {
             if (!text || typeof text !== 'string') {
@@ -1819,55 +1822,80 @@ document.addEventListener('DOMContentLoaded', function() {
             return missing.length > 0 ? missing[0] : null;
         }
 
-        // Check if we have minimum required fields to show results
-        function canShowResults() {
-            // Only show results when category (mode) and city/locality exist
-            return searchContext.mode && (searchContext.city || searchContext.locality);
+        // Get pending question based on missing required slots
+        function getPendingQuestion() {
+            // Priority order: category → cityOrLocality → bhkOrType → budget
+            if (!searchContext.mode) {
+                return 'category';
+            }
+            if (!searchContext.city && !searchContext.locality) {
+                return 'cityOrLocality';
+            }
+            if (!searchContext.bhk && !searchContext.type) {
+                return 'bhkOrType';
+            }
+            if (!searchContext.budget) {
+                return 'budget';
+            }
+            return null; // All required slots filled
         }
 
-        // Generate bot response - only show cards when required fields are present
+        // Check if we can show results - all required slots must be filled
+        function canShowResults() {
+            // Required slots:
+            // 1. category must exist
+            // 2. cityOrLocality must exist
+            // 3. at least one of bhk or propertyType must exist
+            // 4. budget is required (ask budget first if missing)
+            return searchContext.mode && 
+                   (searchContext.city || searchContext.locality) &&
+                   (searchContext.bhk || searchContext.type) &&
+                   searchContext.budget &&
+                   pendingQuestion === null;
+        }
+
+        // Generate bot response - strict sequencing with pendingQuestion
         function generateBotResponse(intent, userText) {
             const params = extractParams(userText);
             
             // Update context
             Object.assign(searchContext, params);
 
-            // Get next missing param (only one at a time)
-            const nextMissing = getNextMissingParam();
+            // Determine pending question based on missing required slots
+            pendingQuestion = getPendingQuestion();
             
             let responseText = '';
             let chips = [];
-            let results = null; // Only show results if we can
+            let results = null; // Only show results when pendingQuestion is null
 
-            // Check if we can show results (category + city/locality required)
-            const canShow = canShowResults();
-
-            // Generate semi-professional, minimal response
-            if (nextMissing === 'mode') {
-                // Mode missing - ask once with all options
-                responseText = 'Is this for Rent, Buy, PG, Commercial, Plot, or Projects?';
+            // If there's a pending question, show only prompt + chips (no cards)
+            if (pendingQuestion === 'category') {
+                // Chip only mode - minimal prompt
+                responseText = 'Select a category.';
                 chips = ['Rent', 'Buy', 'PG', 'Commercial', 'Plot', 'Projects'].slice(0, 6);
-            } else if (nextMissing === 'location') {
-                // Location missing - exact template
-                responseText = 'Which city or locality are you looking in?';
+            } else if (pendingQuestion === 'cityOrLocality') {
+                // Chip only mode - minimal prompt
+                responseText = 'Select a city.';
                 chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
-            } else if (nextMissing === 'budget') {
-                // Budget missing - exact template
-                responseText = 'What budget are you targeting?';
+            } else if (pendingQuestion === 'bhkOrType') {
+                // Chip only mode - minimal prompt
+                responseText = 'Select configuration.';
+                chips = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK+'].slice(0, 6);
+            } else if (pendingQuestion === 'budget') {
+                // Chip only mode - minimal prompt
+                responseText = 'Select a budget range.';
                 const isRent = searchContext.mode === 'rent' || searchContext.mode === 'pg';
                 chips = isRent
                     ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+'].slice(0, 6)
                     : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+'].slice(0, 6);
-            } else if (nextMissing === 'bhk') {
-                // BHK missing - exact template
-                responseText = 'What configuration do you need? 1BHK, 2BHK, 3BHK, or 4BHK?';
-                chips = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK+'].slice(0, 6);
             } else {
-                // All required params present - show results summary
-                const modeText = searchContext.mode ? `${searchContext.mode} ` : '';
-                const locationText = searchContext.city || searchContext.locality || '';
-                const resultCount = filterProperties().length;
-                responseText = `Here are ${resultCount} ${modeText}properties${locationText ? ` in ${locationText}` : ''}:`;
+                // All required slots filled - show results
+                pendingQuestion = null; // Clear pending question
+                responseText = 'Here are a few options.';
+                
+                // Get filtered results
+                const filtered = filterProperties();
+                results = filtered.length > 0 ? filtered.slice(0, 3) : getFallbackResults();
                 
                 // Optional chips for refinement (only if not asking a question)
                 if (searchContext.mode === 'rent' || searchContext.mode === 'pg') {
@@ -1877,15 +1905,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Only show results if we have category and city/locality
-            if (canShow) {
-                const filtered = filterProperties();
-                results = filtered.length > 0 ? filtered.slice(0, 3) : getFallbackResults();
-            }
-
             return {
                 text: responseText,
-                results: results, // null if we can't show yet
+                results: results, // null if pendingQuestion exists
                 chips: chips.length > 0 ? chips : null,
                 summary: null,
                 followUp: null
@@ -1952,6 +1974,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Strict contract: only text, chips, carousel - no followUp (handled in generateBotResponse)
             
+            // Safety gate: Never render cards if pendingQuestion exists
+            const safeCarousel = (pendingQuestion === null && carousel && carousel.length > 0) ? carousel : null;
+            
             let msgEl;
             if (existingMsgId) {
                 msgEl = document.getElementById(existingMsgId);
@@ -2007,14 +2032,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 3. CarouselRow (optional, horizontal scroll) - below chips/text
-            if (carousel && carousel.length > 0) {
+            // Safety gate: Never show cards if pendingQuestion exists
+            if (safeCarousel && safeCarousel.length > 0) {
                 const carouselContainer = document.createElement('div');
                 carouselContainer.className = 'property-carousel';
                 
                 const scrollWrapper = document.createElement('div');
                 scrollWrapper.className = 'property-carousel-wrapper';
 
-                carousel.forEach(prop => {
+                safeCarousel.forEach(prop => {
                     const card = createPropertyCard(prop);
                     scrollWrapper.appendChild(card);
                 });
