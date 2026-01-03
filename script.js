@@ -2776,7 +2776,61 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Removed getFollowUpQuestion - now handled in generateBotResponse
 
+        // Generate mock listings that match resolved city/locality
+        function generateMockListings({ city, locality, bhk, mode, budgetBucket }) {
+            const cityKey = (city || 'delhi').toLowerCase();
+            const localityKey = (locality || '').toLowerCase();
+            
+            // Title case helper
+            const titleCase = (str) => {
+                if (!str) return '';
+                return str.split(' ').map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                ).join(' ');
+            };
+            
+            const areaLabel = localityKey 
+                ? `${titleCase(localityKey)}, ${titleCase(cityKey)}`
+                : titleCase(cityKey);
+            
+            const isRent = mode === 'rent' || mode === 'pg';
+            const priceRanges = isRent 
+                ? [
+                    { min: 18000, max: 25000, display: '₹20k/mo' },
+                    { min: 25000, max: 35000, display: '₹28k/mo' },
+                    { min: 35000, max: 50000, display: '₹42k/mo' }
+                ]
+                : [
+                    { min: 5000000, max: 7000000, display: '₹65L' },
+                    { min: 7000000, max: 10000000, display: '₹85L' },
+                    { min: 10000000, max: 15000000, display: '₹1.2Cr' }
+                ];
+            
+            const listings = [];
+            for (let i = 0; i < 3; i++) {
+                const priceRange = priceRanges[i % priceRanges.length];
+                const price = Math.floor(priceRange.min + (priceRange.max - priceRange.min) * 0.5);
+                
+                listings.push({
+                    id: `mock-${cityKey}-${i + 1}`,
+                    city: cityKey,
+                    locality: localityKey || areaLabel.split(',')[0].trim(),
+                    price: price,
+                    priceUnit: isRent ? 'rent' : 'buy',
+                    bhk: bhk || (i % 3) + 2, // Default to 2, 3, 4 BHK
+                    type: 'Apartment',
+                    furnished: i === 0 ? 'Fully' : i === 1 ? 'Semi' : 'Unfurnished',
+                    amenities: ['Parking', 'Lift', i === 0 ? 'Gym' : 'Power Backup'],
+                    tags: localityKey ? [`Near ${titleCase(localityKey)}`] : ['Gated'],
+                    images: []
+                });
+            }
+            
+            return listings;
+        }
+        
         // Filter properties based on context - demo-friendly (loose matching)
+        // CRITICAL: Enforce city/locality matching - never show wrong-city cards
         function filterProperties() {
             let filtered = [...mockProperties];
             
@@ -2793,9 +2847,36 @@ document.addEventListener('DOMContentLoaded', function() {
                     filtered = filtered;
                 }
             }
+            
+            // CRITICAL: Enforce city matching - never show wrong-city cards
             if (chatState.city) {
-                filtered = filtered.filter(prop => prop.city.toLowerCase() === chatState.city.toLowerCase());
+                const cityKey = chatState.city.toLowerCase();
+                filtered = filtered.filter(prop => prop.city.toLowerCase() === cityKey);
+                
+                // If no matches, generate city-specific mock listings
+                if (filtered.length === 0) {
+                    const mockListings = generateMockListings({
+                        city: chatState.city,
+                        locality: chatState.locality,
+                        bhk: chatState.bhk,
+                        mode: category,
+                        budgetBucket: null
+                    });
+                    filtered = mockListings;
+                }
             }
+            
+            // If locality is specified, prefer listings with matching locality
+            if (chatState.locality && filtered.length > 0) {
+                const localityKey = chatState.locality.toLowerCase();
+                const localityMatches = filtered.filter(prop => 
+                    prop.locality && prop.locality.toLowerCase().includes(localityKey)
+                );
+                if (localityMatches.length > 0) {
+                    filtered = localityMatches;
+                }
+            }
+            
             if (chatState.bhk) {
                 filtered = filtered.filter(prop => prop.bhk === chatState.bhk);
             }
@@ -2814,9 +2895,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
+            // CRITICAL SANITY CHECK: Assert every listing city matches session.city
+            if (chatState.city) {
+                const cityKey = chatState.city.toLowerCase();
+                const mismatches = filtered.filter(prop => prop.city.toLowerCase() !== cityKey);
+                if (mismatches.length > 0) {
+                    console.warn('City mismatch detected, regenerating listings:', mismatches);
+                    // Regenerate listings with correct city
+                    filtered = generateMockListings({
+                        city: chatState.city,
+                        locality: chatState.locality,
+                        bhk: chatState.bhk,
+                        mode: category,
+                        budgetBucket: null
+                    });
+                }
+            }
+            
             // Always return at least 3 results (demo-friendly)
             if (filtered.length === 0) {
-                return getFallbackResults();
+                // Generate fallback listings matching the resolved city
+                return generateMockListings({
+                    city: chatState.city || 'delhi',
+                    locality: chatState.locality,
+                    bhk: chatState.bhk,
+                    mode: category,
+                    budgetBucket: null
+                });
             }
             
             return filtered;
