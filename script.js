@@ -1793,18 +1793,28 @@ document.addEventListener('DOMContentLoaded', function() {
             { id: 10, city: 'Delhi', locality: 'Dwarka', price: 22000, priceUnit: 'rent', bhk: 2, type: 'Apartment', furnished: 'Unfurnished', amenities: ['Parking', 'Lift'], tags: ['Near Metro'], images: [] }
         ];
 
-        // Conversation context - STATEFUL CONVERSATION STATE (NON-NEGOTIABLE)
+        // Conversation state - SINGLE SOURCE OF TRUTH (NON-NEGOTIABLE)
         // NEVER reset unless user explicitly says "start over"
-        let searchContext = {
-            intentType: null, // 'rent', 'buy', 'pg', 'commercial', 'plot', 'projects'
+        // This is the persistent chatState object that tracks all conversation state
+        const chatState = {
+            intent: null,              // 'property_search' | null
+            category: null,            // 'rent'|'buy'|'pg'|'commercial'|'plot'|'projects'
             city: null,
             locality: null,
-            bhk: null,
-            budget: null,
-            propertyType: null, // optional
-            amenities: [], // optional
-            readyToShowResults: false // CRITICAL: Only show cards when this is true
+            bhk: null,                 // number (1,2,3,4,5) or null
+            budgetMin: null,           // number in INR
+            budgetMax: null,           // number in INR
+            budgetUnit: null,          // 'monthly'|'total'|null
+            propertyType: null,        // 'apartment'|'villa'|'studio'|'row house' etc
+            amenities: [],             // strings
+            furnished: null,           // 'full'|'semi'|'unfurnished'|null
+            moveIn: null,              // 'immediate'|'this_week' etc
+            readyToShowResults: false  // CRITICAL: Only show cards when this is true
         };
+        
+        // Backward compatibility: map old searchContext properties
+        // For now, keep both until all code is migrated
+        const searchContext = chatState;
 
         // Pending question state - tracks what question is currently being asked
         let pendingQuestion = null; // null or one of: 'category', 'cityOrLocality', 'bhkOrType', 'budget'
@@ -2027,19 +2037,26 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const params = {};
 
-            // Mode (Rent/Buy/PG/Commercial/Plot/Projects) - priority order (use corrected text)
+            // Category (Rent/Buy/PG/Commercial/Plot/Projects) - priority order (use corrected text)
+            // Return as both category and intentType for backward compatibility
             if (corrected.match(/\bpg\b/)) {
-                params.mode = 'pg';
+                params.category = 'pg';
+                params.intentType = 'pg'; // Backward compat
             } else if (corrected.match(/\b(commercial|office|shop|retail|warehouse)\b/)) {
-                params.mode = 'commercial';
+                params.category = 'commercial';
+                params.intentType = 'commercial'; // Backward compat
             } else if (corrected.match(/\b(plot|land)\b/)) {
-                params.mode = 'plot';
+                params.category = 'plot';
+                params.intentType = 'plot'; // Backward compat
             } else if (corrected.match(/\b(project|projects|new project|under construction|ready to move|r2m|new launch)\b/)) {
-                params.mode = 'projects';
+                params.category = 'projects';
+                params.intentType = 'projects'; // Backward compat
             } else if (corrected.match(/\b(rent|renting|for rent|to rent)\b/)) {
-                params.mode = 'rent';
+                params.category = 'rent';
+                params.intentType = 'rent'; // Backward compat
             } else if (corrected.match(/\b(buy|buying|purchase|for sale|to buy)\b/)) {
-                params.mode = 'buy';
+                params.category = 'buy';
+                params.intentType = 'buy'; // Backward compat
             }
 
             // BHK - handle all variants (use corrected text)
@@ -2049,37 +2066,75 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Budget - more flexible matching (use corrected text)
-            // Match: "under 30k", "30k", "30,000", "50l", "1cr", etc.
-            const budgetMatch = corrected.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)?\s*(\d+)\s*(k|l|cr|crore|lakh|lac)/);
-            if (budgetMatch) {
-                let amount = parseInt(budgetMatch[1]);
-                const unit = budgetMatch[2].toLowerCase();
-                if (unit === 'k') {
-                    amount = amount * 1000;
-                } else if (unit === 'l' || unit === 'lakh' || unit === 'lac') {
-                    amount = amount * 100000;
-                } else if (unit === 'cr' || unit === 'crore') {
-                    amount = amount * 10000000;
-                }
-                params.budget = amount;
-            }
+            // Match: "under 30k", "30k", "30,000", "50l", "1cr", "20-30k", etc.
+            // Determine budget unit: if "rent" present or "/mo" → monthly, if "cr/lakh/l" → total
+            const isRent = corrected.match(/\b(rent|renting|for rent|to rent|pg)\b/);
+            const hasMonthlyIndicator = corrected.match(/\b\/mo\b/);
+            const hasTotalIndicator = corrected.match(/\b(cr|crore|l|lakh|lac)\b/);
             
-            // Also try matching raw numbers with context
-            if (!params.budget) {
-                const rawBudgetMatch = corrected.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)\s*(\d{4,})/);
-                if (rawBudgetMatch) {
-                    const num = parseInt(rawBudgetMatch[1]);
-                    // If it's 4-5 digits, assume thousands (rent)
-                    if (num >= 1000 && num < 100000) {
-                        params.budget = num;
+            // Budget range matching: "20-30k", "20 to 30k"
+            const rangeMatch = corrected.match(/(\d+)\s*[-to]\s*(\d+)\s*(k|l|cr|crore|lakh|lac)/);
+            if (rangeMatch) {
+                let minAmount = parseInt(rangeMatch[1]);
+                let maxAmount = parseInt(rangeMatch[2]);
+                const unit = rangeMatch[3].toLowerCase();
+                if (unit === 'k') {
+                    minAmount = minAmount * 1000;
+                    maxAmount = maxAmount * 1000;
+                } else if (unit === 'l' || unit === 'lakh' || unit === 'lac') {
+                    minAmount = minAmount * 100000;
+                    maxAmount = maxAmount * 100000;
+                } else if (unit === 'cr' || unit === 'crore') {
+                    minAmount = minAmount * 10000000;
+                    maxAmount = maxAmount * 10000000;
+                }
+                params.budgetMin = minAmount;
+                params.budgetMax = maxAmount;
+                params.budgetUnit = (isRent || hasMonthlyIndicator) ? 'monthly' : (hasTotalIndicator ? 'total' : null);
+                params.budget = maxAmount; // Backward compat: use max as single budget value
+            } else {
+                // Single budget value
+                const budgetMatch = corrected.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)?\s*(\d+)\s*(k|l|cr|crore|lakh|lac)/);
+                if (budgetMatch) {
+                    let amount = parseInt(budgetMatch[1]);
+                    const unit = budgetMatch[2].toLowerCase();
+                    if (unit === 'k') {
+                        amount = amount * 1000;
+                    } else if (unit === 'l' || unit === 'lakh' || unit === 'lac') {
+                        amount = amount * 100000;
+                    } else if (unit === 'cr' || unit === 'crore') {
+                        amount = amount * 10000000;
                     }
-                    // If it's 6-7 digits, assume lakhs (buy)
-                    else if (num >= 100000 && num < 10000000) {
-                        params.budget = num;
-                    }
-                    // If it's 8+ digits, assume crores (buy)
-                    else if (num >= 10000000) {
-                        params.budget = num;
+                    params.budgetMin = amount;
+                    params.budgetMax = amount;
+                    params.budgetUnit = (isRent || hasMonthlyIndicator) ? 'monthly' : (hasTotalIndicator ? 'total' : null);
+                    params.budget = amount; // Backward compat
+                } else {
+                    // Also try matching raw numbers with context
+                    const rawBudgetMatch = corrected.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)\s*(\d{4,})/);
+                    if (rawBudgetMatch) {
+                        const num = parseInt(rawBudgetMatch[1]);
+                        // If it's 4-5 digits, assume thousands (rent)
+                        if (num >= 1000 && num < 100000) {
+                            params.budgetMin = num;
+                            params.budgetMax = num;
+                            params.budgetUnit = (isRent || hasMonthlyIndicator) ? 'monthly' : null;
+                            params.budget = num; // Backward compat
+                        }
+                        // If it's 6-7 digits, assume lakhs (buy)
+                        else if (num >= 100000 && num < 10000000) {
+                            params.budgetMin = num;
+                            params.budgetMax = num;
+                            params.budgetUnit = hasTotalIndicator ? 'total' : null;
+                            params.budget = num; // Backward compat
+                        }
+                        // If it's 8+ digits, assume crores (buy)
+                        else if (num >= 10000000) {
+                            params.budgetMin = num;
+                            params.budgetMax = num;
+                            params.budgetUnit = 'total';
+                            params.budget = num; // Backward compat
+                        }
                     }
                 }
             }
@@ -2338,10 +2393,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check what's missing - priority order: mode → location → budget → bhk
         function getMissingParams() {
             const missing = [];
-            if (!searchContext.intentType) missing.push('mode');
-            if (!searchContext.city && !searchContext.locality) missing.push('location');
-            if (!searchContext.budget) missing.push('budget');
-            if (!searchContext.bhk) missing.push('bhk');
+            if (!chatState.category && !chatState.intentType) missing.push('mode');
+            if (!chatState.city && !chatState.locality) missing.push('location');
+            if (!chatState.budget && !chatState.budgetMin && !chatState.budgetMax) missing.push('budget');
+            if (!chatState.bhk) missing.push('bhk');
             return missing;
         }
 
@@ -2353,19 +2408,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Get pending question based on missing required slots
         // CRITICAL: Never ask for city if it can be inferred from locality
+        // Priority order: category → cityOrLocality → bhkOrType → budget
         function getPendingQuestion() {
-            // Priority order: category → cityOrLocality → bhkOrType → budget
-            // CRITICAL: Check intentType (backward compatibility via mode getter)
-            if (!searchContext.intentType) {
+            // Priority 1: Check category (rent/buy/pg/commercial/plot/projects)
+            if (!chatState.category && !chatState.intentType) {
                 return 'category';
             }
             
             // AUTO-INFERENCE CHECK: If locality exists but city doesn't, try to infer
-            if (!searchContext.city && searchContext.locality) {
+            if (!chatState.city && chatState.locality) {
                 // Try to infer city from locality (should have been done in extractParams, but double-check)
-                const inferredCity = inferCityFromLocality(searchContext.locality);
+                const inferredCity = inferCityFromLocality(chatState.locality);
                 if (inferredCity) {
-                    searchContext.city = inferredCity;
+                    chatState.city = inferredCity;
                     // City is now set, continue to next check
                 } else {
                     // Locality exists but can't be inferred - ask for clarification
@@ -2373,18 +2428,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
             
-            // Only ask for city/locality if both are missing
-            if (!searchContext.city && !searchContext.locality) {
+            // Priority 2: Only ask for city/locality if both are missing
+            if (!chatState.city && !chatState.locality) {
                 return 'cityOrLocality';
             }
             
-            if (!searchContext.bhk && !searchContext.type) {
-                return 'bhkOrType';
+            // Priority 3: Ask for BHK/type if missing (but only if we don't have enough to show results)
+            // For demo, we can show results even without BHK if we have category + location
+            // So only ask BHK if we have category + location but nothing else
+            if (!chatState.bhk && !chatState.propertyType) {
+                // Only ask BHK if we don't have budget either (to avoid asking too many questions)
+                // If we have category + location, we can show results without BHK
+                const hasEnough = hasEnoughToShowResults(chatState);
+                if (!hasEnough) {
+                    return 'bhkOrType';
+                }
             }
-            if (!searchContext.budget) {
-                return 'budget';
+            
+            // Priority 4: Budget is optional for demo, but ask if nothing else is present
+            // Only ask budget if we have category + location but no BHK and no budget
+            if (!chatState.budgetMin && !chatState.budgetMax && !chatState.budget) {
+                const hasEnough = hasEnoughToShowResults(chatState);
+                if (!hasEnough) {
+                    return 'budget';
+                }
             }
-            return null; // All required slots filled
+            
+            return null; // All required slots filled OR we have enough to show results
         }
         
         // Infer city from locality (helper function)
@@ -2462,24 +2532,31 @@ document.addEventListener('DOMContentLoaded', function() {
             return localityToCityMap[normalizedLocality] || null;
         }
 
-        // Check if we can show results - all required slots must be filled
-        // CRITICAL: This is the ONLY gate for showing property cards
-        function canShowResults() {
-            // Required slots:
-            // 1. intentType (mode) must exist
-            // 2. cityOrLocality must exist
-            // 3. at least one of bhk or type must exist
-            // 4. budget is required (ask budget first if missing)
-            // 5. No pending question
-            const ready = searchContext.intentType && 
-                   (searchContext.city || searchContext.locality) &&
-                   (searchContext.bhk || searchContext.type) &&
-                   searchContext.budget &&
-                   pendingQuestion === null;
+        // Check if we have enough info to show results (DEMO-FRIENDLY)
+        // For demo we should show properties even if some fields missing.
+        // Minimum requirement: category OR inferred category, plus at least ONE of: city/locality/budget/bhk/propertyType.
+        function hasEnoughToShowResults(state) {
+            // Must have category (rent/buy/pg/commercial/plot/projects)
+            const hasCategory = !!(state.category || state.intentType);
+            
+            // Must have at least one signal: city/locality/budget/bhk/propertyType
+            const hasAnySignal = !!(state.city || state.locality || state.bhk || 
+                                   state.budgetMin || state.budgetMax || state.budget || 
+                                   state.propertyType);
+            
+            // No pending question (don't show results while asking)
+            const noPendingQuestion = pendingQuestion === null;
+            
+            const ready = hasCategory && hasAnySignal && noPendingQuestion;
             
             // Update readyToShowResults flag
-            searchContext.readyToShowResults = ready;
+            state.readyToShowResults = ready;
             return ready;
+        }
+        
+        // Backward compatibility wrapper
+        function canShowResults() {
+            return hasEnoughToShowResults(chatState);
         }
 
         // Generate bot response - strict sequencing with pendingQuestion
@@ -2492,23 +2569,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const corrected = correctTypos(normalized);
             const params = extractParams(userText);
             
-            // Debug logging (dev mode)
+            // Debug logging (dev mode) - log state transitions
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                const slotsAfterParse = { ...searchContext, ...params };
-                console.log('🔍 Parse Debug:', {
-                    raw,
-                    normalized: params._normalized || normalized,
-                    corrected: params._corrected || corrected,
-                    matchedLocality: params._matchedLocality,
-                    inferredCity: params.city,
-                    slotsAfterParse: {
-                        intentType: slotsAfterParse.intentType,
-                        city: slotsAfterParse.city,
-                        locality: slotsAfterParse.locality,
-                        bhk: slotsAfterParse.bhk,
-                        budget: slotsAfterParse.budget
+                console.log('🔍 State Transition:', {
+                    detectedIntent: intent,
+                    extractedParams: {
+                        category: params.category || params.intentType || params.mode,
+                        city: params.city,
+                        locality: params.locality,
+                        bhk: params.bhk,
+                        budget: params.budget || (params.budgetMin && params.budgetMax ? `${params.budgetMin}-${params.budgetMax}` : null),
+                        propertyType: params.propertyType
                     },
-                    pendingQuestion: null, // Will be set below
+                    chatStateBefore: { ...chatState },
+                    missingSlots: getPendingQuestion() ? [getPendingQuestion()] : [],
                     willShowResults: false // Will be set below
                 });
             }
@@ -2529,10 +2603,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastQuestionValueSnapshot = null;
             }
             
-            // CRITICAL: Update context FIRST - this ensures we remember what user said
-            // Example: If user says "I want to rent 3bhk", mode='rent' and bhk=3 are set here
-            // Then getPendingQuestion() will NOT return 'category' because mode is already set
-            Object.assign(searchContext, params);
+            // CRITICAL: Merge params into chatState WITHOUT overwriting existing fields with null/undefined
+            // This ensures we remember what user said across turns
+            // Example: If user says "I want to rent 3bhk", category='rent' and bhk=3 are set here
+            // Then getPendingQuestion() will NOT return 'category' because category is already set
+            for (const key in params) {
+                if (params[key] !== null && params[key] !== undefined) {
+                    // Only update if new value is not null/undefined
+                    if (Array.isArray(params[key]) && params[key].length > 0) {
+                        chatState[key] = params[key];
+                    } else if (!Array.isArray(params[key])) {
+                        chatState[key] = params[key];
+                    }
+                }
+            }
+            
+            // Set intent to property_search if we have any housing-related params
+            if (params.category || params.intentType || params.city || params.locality || params.bhk || params.budget) {
+                chatState.intent = 'property_search';
+            }
 
             // Determine pending question based on missing required slots
             // This will NOT include anything the user just provided in params
@@ -2540,10 +2629,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Update debug log with final state
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                const canShow = canShowResults();
+                const canShow = hasEnoughToShowResults(chatState);
                 console.log('🔍 Final State:', {
+                    chatStateAfter: {
+                        category: chatState.category || chatState.intentType,
+                        city: chatState.city,
+                        locality: chatState.locality,
+                        bhk: chatState.bhk,
+                        budget: chatState.budget || (chatState.budgetMin && chatState.budgetMax ? `${chatState.budgetMin}-${chatState.budgetMax}` : null)
+                    },
                     pendingQuestion,
-                    willShowResults: canShow
+                    hasEnoughToShowResults: canShow,
+                    willShowResults: canShow && !pendingQuestion
                 });
             }
             
@@ -2559,13 +2656,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 chips = ['Rent', 'Buy', 'PG', 'Commercial', 'Plot', 'Projects'].slice(0, 6);
             } else if (pendingQuestion === 'cityOrLocality') {
                 // Check if we have a locality but need city clarification (ambiguous case)
-                if (searchContext.locality && !searchContext.city && lastQuestionKey !== 'cityOrLocality') {
+                if (chatState.locality && !chatState.city && lastQuestionKey !== 'cityOrLocality') {
                     // Ambiguous locality (e.g., "sector 15" could be multiple cities)
-                    const localityDisplay = searchContext.locality.charAt(0).toUpperCase() + searchContext.locality.slice(1);
+                    const localityDisplay = chatState.locality.charAt(0).toUpperCase() + chatState.locality.slice(1);
                     responseText = `Just to confirm, is this for ${localityDisplay} in which city?`;
                     chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
                     lastQuestionKey = 'cityOrLocality';
-                } else if (!searchContext.locality && !searchContext.city && lastQuestionKey !== 'cityOrLocality') {
+                } else if (!chatState.locality && !chatState.city && lastQuestionKey !== 'cityOrLocality') {
                     // No locality or city - ask normally (minimal text since chips show options)
                     responseText = 'Select a city.';
                     chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
@@ -2581,7 +2678,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastQuestionKey = 'bhkOrType';
             } else if (pendingQuestion === 'budget' && lastQuestionKey !== 'budget') {
                 // Budget question - polite but minimal (chips show ranges)
-                const isRent = searchContext.intentType === 'rent' || searchContext.intentType === 'pg';
+                const isRent = chatState.category === 'rent' || chatState.category === 'pg' || chatState.intentType === 'rent' || chatState.intentType === 'pg';
                 responseText = isRent 
                     ? 'Select a budget range.'
                     : 'Select a budget range.';
@@ -2594,14 +2691,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 pendingQuestion = null;
             }
             
-            if (!pendingQuestion) {
-                // All required slots filled - ready to show results
+            // Check if we have enough to show results (DEMO-FRIENDLY)
+            const canShow = hasEnoughToShowResults(chatState);
+            
+            if (!pendingQuestion && canShow) {
+                // All required slots filled OR we have enough - ready to show results
                 pendingQuestion = null; // Clear pending question
-                searchContext.readyToShowResults = true; // CRITICAL FLAG
+                chatState.readyToShowResults = true; // CRITICAL FLAG
                 
                 // Natural response with inferred city (don't announce inference explicitly)
                 // Use locality if available, otherwise city, otherwise generic
-                const locationText = searchContext.locality || searchContext.city || '';
+                const locationText = chatState.locality || chatState.city || '';
                 if (locationText) {
                     const displayLocation = locationText.split(' ').map(word => 
                         word.charAt(0).toUpperCase() + word.slice(1)
