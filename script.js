@@ -1378,6 +1378,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const chatInput = document.getElementById('chat-input');
         const chatSendBtn = document.getElementById('chat-send-btn');
         const chatMessages = document.getElementById('chat-messages');
+        
+        // Add scroll listener to track if user is near bottom
+        if (chatMessages) {
+            chatMessages.addEventListener('scroll', handleScroll, { passive: true });
+            // Initialize near bottom state
+            isUserNearBottom = checkIfNearBottom();
+        }
         const chatIntro = document.getElementById('chat-intro');
         const chatScreen = document.getElementById('chat-screen');
 
@@ -1393,10 +1400,61 @@ document.addEventListener('DOMContentLoaded', function() {
             return `msg-${Date.now()}-${++messageIdCounter}`;
         }
 
-        // Scroll messages to bottom
-        function scrollToBottom() {
-            requestAnimationFrame(() => {
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+        // Auto-scroll state tracking
+        let isUserNearBottom = true;
+        let scrollTimeout = null;
+        let typingScrollRaf = null;
+
+        // Check if user is near bottom (within ~80px)
+        function checkIfNearBottom() {
+            if (!chatMessages) return false;
+            const threshold = 80;
+            const distanceFromBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight;
+            return distanceFromBottom <= threshold;
+        }
+
+        // Update isUserNearBottom on scroll
+        function handleScroll() {
+            isUserNearBottom = checkIfNearBottom();
+        }
+
+        // Scroll messages to bottom (with smooth behavior and throttling)
+        function scrollToBottom(options = {}) {
+            if (!chatMessages) return;
+            
+            // Only scroll if user is near bottom (don't fight user scroll)
+            if (!isUserNearBottom && !options.force) {
+                return;
+            }
+
+            const behavior = options.behavior || 'smooth';
+            
+            // Use requestAnimationFrame for smooth scrolling during typing
+            if (options.immediate) {
+                chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'auto' });
+            } else {
+                // Throttle scroll calls during typing
+                if (scrollTimeout) {
+                    clearTimeout(scrollTimeout);
+                }
+                scrollTimeout = setTimeout(() => {
+                    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: behavior });
+                }, 50);
+            }
+        }
+
+        // Throttled scroll for typing animation
+        function scrollToBottomTyping() {
+            if (!isUserNearBottom) return;
+            
+            if (typingScrollRaf) {
+                cancelAnimationFrame(typingScrollRaf);
+            }
+            
+            typingScrollRaf = requestAnimationFrame(() => {
+                if (chatMessages) {
+                    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'smooth' });
+                }
             });
         }
 
@@ -1442,7 +1500,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     textEl.textContent = text;
                 }
             }
-            scrollToBottom();
+            // Use throttled scroll for typing animation
+            scrollToBottomTyping();
         }
 
         // Render message to DOM (legacy - for user messages and simple bot messages)
@@ -1500,6 +1559,8 @@ document.addEventListener('DOMContentLoaded', function() {
             typewriterTimer = setInterval(() => {
                 i++;
                 textEl.textContent = fullText.slice(0, i);
+                // Auto-scroll during typing
+                scrollToBottomTyping();
                 if (i >= fullText.length) {
                     clearInterval(typewriterTimer);
                     typewriterTimer = null;
@@ -1507,6 +1568,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (message) {
                         message.status = 'complete';
                     }
+                    // Final scroll when typing completes
+                    scrollToBottom({ behavior: 'smooth' });
                 }
             }, 55);
         }

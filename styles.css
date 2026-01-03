@@ -2163,7 +2163,7 @@ html, body {
 .property-card {
     background: #fff;
     border-radius: 16px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
     width: 260px;
     min-width: 260px;
@@ -2172,13 +2172,15 @@ html, body {
     flex-direction: column;
     box-sizing: border-box;
     scroll-snap-align: start;
+    padding: 12px;
 }
 
 .property-card-image {
     width: 100%;
     height: 140px;
     overflow: hidden;
-    border-radius: 12px 12px 0 0;
+    border-radius: 12px;
+    margin-bottom: 10px;
     background: #F5F5F5;
 }
 
@@ -2190,7 +2192,7 @@ html, body {
 }
 
 .property-card-content {
-    padding: 12px;
+    padding: 0;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -2245,23 +2247,27 @@ html, body {
 
 .property-card-footer {
     display: flex;
-    gap: 8px;
+    gap: 10px;
     margin-top: 8px;
     align-items: center;
 }
 
 .property-card-cta {
     flex: 1;
+    height: 40px;
     background: #111;
     color: #fff;
     border: none;
-    border-radius: 8px;
-    padding: 10px 16px;
+    border-radius: 12px;
+    padding: 0 16px;
     font-size: 14px;
     font-weight: 500;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
     transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .property-card-cta:active {
@@ -2271,16 +2277,19 @@ html, body {
 .property-card-shortlist {
     width: 40px;
     height: 40px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
+    min-width: 40px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 12px;
     background: #fff;
     color: #111;
     font-size: 18px;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: background 0.2s ease;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 .property-card-shortlist:active {
