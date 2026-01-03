@@ -3144,6 +3144,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const propertyRail = document.createElement('div');
                 propertyRail.className = 'property-rail';
 
+                // Reset image tracker for this new set of properties to avoid repeats
+                getListingImage(null, true);
+
                 safeCarousel.forEach(prop => {
                     const card = createPropertyCard(prop);
                     propertyRail.appendChild(card);
