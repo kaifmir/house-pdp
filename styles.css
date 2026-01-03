@@ -1609,8 +1609,19 @@ html, body {
 }
 
 .chat-top-bar::after {
-    content: none !important;
-    display: none !important;
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 20px;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(245, 245, 245, 0.3) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
 }
 
 .chat-back-btn {
