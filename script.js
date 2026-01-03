@@ -1426,30 +1426,49 @@ document.addEventListener('DOMContentLoaded', function() {
             return (el.scrollHeight - (el.scrollTop + el.clientHeight)) < thresholdPx;
         }
         
-        // Scroll chat to bottom using scrollIntoView sentinel (most reliable on iOS/Android)
-        function scrollChatToBottom(options = {}) {
-            // Handle both old format (boolean) and new format (object)
-            const force = typeof options === 'boolean' ? options : (options.force !== false);
-            
+        // Pin latest message under header (ChatGPT-style)
+        // Newest turn should always pin under sticky header, older messages scroll up behind
+        function pinLatestMessageUnderHeader() {
             const messages = document.getElementById("chat-messages");
-            const end = document.getElementById("chat-end");
-            if (!messages || !end) return;
+            const stack = document.getElementById("chat-stack");
+            if (!messages || !stack) return;
             
-            const nearBottom =
-                (messages.scrollHeight - (messages.scrollTop + messages.clientHeight)) < 140;
+            // Get header height for scroll margin
+            const header = document.querySelector(".chat-top-bar");
+            const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 68;
+            const scrollMargin = headerH + 16;
             
-            if (!force && !nearBottom) return;
+            // Find the newest message (last .msg element before #chat-end)
+            const msgElements = stack.querySelectorAll('.msg');
+            if (msgElements.length === 0) return;
             
+            const latestMsg = msgElements[msgElements.length - 1];
+            if (!latestMsg) return;
+            
+            // Set scroll margin on all messages so they appear under header when scrolled into view
+            msgElements.forEach(msg => {
+                msg.style.scrollMarginTop = scrollMargin + 'px';
+            });
+            
+            // Pin the latest message under header
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    end.scrollIntoView({ block: "end", behavior: "auto" });
+                    latestMsg.scrollIntoView({ block: "start", behavior: "auto" });
                 });
             });
         }
         
-        // Legacy alias for compatibility
+        // Legacy scroll functions (kept for compatibility but redirect to pinLatestMessageUnderHeader)
+        function scrollChatToBottom(options = {}) {
+            pinLatestMessageUnderHeader();
+        }
+        
         function scrollToBottomIfNeeded({ force = false, immediate = false } = {}) {
-            scrollChatToBottom({ force });
+            pinLatestMessageUnderHeader();
+        }
+        
+        function scrollToBottomTyping(msgElement = null) {
+            pinLatestMessageUnderHeader();
         }
         
         // Set chat insets dynamically (header + composer heights)
@@ -1547,46 +1566,10 @@ document.addEventListener('DOMContentLoaded', function() {
             scrollToBottom(options);
         }
 
-        // Auto-scroll utility - ChatGPT-style behavior
-        // Always scrolls to bottom when called, but respects user scroll if they've scrolled up
+        // Deprecated: scrollToBottom - use pinLatestMessageUnderHeader instead
+        // Kept for backward compatibility
         function scrollToBottom(options = {}) {
-            if (!chatMessages) return;
-            
-            // If messages don't overflow, keep scrollTop at 0 (messages stay near top under header)
-            if (chatMessages.scrollHeight <= chatMessages.clientHeight) {
-                chatMessages.scrollTop = 0;
-                return;
-            }
-            
-            // Only scroll if user is at bottom (don't fight user scroll) unless forced
-            if (!isAtBottom && !options.force) {
-                return;
-            }
-
-            // Scroll to bottom using scrollTo for smooth behavior
-            const doScroll = () => {
-                chatMessages.scrollTo({
-                    top: chatMessages.scrollHeight,
-                    behavior: options.immediate ? "auto" : "smooth"
-                });
-            };
-            
-            if (options.immediate) {
-                // Immediate scroll for typing animation
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(doScroll);
-                });
-            } else {
-                // Throttle scroll calls during typing
-                if (scrollTimeout) {
-                    clearTimeout(scrollTimeout);
-                }
-                scrollTimeout = setTimeout(() => {
-                    requestAnimationFrame(() => {
-                        requestAnimationFrame(doScroll);
-                    });
-                }, 50);
-            }
+            pinLatestMessageUnderHeader();
         }
 
         // Throttled scroll for typing animation - stick to bottom during streaming
@@ -1607,12 +1590,8 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             messages.push(message);
             const msgElement = renderMessage(message);
-            // Auto-scroll to latest message after append
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    scrollToBottomIfNeeded({ immediate: true, force: true });
-                });
-            });
+            // Pin latest message under header after adding user message
+            pinLatestMessageUnderHeader();
             return msgId;
         }
 
@@ -1627,8 +1606,8 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             messages.push(message);
             const msgElement = renderMessage(message);
-            // Auto-scroll to latest message after append
-            scrollChatToBottom({ force: true });
+            // Pin latest message under header after inserting bot message
+            pinLatestMessageUnderHeader();
             return msgId;
         }
 
@@ -1643,11 +1622,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (textEl) {
                     textEl.textContent = text;
                 }
-                // Auto-scroll during typing animation (streaming text)
-                // Call scrollChatToBottom to keep latest text visible (every few chars)
+                // Pin latest message under header during typing (every ~6 chars)
                 const currentLength = text.length;
-                if (currentLength % 3 === 0 || currentLength === 1) {
-                    scrollChatToBottom({ force: true });
+                if (currentLength % 6 === 0 || currentLength === 1) {
+                    pinLatestMessageUnderHeader();
                 }
             }
         }
@@ -1783,8 +1761,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (message) {
                         message.status = 'complete';
                     }
-                    // Final scroll when typing completes
-                    scrollToBottom({ behavior: 'smooth' });
+                    // Pin latest message under header when typing completes
+                    pinLatestMessageUnderHeader();
                 }
             }, 55);
         }

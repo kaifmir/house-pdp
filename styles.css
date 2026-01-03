@@ -2233,7 +2233,7 @@ html, body {
 /* Card sizing: never overflow viewport */
 .property-card {
     flex: 0 0 78%;
-    max-width: 320px;
+    max-width: 78%;
     scroll-snap-align: start;
     background: #fff;
     border-radius: 18px;
