@@ -1564,18 +1564,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scrollToBottom(options);
         }
 
-        // Deprecated: scrollToBottom - use pinLatestMessageUnderHeader instead
-        // Kept for backward compatibility
-        function scrollToBottom(options = {}) {
-            pinLatestMessageUnderHeader();
-        }
-
-        // Throttled scroll for typing animation - pin latest message under header
-        // Called during bot "type one letter at a time" streaming
-        function scrollToBottomTyping(msgElement = null) {
-            // During typing, pin latest message under header
-            pinLatestMessageUnderHeader();
-        }
+        // Note: scrollToBottom is defined above (line 1432) using sentinel-based scrolling
 
         // Add user message
         function addUserMessage(text) {
@@ -1588,8 +1577,8 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             messages.push(message);
             const msgElement = renderMessage(message);
-            // Pin latest message under header after adding user message
-            pinLatestMessageUnderHeader();
+            // Scroll to bottom after adding user message (force true)
+            scrollToBottom({ force: true });
             return msgId;
         }
 
@@ -3121,8 +3110,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 checkOverflow(msgEl);
             });
             
-            // Pin latest message under header after rendering
-            pinLatestMessageUnderHeader();
+            // Scroll to bottom after rendering
+            scrollToBottom({ force: true });
             return existingMsgId || msgEl.id;
         }
 
