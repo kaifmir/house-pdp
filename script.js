@@ -2717,9 +2717,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Optional chips for refinement (only if not asking a question)
                 // These are refinement chips, not question chips
-                if (searchContext.intentType === 'rent' || searchContext.intentType === 'pg') {
+                const category = chatState.category || chatState.intentType;
+                if (category === 'rent' || category === 'pg') {
                     chips = ['Under ₹20k', '₹20-30k', '₹30-50k'].slice(0, 6);
-                } else if (searchContext.intentType === 'buy' || searchContext.intentType === 'projects') {
+                } else if (category === 'buy' || category === 'projects') {
                     chips = ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr'].slice(0, 6);
                 }
             }
@@ -2745,32 +2746,36 @@ document.addEventListener('DOMContentLoaded', function() {
             let filtered = [...mockProperties];
             
             // Apply filters (loose matching for demo)
-            if (searchContext.mode) {
-                // Map mode to priceUnit for filtering
-                if (searchContext.mode === 'rent' || searchContext.mode === 'pg') {
+            const category = chatState.category || chatState.intentType;
+            if (category) {
+                // Map category to priceUnit for filtering
+                if (category === 'rent' || category === 'pg') {
                     filtered = filtered.filter(prop => prop.priceUnit === 'rent');
-                } else if (searchContext.intentType === 'buy' || searchContext.intentType === 'projects' || searchContext.intentType === 'plot') {
+                } else if (category === 'buy' || category === 'projects' || category === 'plot') {
                     filtered = filtered.filter(prop => prop.priceUnit === 'buy');
-                } else if (searchContext.intentType === 'commercial') {
+                } else if (category === 'commercial') {
                     // Commercial properties might have different structure - for now, show all
                     filtered = filtered;
                 }
             }
-            if (searchContext.city) {
-                filtered = filtered.filter(prop => prop.city.toLowerCase() === searchContext.city.toLowerCase());
+            if (chatState.city) {
+                filtered = filtered.filter(prop => prop.city.toLowerCase() === chatState.city.toLowerCase());
             }
-            if (searchContext.bhk) {
-                filtered = filtered.filter(prop => prop.bhk === searchContext.bhk);
+            if (chatState.bhk) {
+                filtered = filtered.filter(prop => prop.bhk === chatState.bhk);
             }
-            if (searchContext.type) {
-                filtered = filtered.filter(prop => prop.type === searchContext.type);
+            if (chatState.propertyType || chatState.type) {
+                const propType = chatState.propertyType || chatState.type;
+                filtered = filtered.filter(prop => prop.type === propType);
             }
-            if (searchContext.budget) {
-                const isRent = searchContext.intentType === 'rent' || searchContext.intentType === 'pg';
+            // Filter by budget (support both single budget and budgetMin/Max)
+            const budget = chatState.budget || chatState.budgetMax || chatState.budgetMin;
+            if (budget) {
+                const isRent = category === 'rent' || category === 'pg';
                 if (isRent) {
-                    filtered = filtered.filter(prop => prop.price <= searchContext.budget * 1.2); // Allow 20% tolerance
+                    filtered = filtered.filter(prop => prop.price <= budget * 1.2); // Allow 20% tolerance
                 } else {
-                    filtered = filtered.filter(prop => prop.price <= searchContext.budget * 1.2);
+                    filtered = filtered.filter(prop => prop.price <= budget * 1.2);
                 }
             }
             
@@ -2795,7 +2800,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // CRITICAL SAFETY GATE: Never render cards unless readyToShowResults is true
             // This prevents premature card display
-            const safeCarousel = (searchContext.readyToShowResults && 
+            const safeCarousel = (chatState.readyToShowResults && 
                                  pendingQuestion === null && 
                                  carousel && 
                                  carousel.length > 0) ? carousel : null;
@@ -2977,9 +2982,10 @@ document.addEventListener('DOMContentLoaded', function() {
         function handleChipClick(chipText) {
             const lower = chipText.toLowerCase();
             
-            // Mode chips (intentType)
+            // Category chips (rent/buy/pg/commercial/plot/projects)
             if (lower === 'rent' || lower === 'buy' || lower === 'pg' || lower === 'commercial' || lower === 'plot' || lower === 'projects') {
-                searchContext.intentType = lower;
+                chatState.category = lower;
+                chatState.intentType = lower; // Backward compat
                 addUserMessage(chipText);
                 setTimeout(() => {
                     handleHousingIntent(chipText);
@@ -2992,7 +2998,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (match[2].toLowerCase() === 'k') amount *= 1000;
                     else if (match[2].toLowerCase() === 'l') amount *= 100000;
                     else if (match[2].toLowerCase() === 'cr') amount *= 10000000;
-                    searchContext.budget = amount;
+                    chatState.budget = amount;
+                    chatState.budgetMin = amount;
+                    chatState.budgetMax = amount;
+                    // Infer unit from category
+                    const isRent = chatState.category === 'rent' || chatState.category === 'pg';
+                    chatState.budgetUnit = isRent ? 'monthly' : 'total';
                 }
                 addUserMessage(chipText);
                 setTimeout(() => {
@@ -3002,7 +3013,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // BHK chip (e.g., "2BHK", "3BHK")
                 const bhkMatch = lower.match(/(\d+)\s*(bhk|rk)/i);
                 if (bhkMatch) {
-                    searchContext.bhk = parseInt(bhkMatch[1]);
+                    chatState.bhk = parseInt(bhkMatch[1]);
                 }
                 addUserMessage(chipText);
                 setTimeout(() => {
@@ -3012,7 +3023,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // City or other
                 const cities = ['gurgaon', 'mumbai', 'bangalore', 'delhi', 'pune', 'noida'];
                 if (cities.some(c => chipText.toLowerCase().includes(c))) {
-                    searchContext.city = chipText;
+                    chatState.city = chipText.toLowerCase();
                 }
                 addUserMessage(chipText);
                 setTimeout(() => {
