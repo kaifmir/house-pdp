@@ -4,6 +4,25 @@
     box-sizing: border-box;
 }
 
+/* Global responsive safety - prevent overflow */
+html, body {
+    scroll-behavior: auto !important;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
+}
+
+/* Prevent absolute positioning for chips/carousel inside message area */
+.msg-bot .chat-chips,
+.msg-bot .property-carousel,
+.msg-bot .chat-followup {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+}
+
 :root {
     --primary-purple: #5E23DC;
     --primary-purple-light: #5d46db;
@@ -1724,6 +1743,11 @@ html, body {
     max-width: 320px;
     line-height: 1.4;
     overflow-wrap: anywhere;
+    text-align: center;
+    padding: 0 16px;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Transform-based marquee (GPU smooth on iOS + Android) */
@@ -1897,10 +1921,23 @@ html, body {
 
 /* Keyboard open state handled by .chat-intro.is-hidden class */
 
-/* Chat Messages */
+/* ============================================================================
+   STRICT LAYOUT CONTRACT - Response Hierarchy Rules
+   ============================================================================ */
+
+/* Container rules - single column */
+.chat-messages {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .msg {
     display: flex;
     margin: 10px 16px;
+    box-sizing: border-box;
+    width: calc(100% - 32px);
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .msg-user {
@@ -1911,14 +1948,27 @@ html, body {
     justify-content: flex-start;
 }
 
+/* Bot message content - strict single column container */
+.bot-message-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: min(92vw, 360px);
+    box-sizing: border-box;
+    overflow: hidden;
+    gap: 0;
+}
+
+/* User bubble */
 .bubble {
     background: #F5F0E8;
     color: #111;
     padding: 10px 12px;
     border-radius: 16px;
-    max-width: min(78%, 420px);
+    max-width: min(80vw, 320px);
     line-height: 1.25;
     word-break: break-word;
+    box-sizing: border-box;
 }
 
 .msg-user .bubble {
@@ -1938,21 +1988,42 @@ html, body {
     transition: opacity 140ms ease, transform 140ms ease;
 }
 
-/* Bot plain text */
+/* Bot text - full width, no narrow columns */
 .bot-text {
-    max-width: min(78%, 560px);
+    width: 100%;
+    max-width: 100%;
     color: #111;
     line-height: 1.35;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
-/* Chat Chips - left-aligned, separate from bot text */
+.bot-followup-text {
+    margin-top: 16px;
+}
+
+/* Chat Chips - left-aligned, never vertical stack */
 .chat-chips {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-    margin-top: 16px;
-    max-width: min(78%, 560px);
+    margin-top: 12px;
+    width: 100%;
+    max-width: 100%;
     justify-content: flex-start;
+    align-items: flex-start;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Prevent chips from becoming vertical stack on right */
+.chat-chips {
+    position: relative;
+    left: 0;
+    right: auto;
 }
 
 .chat-followup {
@@ -1960,15 +2031,17 @@ html, body {
     flex-wrap: wrap;
     gap: 12px;
     margin-top: 12px;
-    max-width: min(78%, 560px);
+    width: 100%;
+    max-width: 100%;
     justify-content: flex-start;
+    box-sizing: border-box;
 }
 
 .chat-chip {
     background: #F5F5F5;
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 999px;
-    padding: 10px 18px;
+    padding: 0 12px;
     font-size: 14px;
     font-family: 'Inter', sans-serif;
     color: #111;
@@ -1976,11 +2049,14 @@ html, body {
     transition: all 0.2s ease;
     white-space: nowrap;
     -webkit-tap-highlight-color: transparent;
-    height: 40px;
+    height: 32px;
+    min-height: 32px;
+    max-height: 36px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .chat-chip:active {
@@ -2000,7 +2076,42 @@ html, body {
     font-family: 'Inter', sans-serif;
 }
 
-/* Property Results - horizontal scrollable */
+/* Property Carousel - horizontal scroll, below chips/text */
+.property-carousel {
+    margin-top: 16px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    box-sizing: border-box;
+    scroll-snap-type: x mandatory;
+}
+
+.property-carousel::-webkit-scrollbar {
+    height: 4px;
+}
+
+.property-carousel::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.property-carousel::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+}
+
+.property-carousel-wrapper {
+    display: flex;
+    gap: 12px;
+    padding-bottom: 8px;
+    min-width: max-content;
+    box-sizing: border-box;
+}
+
+/* Legacy support */
 .property-results-scroll {
     margin-top: 16px;
     max-width: 100%;
@@ -2009,6 +2120,7 @@ html, body {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
     scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    box-sizing: border-box;
 }
 
 .property-results-scroll::-webkit-scrollbar {
@@ -2029,6 +2141,7 @@ html, body {
     gap: 12px;
     padding-bottom: 8px;
     min-width: max-content;
+    box-sizing: border-box;
 }
 
 .property-card {
@@ -2037,10 +2150,14 @@ html, body {
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     border: 1px solid rgba(0, 0, 0, 0.06);
-    width: 280px;
+    width: 240px;
+    min-width: 240px;
+    max-width: 280px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
+    box-sizing: border-box;
+    scroll-snap-align: start;
 }
 
 .property-image {

@@ -1445,7 +1445,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scrollToBottom();
         }
 
-        // Render message to DOM
+        // Render message to DOM (legacy - for user messages and simple bot messages)
         function renderMessage(message) {
             const msgDiv = document.createElement('div');
             msgDiv.id = message.id;
@@ -1457,10 +1457,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 bubble.textContent = message.text;
                 msgDiv.appendChild(bubble);
             } else {
+                // Use strict structure for bot messages
+                const botMessage = document.createElement('div');
+                botMessage.className = 'bot-message-content';
                 const textDiv = document.createElement('div');
                 textDiv.className = 'bot-text';
                 textDiv.textContent = message.text;
-                msgDiv.appendChild(textDiv);
+                botMessage.appendChild(textDiv);
+                msgDiv.appendChild(botMessage);
             }
 
             chatMessages.appendChild(msgDiv);
@@ -1473,9 +1477,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return msgDiv;
         }
 
-        // Typewriter effect for bot reply
+        // Typewriter effect for bot reply (simple text only)
         function typeBotReply(fullText = 'Hi') {
             const msgId = addBotMessage('');
+            const msgEl = document.getElementById(msgId);
+            if (!msgEl) return;
+            
+            // Use strict structure even for simple replies
+            const botMessage = document.createElement('div');
+            botMessage.className = 'bot-message-content';
+            const textEl = document.createElement('div');
+            textEl.className = 'bot-text';
+            botMessage.appendChild(textEl);
+            msgEl.appendChild(botMessage);
+            
             let i = 0;
 
             if (typewriterTimer) {
@@ -1484,7 +1499,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             typewriterTimer = setInterval(() => {
                 i++;
-                updateMessageText(msgId, fullText.slice(0, i));
+                textEl.textContent = fullText.slice(0, i);
                 if (i >= fullText.length) {
                     clearInterval(typewriterTimer);
                     typewriterTimer = null;
@@ -1879,99 +1894,194 @@ document.addEventListener('DOMContentLoaded', function() {
             return parts.join(' • ');
         }
 
-        // Render chips - left-aligned, separate from bot text
-        function renderChips(chips, msgId, isFollowUp = false) {
-            if (!chips || chips.length === 0) return;
+        // Strict renderBotTurn function - enforces layout contract
+        function renderBotTurn(options, existingMsgId = null) {
+            const { text, chips, carousel, followUp } = options;
             
-            const msgEl = document.getElementById(msgId);
-            if (!msgEl) return;
+            // Guardrails: prevent duplicates
+            if (followUp && chips && followUp.chips) {
+                console.warn('Both chips and followUp.chips provided - using followUp only');
+            }
+            
+            let msgEl;
+            if (existingMsgId) {
+                msgEl = document.getElementById(existingMsgId);
+            } else {
+                const msgId = addBotMessage('');
+                msgEl = document.getElementById(msgId);
+            }
+            
+            if (!msgEl) return null;
 
-            const chipsContainer = document.createElement('div');
-            chipsContainer.className = isFollowUp ? 'chat-followup' : 'chat-chips';
+            // Clear any existing content (except the message wrapper)
+            const existingContent = msgEl.querySelector('.bot-message-content');
+            if (existingContent) {
+                existingContent.remove();
+            }
+
+            // Create bot message container with strict structure
+            const botMessage = document.createElement('div');
+            botMessage.className = 'bot-message-content';
             
-            chips.forEach(chipText => {
-                const chip = document.createElement('button');
-                chip.className = 'chat-chip';
-                chip.textContent = chipText;
-                chip.addEventListener('click', () => {
-                    handleChipClick(chipText);
+            // 1. BotText (optional, max 2 lines)
+            if (text) {
+                const textEl = document.createElement('div');
+                textEl.className = 'bot-text';
+                textEl.textContent = text;
+                botMessage.appendChild(textEl);
+            }
+            
+            // 2. ChipsRow (optional, 1 row or wrapped grid) - left-aligned
+            if (chips && chips.length > 0 && !followUp) {
+                const chipsContainer = document.createElement('div');
+                chipsContainer.className = 'chat-chips';
+                
+                chips.forEach(chipText => {
+                    const chip = document.createElement('button');
+                    chip.className = 'chat-chip';
+                    chip.textContent = chipText;
+                    chip.addEventListener('click', () => {
+                        handleChipClick(chipText);
+                    });
+                    chipsContainer.appendChild(chip);
                 });
-                chipsContainer.appendChild(chip);
+                
+                botMessage.appendChild(chipsContainer);
+                
+                // Guardrail: check chips height
+                requestAnimationFrame(() => {
+                    const height = chipsContainer.getBoundingClientRect().height;
+                    if (height > 96 && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+                        console.warn('Chips overflow - check wrapping:', height);
+                    }
+                });
+            }
+            
+            // 3. CarouselRow (optional, horizontal scroll) - below chips/text
+            if (carousel && carousel.length > 0) {
+                const carouselContainer = document.createElement('div');
+                carouselContainer.className = 'property-carousel';
+                
+                const scrollWrapper = document.createElement('div');
+                scrollWrapper.className = 'property-carousel-wrapper';
+
+                carousel.forEach(prop => {
+                    const card = createPropertyCard(prop);
+                    scrollWrapper.appendChild(card);
+                });
+
+                carouselContainer.appendChild(scrollWrapper);
+                botMessage.appendChild(carouselContainer);
+            }
+            
+            // 4. FollowUpQuestion (optional) - only if no chips already rendered
+            if (followUp && followUp.text) {
+                const followUpText = document.createElement('div');
+                followUpText.className = 'bot-text bot-followup-text';
+                followUpText.textContent = followUp.text;
+                botMessage.appendChild(followUpText);
+                
+                if (followUp.chips && followUp.chips.length > 0) {
+                    const followUpChips = document.createElement('div');
+                    followUpChips.className = 'chat-chips';
+                    
+                    followUp.chips.forEach(chipText => {
+                        const chip = document.createElement('button');
+                        chip.className = 'chat-chip';
+                        chip.textContent = chipText;
+                        chip.addEventListener('click', () => {
+                            handleChipClick(chipText);
+                        });
+                        followUpChips.appendChild(chip);
+                    });
+                    
+                    botMessage.appendChild(followUpChips);
+                }
+            }
+            
+            // Append to message element
+            msgEl.appendChild(botMessage);
+            
+            // Guardrail: check for overflow
+            requestAnimationFrame(() => {
+                checkOverflow(msgEl);
             });
-
-            msgEl.appendChild(chipsContainer);
+            
             scrollToBottom();
+            return existingMsgId || msgEl.id;
         }
 
-        // Render search summary
-        function renderSummary(summary, msgId) {
-            if (!summary) return;
+        // Create property card element
+        function createPropertyCard(prop) {
+            const card = document.createElement('div');
+            card.className = 'property-card';
             
-            const msgEl = document.getElementById(msgId);
-            if (!msgEl) return;
-
-            const summaryEl = document.createElement('div');
-            summaryEl.className = 'search-summary';
-            summaryEl.textContent = summary;
-            msgEl.appendChild(summaryEl);
-            scrollToBottom();
-        }
-
-        // Render property results - horizontal scrollable cards
-        function renderResults(results, msgId) {
-            if (!results || results.length === 0) return;
+            const price = prop.priceUnit === 'rent' 
+                ? `₹${(prop.price / 1000).toFixed(0)}k/mo`
+                : prop.price >= 10000000
+                ? `₹${(prop.price / 10000000).toFixed(1)}Cr`
+                : `₹${(prop.price / 100000).toFixed(0)}L`;
             
-            const msgEl = document.getElementById(msgId);
-            if (!msgEl) return;
-
-            const resultsContainer = document.createElement('div');
-            resultsContainer.className = 'property-results-scroll';
+            const title = `${prop.bhk}BHK ${prop.type} in ${prop.locality}`;
+            const localityLine = prop.tags.length > 0 ? `Near ${prop.tags[0]}` : prop.locality;
+            const tagChips = prop.amenities.slice(0, 3).map(a => `<span class="property-tag-chip">${a}</span>`).join('');
             
-            const scrollWrapper = document.createElement('div');
-            scrollWrapper.className = 'property-results-wrapper';
-
-            results.forEach(prop => {
-                const card = document.createElement('div');
-                card.className = 'property-card';
-                
-                const price = prop.priceUnit === 'rent' 
-                    ? `₹${(prop.price / 1000).toFixed(0)}k/mo`
-                    : prop.price >= 10000000
-                    ? `₹${(prop.price / 10000000).toFixed(1)}Cr`
-                    : `₹${(prop.price / 100000).toFixed(0)}L`;
-                
-                const title = `${prop.bhk}BHK ${prop.type} in ${prop.locality}`;
-                const localityLine = prop.tags.length > 0 ? `Near ${prop.tags[0]}` : prop.locality;
-                const tagChips = prop.amenities.slice(0, 3).map(a => `<span class="property-tag-chip">${a}</span>`).join('');
-                
-                card.innerHTML = `
-                    <div class="property-image"></div>
-                    <div class="property-info">
-                        <div class="property-title">${title}</div>
-                        <div class="property-price">${price}</div>
-                        <div class="property-locality">${localityLine}</div>
-                        <div class="property-tags-row">${tagChips}</div>
-                        <div class="property-actions">
-                            <button class="btn-view">View details</button>
-                            <button class="btn-shortlist">♡</button>
-                        </div>
+            card.innerHTML = `
+                <div class="property-image"></div>
+                <div class="property-info">
+                    <div class="property-title">${title}</div>
+                    <div class="property-price">${price}</div>
+                    <div class="property-locality">${localityLine}</div>
+                    <div class="property-tags-row">${tagChips}</div>
+                    <div class="property-actions">
+                        <button class="btn-view">View details</button>
+                        <button class="btn-shortlist">♡</button>
                     </div>
-                `;
-                
-                // Add click handlers
-                card.querySelector('.btn-view').addEventListener('click', () => {
-                    console.log('View details:', prop);
-                });
-                card.querySelector('.btn-shortlist').addEventListener('click', () => {
-                    console.log('Shortlist:', prop);
-                });
-                
-                scrollWrapper.appendChild(card);
+                </div>
+            `;
+            
+            // Add click handlers
+            card.querySelector('.btn-view').addEventListener('click', () => {
+                console.log('View details:', prop);
             });
+            card.querySelector('.btn-shortlist').addEventListener('click', () => {
+                console.log('Shortlist:', prop);
+            });
+            
+            return card;
+        }
 
-            resultsContainer.appendChild(scrollWrapper);
-            msgEl.appendChild(resultsContainer);
-            scrollToBottom();
+        // Overflow detector (dev mode)
+        function checkOverflow(element) {
+            if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                return;
+            }
+            
+            const rect = element.getBoundingClientRect();
+            if (rect.right > window.innerWidth) {
+                console.warn('Element overflow detected:', {
+                    element: element.className,
+                    right: rect.right,
+                    viewportWidth: window.innerWidth,
+                    overflow: rect.right - window.innerWidth
+                });
+            }
+        }
+
+        // Legacy render functions (kept for compatibility, but will be replaced)
+        function renderChips(chips, msgId, isFollowUp = false) {
+            // Deprecated - use renderBotTurn instead
+            console.warn('renderChips is deprecated - use renderBotTurn');
+        }
+
+        function renderResults(results, msgId) {
+            // Deprecated - use renderBotTurn instead
+            console.warn('renderResults is deprecated - use renderBotTurn');
+        }
+
+        function renderSummary(summary, msgId) {
+            // Deprecated - use renderBotTurn instead
+            console.warn('renderSummary is deprecated - use renderBotTurn');
         }
 
         // Handle chip click
@@ -2057,9 +2167,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Step 5: Handle core housing intent
             Object.assign(searchContext, slots); // Update context for real
             const response = generateBotResponse(intent, userText);
-            const msgId = addBotMessage('');
             
-            // Type out the text
+            // Use strict renderBotTurn contract
+            const msgId = addBotMessage('');
+            const msgEl = document.getElementById(msgId);
+            if (!msgEl) return;
+            
+            // Type out the text first
             let i = 0;
             const fullText = response.text;
             
@@ -2074,24 +2188,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     clearInterval(typewriterTimer);
                     typewriterTimer = null;
                     
-                    // Render additional UI after typing completes
+                    // Render using strict contract after typing completes
                     setTimeout(() => {
-                        if (response.results) {
-                            renderResults(response.results, msgId);
-                        }
-                        if (response.summary) {
-                            renderSummary(response.summary, msgId);
-                        }
-                        if (response.chips) {
-                            renderChips(response.chips, msgId, false);
-                        }
-                        if (response.followUp) {
-                            // Render follow-up question separately (left-aligned)
-                            const followUpMsgId = addBotMessage(response.followUp.text);
-                            setTimeout(() => {
-                                renderChips(response.followUp.chips, followUpMsgId, true);
-                            }, 100);
-                        }
+                        // Render using strict contract (reuse existing message)
+                        renderBotTurn({
+                            text: response.text,
+                            chips: response.followUp ? null : response.chips, // Only show chips if no follow-up
+                            carousel: response.results || null,
+                            followUp: response.followUp || null
+                        }, msgId);
                     }, 100);
                 }
             }, 55);
