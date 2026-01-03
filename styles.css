@@ -1951,7 +1951,7 @@ html, body {
 
 /* Ensure spacing when user message is followed by bot message */
 .msg-user + .msg-bot {
-    margin-top: 12px;
+    margin-top: 16px;
 }
 
 /* Bot message content - strict single column container */
