@@ -1430,6 +1430,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Scroll to bottom using sentinel (ChatGPT-style)
         // Uses #chat-end sentinel with scrollIntoView for iOS stability
         function scrollToBottom(options = {}) {
+            // If we're keeping user message at top, don't scroll during typing
+            if (keepUserMessageAtTop && !options.forceKeepUserAtTop) {
+                return;
+            }
+            
             const messages = document.getElementById("chat-messages");
             const end = document.getElementById("chat-end");
             if (!messages || !end) return;
@@ -1566,6 +1571,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Note: scrollToBottom is defined above (line 1432) using sentinel-based scrolling
 
+        // Track if we should keep user message at top (don't auto-scroll during typing)
+        let keepUserMessageAtTop = false;
+        let lastUserMessageId = null;
+        
         // Add user message
         function addUserMessage(text) {
             const msgId = generateMessageId();
@@ -1577,6 +1586,10 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             messages.push(message);
             const msgElement = renderMessage(message);
+            
+            // Set flag to keep user message at top
+            keepUserMessageAtTop = true;
+            lastUserMessageId = msgId;
             
             // Scroll user's message to top of viewport with space below
             if (msgElement) {
@@ -1610,8 +1623,11 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             messages.push(message);
             const msgElement = renderMessage(message);
-            // Scroll to bottom after inserting bot message (force true)
-            scrollToBottom({ force: true });
+            // Don't scroll if we're keeping user message at top
+            // Bot message will appear below user message naturally
+            if (!keepUserMessageAtTop) {
+                scrollToBottom({ force: true });
+            }
             return msgId;
         }
 
@@ -1626,10 +1642,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (textEl) {
                     textEl.textContent = text;
                 }
-                // Scroll to bottom during typing (every ~6 chars, throttled)
-                const currentLength = text.length;
-                if (currentLength % 6 === 0 || currentLength === 1) {
-                    scrollToBottom({ force: true });
+                // Don't scroll during typing if we're keeping user message at top
+                // The user message should stay at top with space below
+                // Only scroll if explicitly requested
+                if (!keepUserMessageAtTop) {
+                    const currentLength = text.length;
+                    if (currentLength % 6 === 0 || currentLength === 1) {
+                        scrollToBottom({ force: true });
+                    }
                 }
             }
         }
@@ -1752,9 +1772,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     lastWordCount = currentWordCount;
                 }
                 
-                // Scroll to bottom during typing (every ~6 chars, throttled)
-                if (i % 6 === 0 || i === 1) {
-                    scrollToBottom({ force: true });
+                // Don't scroll during typing if we're keeping user message at top
+                // The user message should stay at top with space below
+                if (!keepUserMessageAtTop) {
+                    if (i % 6 === 0 || i === 1) {
+                        scrollToBottom({ force: true });
+                    }
                 }
                 if (i >= fullText.length) {
                     clearInterval(typewriterTimer);
@@ -1765,8 +1788,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (message) {
                         message.status = 'complete';
                     }
-                    // Scroll to bottom when typing completes
-                    scrollToBottom({ force: true });
+                    // After typing completes, reset the flag so future messages can scroll normally
+                    // But don't scroll now if we were keeping user message at top
+                    if (!keepUserMessageAtTop) {
+                        scrollToBottom({ force: true });
+                    } else {
+                        // Reset flag after bot response completes
+                        keepUserMessageAtTop = false;
+                    }
                 }
             }, 55);
         }
