@@ -1441,10 +1441,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Some parts of your code call scrollChatToBottom; alias it properly
-        function scrollChatToBottom(force = true) {
-            scrollToBottomIfNeeded({ force });
-        }
         
         // Set chat insets dynamically (header + composer heights)
         // Makes first message appear 16px under header (always)
