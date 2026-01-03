@@ -1677,11 +1677,39 @@ document.addEventListener('DOMContentLoaded', function() {
             // Remove spacer if it exists (it breaks layout)
             removeChatSpacer();
             
-            // Insert message at the end (before anchor if it exists)
+            // Ensure chat-stack exists
+            ensureChatStack();
+            
+            // Insert message into chat-stack (not directly into chat-messages)
+            const stack = document.getElementById('chat-stack');
+            if (!stack) {
+                // Fallback: ensure stack exists and retry
+                ensureChatStack();
+                const stackRetry = document.getElementById('chat-stack');
+                if (!stackRetry) {
+                    // Last resort: append to messages directly
+                    chatMessages.appendChild(msgDiv);
+                    return msgDiv;
+                }
+            }
+            
+            const finalStack = document.getElementById('chat-stack');
             const anchor = document.getElementById('chat-end');
-            if (anchor) {
-                chatMessages.insertBefore(msgDiv, anchor);
+            
+            if (finalStack && anchor && finalStack.contains(anchor)) {
+                // Insert before anchor if anchor is a child of stack
+                finalStack.insertBefore(msgDiv, anchor);
+            } else if (finalStack) {
+                // Append to stack and ensure anchor exists at end
+                finalStack.appendChild(msgDiv);
+                // Ensure anchor exists
+                if (!document.getElementById('chat-end')) {
+                    const end = document.createElement('div');
+                    end.id = 'chat-end';
+                    finalStack.appendChild(end);
+                }
             } else {
+                // Last resort fallback
                 chatMessages.appendChild(msgDiv);
             }
 
