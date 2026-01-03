@@ -1536,7 +1536,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return msgDiv;
         }
 
-        // Typewriter effect for bot reply (simple text only)
+        // Typewriter effect for bot reply (TEXT ONLY - for non-core conversations)
+        // This function NEVER renders chips, cards, or any UI components
+        // Use this for: greetings, redirects, gibberish, platform comparisons, broker requests
         function typeBotReply(fullText = 'Hi') {
             const msgId = addBotMessage('');
             const msgEl = document.getElementById(msgId);
@@ -2291,26 +2293,63 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
 
-        // Generate greeting response with housing redirect
+        // Detect platform comparisons (Airbnb, Magicbricks, etc.)
+        function detectPlatformComparison(text) {
+            if (!text || typeof text !== 'string') return false;
+            const normalized = text.trim().toLowerCase();
+            const platforms = ['airbnb', 'magicbricks', '99acres', 'makaan', 'housing.com', 'nobroker', 'zomato', 'swiggy', 'olx', 'quikr'];
+            return platforms.some(platform => normalized.includes(platform));
+        }
+
+        // Detect broker/phone/contact requests
+        function detectBrokerRequest(text) {
+            if (!text || typeof text !== 'string') return false;
+            const normalized = text.trim().toLowerCase();
+            const brokerKeywords = ['broker', 'agent', 'contact', 'phone', 'number', 'call', 'whatsapp', 'email', 'reach'];
+            return brokerKeywords.some(keyword => normalized.includes(keyword));
+        }
+
+        // Generate greeting response with housing redirect (STRICT FORMAT)
         function generateGreetingResponse() {
-            // Exact pattern: "Hello. How can I help you today with your home search?"
-            return "Hello. How can I help you today with your home search?";
+            // Exact format: Polite acknowledgement + Redirect to housing + Open housing question
+            return "Hello. I'm doing well, thank you. How can I help you today with finding a home?";
         }
 
         // Generate response for single letter or gibberish
         function generateSingleLetterResponse() {
-            return "Could you share what you are looking for? For example, 2BHK for Rent in Gurgaon.";
+            return "I didn't quite understand that. I can help you with renting, buying, or exploring properties. What are you looking for?";
         }
 
-        // Generate polite redirect for non-housing questions
+        // Generate polite redirect for non-housing questions (context-aware)
         function generateRedirectResponse(userText) {
-            // Exact template: "I can help with property search and locality insights. What are you looking for?"
-            return "I can help with property search and locality insights. What are you looking for?";
+            if (!userText) {
+                return "I can help you explore homes to rent, buy, or invest in. Tell me what you're looking for.";
+            }
+
+            const normalized = userText.trim().toLowerCase();
+
+            // Weather-related
+            if (normalized.match(/\b(weather|temperature|rain|sunny|cloudy|forecast|aqi|air quality)\b/i)) {
+                return "I can't help with the weather, but I can help you find a home that gets great sunlight or stays cool year-round. What kind of place are you looking for?";
+            }
+
+            // Platform comparison
+            if (detectPlatformComparison(userText)) {
+                return "I can't help with other platforms, but I can help you explore verified listings and local insights here. What kind of property are you looking for?";
+            }
+
+            // Broker/contact request
+            if (detectBrokerRequest(userText)) {
+                return "To contact a seller or broker, you can open the property details page and submit a lead. I can help you find the right property to start with.";
+            }
+
+            // Default redirect
+            return "I can help you explore homes to rent, buy, or invest in. Tell me what you're looking for.";
         }
 
         // Generate gibberish response
         function generateGibberishResponse() {
-            return "I didn't catch that. Tell me what you want: Rent, Buy, PG, Commercial, Plot, or Projects?";
+            return "I didn't quite understand that. I can help you with renting, buying, or exploring properties. What are you looking for?";
         }
 
         // Main housing intent handler with debug logging
@@ -2319,43 +2358,59 @@ document.addEventListener('DOMContentLoaded', function() {
             const raw = userText;
             const normalized = userText ? userText.trim().toLowerCase() : '';
             
-            // Step 2: Routing logic order (strict priority)
+            // Step 2: Routing logic order (strict priority for NON-CORE conversations)
+            // NON-CORE HANDLERS (text-only, no UI, no cards, no chips)
+            
             // 1. Detect single letter or very short non-meaningful input
             if (normalized.length === 1 || (normalized.length <= 2 && !detectGreeting(userText) && !detectIntent(userText))) {
                 const singleLetterText = generateSingleLetterResponse();
-                typeBotReply(singleLetterText);
+                typeBotReply(singleLetterText); // TEXT ONLY - no UI components
                 return;
             }
             
             // 2. Detect gibberish
             if (detectGibberish(userText)) {
                 const gibberishText = generateGibberishResponse();
-                typeBotReply(gibberishText);
+                typeBotReply(gibberishText); // TEXT ONLY - no UI components
                 return;
             }
             
-            // 3. Detect greeting
+            // 3. Detect greeting (NON-CORE - text only)
             const isGreeting = detectGreeting(userText);
             
-            // 4. Detect housing intent
+            // 4. Detect housing intent (CORE)
             const intent = detectIntent(userText);
             const slots = extractParams(userText);
             const isCore = intent !== null;
             
-            // Step 3: Priority routing - if both greeting and housing, prioritize housing
+            // 5. Detect platform comparisons (NON-CORE - text only)
+            if (detectPlatformComparison(userText) && !isCore) {
+                const redirectText = generateRedirectResponse(userText);
+                typeBotReply(redirectText); // TEXT ONLY - no UI components
+                return;
+            }
+            
+            // 6. Detect broker requests (NON-CORE - text only)
+            if (detectBrokerRequest(userText) && !isCore) {
+                const redirectText = generateRedirectResponse(userText);
+                typeBotReply(redirectText); // TEXT ONLY - no UI components
+                return;
+            }
+            
+            // Step 3: Priority routing - if both greeting and housing, prioritize housing (CORE)
             if (isGreeting && isCore) {
                 // Mixed: greeting + housing query (e.g., "Hi, 3bhk in Rohini")
                 // Treat as CORE housing, skip greeting-only response
                 console.log('Intent Detection: Mixed greeting + housing - prioritizing housing');
             } else if (isGreeting && !isCore) {
-                // Pure greeting - respond with sweet greeting + redirect
+                // Pure greeting - respond with greeting + redirect (TEXT ONLY)
                 const greetingText = generateGreetingResponse();
-                typeBotReply(greetingText);
+                typeBotReply(greetingText); // TEXT ONLY - no UI components
                 return;
             } else if (!isGreeting && !isCore) {
-                // Non-housing question - witty redirect
+                // Non-housing question - redirect (TEXT ONLY)
                 const redirectText = generateRedirectResponse(userText);
-                typeBotReply(redirectText);
+                typeBotReply(redirectText); // TEXT ONLY - no UI components
                 return;
             }
             
@@ -2389,9 +2444,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Step 5: Route based on intent
             if (!intent) {
-                // Should not reach here if greeting/redirect handled above, but fallback
-                const redirectText = generateRedirectResponse();
-                typeBotReply(redirectText);
+                // Fallback for unmapped intents (NON-CORE - text only)
+                const redirectText = generateRedirectResponse(userText);
+                typeBotReply(redirectText); // TEXT ONLY - no UI components
                 return;
             }
 
