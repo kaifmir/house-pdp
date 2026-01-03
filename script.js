@@ -2902,7 +2902,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Generate response for single letter or gibberish
         function generateSingleLetterResponse() {
-            return "I didn't quite understand that. I can help you with renting, buying, or exploring properties. What are you looking for?";
+            return "I did not understand that. Please share what you are looking for. For example, 2BHK for Rent in Rohini with a budget.";
         }
 
         // Generate polite redirect for non-housing questions (context-aware)
