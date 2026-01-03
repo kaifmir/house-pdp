@@ -1383,6 +1383,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!chatInput || !chatSendBtn || !chatMessages || !chatIntro) return;
 
+        // Measure header height and set CSS variable for proper padding
+        // Pin message stack to top (16px below header), never center
+        function measureHeaderHeight() {
+            const header = document.querySelector('.chat-top-bar');
+            if (header) {
+                const height = header.offsetHeight;
+                document.documentElement.style.setProperty('--header-height', `${height}px`);
+            }
+        }
+        
+        // Measure header on load and resize (after layout is ready)
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                measureHeaderHeight();
+            });
+        });
+        
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', measureHeaderHeight);
+        }
+        window.addEventListener('resize', measureHeaderHeight);
+
         // Initialize spacer and anchor elements for ChatGPT-style layout
         function ensureChatElements() {
             // Add spacer if it doesn't exist
