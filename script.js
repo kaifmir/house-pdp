@@ -1991,6 +1991,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Extract parameters from text - supports all modes with typo tolerance
         function extractParams(text) {
+            // Defensive guard - never throw if input is invalid
             if (!text || typeof text !== 'string') {
                 return {};
             }
@@ -1998,6 +1999,9 @@ document.addEventListener('DOMContentLoaded', function() {
             // Normalize and correct typos
             const normalized = normalizeText(text);
             const corrected = correctTypos(normalized);
+            
+            // Declare lower once at the top for use throughout the function
+            const lower = corrected || normalized || '';
             
             const params = {};
 
@@ -2271,7 +2275,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 { name: 'kolkata', aliases: ['kolkata', 'calcutta'] }
             ];
             
-            // First, check for explicit city mentions
+            // First, check for explicit city mentions (use lower which is now defined)
             for (const city of cityNames) {
                 if (city.aliases.some(alias => lower.includes(alias))) {
                     params.city = city.name;

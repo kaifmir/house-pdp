@@ -1684,6 +1684,7 @@ html, body {
 
 /* Chat layout: stack from top, scroll behind header, stick-to-bottom auto-scroll */
 /* Messages Area - ONLY scrollable region, positioned between header and composer */
+/* Pin message stack to top (16px below header), never center */
 .chat-messages {
     flex: 1 1 auto; /* Take remaining space */
     overflow-y: auto;
@@ -1694,13 +1695,13 @@ html, body {
     background: transparent;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start; /* CRITICAL: Stack from top, not space-between */
+    justify-content: flex-start; /* CRITICAL: Stack from top, NOT center, NOT space-between */
     align-items: stretch;
     gap: 12px; /* Consistent spacing between message blocks */
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
-    padding: 12px 16px; /* Top padding below header */
-    padding-top: calc(12px + env(safe-area-inset-top)); /* Start below header */
+    /* Top padding: header height + 16px so first message sits 16px below header */
+    padding-top: calc(var(--header-height, 68px) + 16px + env(safe-area-inset-top));
     padding-left: 16px;
     padding-right: 16px;
     padding-bottom: calc(var(--composer-h, 80px) + 16px + env(safe-area-inset-bottom)); /* Bottom padding above input */
@@ -1722,9 +1723,10 @@ html, body {
 }
 
 /* Hero Intro Block - wraps greeting + pills */
+/* Remove centering once chat starts - messages should stack from top */
 .chat-intro {
     width: 100%;
-    padding: calc(var(--header-h, 68px) + 24px + env(safe-area-inset-top)) 0 12px;
+    padding: calc(var(--header-height, 68px) + 24px + env(safe-area-inset-top)) 0 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1737,6 +1739,11 @@ html, body {
     will-change: opacity, transform, max-height;
     overflow: hidden;
     box-sizing: border-box;
+}
+
+/* When chat starts, remove intro centering - messages stack from top */
+.chat-screen.chat-started .chat-intro {
+    display: none; /* Completely hide intro when chat starts */
 }
 
 .chat-intro.is-hidden {
