@@ -1383,6 +1383,28 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!chatInput || !chatSendBtn || !chatMessages || !chatIntro) return;
 
+        // Initialize spacer and anchor elements for ChatGPT-style layout
+        function ensureChatElements() {
+            // Add spacer if it doesn't exist
+            let spacer = document.getElementById('chat-spacer');
+            if (!spacer) {
+                spacer = document.createElement('div');
+                spacer.id = 'chat-spacer';
+                chatMessages.appendChild(spacer);
+            }
+            
+            // Add anchor if it doesn't exist
+            let anchor = document.getElementById('chat-end');
+            if (!anchor) {
+                anchor = document.createElement('div');
+                anchor.id = 'chat-end';
+                chatMessages.appendChild(anchor);
+            }
+        }
+        
+        // Initialize on load
+        ensureChatElements();
+
         // Messages state
         const messages = [];
         let messageIdCounter = 0;
@@ -1419,6 +1441,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Scroll messages to bottom (with smooth behavior and throttling)
+        // Uses anchor element for ChatGPT-style scrolling
         function scrollToBottom(options = {}) {
             if (!chatMessages) return;
             
@@ -1429,17 +1452,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const behavior = options.behavior || 'smooth';
             
-            // Use requestAnimationFrame for smooth scrolling during typing
-            if (options.immediate) {
-                chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'auto' });
-            } else {
-                // Throttle scroll calls during typing
-                if (scrollTimeout) {
-                    clearTimeout(scrollTimeout);
+            // Use anchor element for reliable scrolling
+            const chatEnd = document.getElementById('chat-end');
+            if (chatEnd) {
+                if (options.immediate) {
+                    chatEnd.scrollIntoView({ behavior: 'auto', block: 'end' });
+                } else {
+                    // Throttle scroll calls during typing
+                    if (scrollTimeout) {
+                        clearTimeout(scrollTimeout);
+                    }
+                    scrollTimeout = setTimeout(() => {
+                        chatEnd.scrollIntoView({ behavior: behavior, block: 'end' });
+                    }, 50);
                 }
-                scrollTimeout = setTimeout(() => {
-                    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: behavior });
-                }, 50);
+            } else {
+                // Fallback to scrollTo if anchor doesn't exist
+                if (options.immediate) {
+                    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: 'auto' });
+                } else {
+                    if (scrollTimeout) {
+                        clearTimeout(scrollTimeout);
+                    }
+                    scrollTimeout = setTimeout(() => {
+                        chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: behavior });
+                    }, 50);
+                }
             }
         }
 
@@ -1526,7 +1564,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 msgDiv.appendChild(botMessage);
             }
 
-            chatMessages.appendChild(msgDiv);
+            // Insert before spacer/anchor to keep them at the end
+            const anchor = document.getElementById('chat-end');
+            if (anchor) {
+                chatMessages.insertBefore(msgDiv, anchor);
+            } else {
+                chatMessages.appendChild(msgDiv);
+                // Ensure anchor exists
+                ensureChatElements();
+            }
 
             // Trigger animation
             requestAnimationFrame(() => {

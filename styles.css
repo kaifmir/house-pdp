@@ -1550,7 +1550,9 @@ html, body {
     opacity: 0;
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
 }
 
 .chat-screen.active {
@@ -1681,11 +1683,7 @@ html, body {
 /* Step 3: Messages Area - ONLY scrollable region, positioned between header and composer */
 /* Bottom accounts for composer height + keyboard height */
 .chat-messages {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: calc(var(--composer-h) + var(--kb));
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
@@ -1694,13 +1692,30 @@ html, body {
     background: transparent;
     display: flex;
     flex-direction: column;
+    justify-content: flex-start;
     align-items: stretch;
     gap: 12px;
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
     padding: 16px;
+    padding-top: calc(var(--header-h, 68px) + 16px + env(safe-area-inset-top));
+    padding-bottom: calc(var(--composer-h, 80px) + 16px + env(safe-area-inset-bottom));
     width: 100%;
     max-width: 100%;
+    min-height: 0; /* Critical for flex child to scroll */
+}
+
+/* Spacer element - creates empty space above input when few messages */
+#chat-spacer {
+    flex: 1 0 auto;
+    min-height: 16px;
+}
+
+/* Anchor element for scroll-to-bottom */
+#chat-end {
+    height: 1px;
+    width: 100%;
+    flex-shrink: 0;
 }
 
 /* Hero Intro Block - wraps greeting + pills */
