@@ -1409,6 +1409,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const messages = [];
         let messageIdCounter = 0;
         let typewriterTimer = null;
+        
+        // Bot responding state for Send ↔ Stop toggle
+        let isBotResponding = false;
 
         // Generate unique message ID
         function generateMessageId() {
@@ -1603,6 +1606,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const msgEl = document.getElementById(msgId);
             if (!msgEl) return;
             
+            // Set bot responding state and update button
+            isBotResponding = true;
+            updateSendButtonState();
+            
             // Use strict structure even for simple replies
             const botMessage = document.createElement('div');
             botMessage.className = 'bot-message-content';
@@ -1618,6 +1625,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             typewriterTimer = setInterval(() => {
+                // Check if user stopped the response
+                if (!isBotResponding) {
+                    clearInterval(typewriterTimer);
+                    typewriterTimer = null;
+                    return;
+                }
+                
                 i++;
                 textEl.textContent = fullText.slice(0, i);
                 // Auto-scroll during typing
@@ -1625,6 +1639,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (i >= fullText.length) {
                     clearInterval(typewriterTimer);
                     typewriterTimer = null;
+                    isBotResponding = false;
+                    updateSendButtonState();
                     const message = messages.find(m => m.id === msgId);
                     if (message) {
                         message.status = 'complete';
@@ -1635,8 +1651,56 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 55);
         }
 
+        // Stop bot response - cancels typing animation
+        function stopBotResponse() {
+            if (!isBotResponding) return;
+            
+            // Clear typing timer
+            if (typewriterTimer) {
+                clearInterval(typewriterTimer);
+                typewriterTimer = null;
+            }
+            
+            // Reset state
+            isBotResponding = false;
+            updateSendButtonState();
+        }
+        
+        // Update send button state (Send ↔ Stop toggle)
+        function updateSendButtonState() {
+            if (!chatSendBtn) return;
+            
+            const svg = chatSendBtn.querySelector('svg');
+            if (!svg) return;
+            
+            if (isBotResponding) {
+                // Show Stop icon (square)
+                svg.innerHTML = `
+                    <rect x="6" y="6" width="12" height="12" fill="currentColor" stroke="none"/>
+                `;
+                svg.setAttribute('viewBox', '0 0 24 24');
+                chatSendBtn.setAttribute('aria-label', 'Stop');
+            } else {
+                // Show Send icon (paper plane)
+                svg.innerHTML = `
+                    <rect width="256" height="256" fill="none"/>
+                    <path d="M223.69,42.18a8,8,0,0,0-9.87-9.87l-192,58.22a8,8,0,0,0-1.25,14.93L108,148l42.54,87.42a8,8,0,0,0,14.93-1.25Z" opacity="0.2" fill="currentColor"/>
+                    <line x1="108" y1="148" x2="160" y2="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+                    <path d="M223.69,42.18a8,8,0,0,0-9.87-9.87l-192,58.22a8,8,0,0,0-1.25,14.93L108,148l42.54,87.42a8,8,0,0,0,14.93-1.25Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+                `;
+                svg.setAttribute('viewBox', '0 0 256 256');
+                chatSendBtn.setAttribute('aria-label', 'Send');
+            }
+        }
+
         // Handle send message
         function handleSend() {
+            // If bot is responding, stop it instead
+            if (isBotResponding) {
+                stopBotResponse();
+                return;
+            }
+            
             // Step 1: Read input value BEFORE any mutation
             const rawInput = chatInput.value;
             const text = rawInput.trim();
@@ -1673,6 +1737,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Send button click
         chatSendBtn.addEventListener('click', handleSend);
+        
+        // Initialize button state
+        updateSendButtonState();
 
         // Enter key press
         chatInput.addEventListener('keydown', (e) => {
