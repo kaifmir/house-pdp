@@ -3144,33 +3144,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Main housing intent handler with debug logging
+        // Wrapped in try/catch to prevent crashes from breaking the chat loop
         function handleHousingIntent(userText) {
-            // Step 1: Read input value (already done, but ensure we have it)
-            const raw = userText;
-            const normalized = userText ? userText.trim().toLowerCase() : '';
-            
-            // Step 2: Routing logic order (strict priority for NON-CORE conversations)
-            // NON-CORE HANDLERS (text-only, no UI, no cards, no chips)
-            
-            // 1. Detect single letter or very short non-meaningful input
-            if (normalized.length === 1 || (normalized.length <= 2 && !detectGreeting(userText) && !detectIntent(userText))) {
-                const singleLetterText = generateSingleLetterResponse();
-                typeBotReply(singleLetterText); // TEXT ONLY - no UI components
-                return;
-            }
-            
-            // 2. Detect gibberish
-            if (detectGibberish(userText)) {
-                const gibberishText = generateGibberishResponse();
-                typeBotReply(gibberishText); // TEXT ONLY - no UI components
-                return;
-            }
-            
-            // 3. Detect greeting (NON-CORE - text only)
-            const isGreeting = detectGreeting(userText);
-            
-            // 4. Detect housing intent (CORE)
-            const intent = detectIntent(userText);
+            try {
+                // Step 1: Read input value (already done, but ensure we have it)
+                const raw = userText;
+                const normalized = userText ? userText.trim().toLowerCase() : '';
+                
+                // Step 2: Routing logic order (strict priority for NON-CORE conversations)
+                // NON-CORE HANDLERS (text-only, no UI, no cards, no chips)
+                
+                // 1. Detect single letter or very short non-meaningful input
+                if (normalized.length === 1 || (normalized.length <= 2 && !detectGreeting(userText) && !detectIntent(userText))) {
+                    const singleLetterText = generateSingleLetterResponse();
+                    typeBotReply(singleLetterText); // TEXT ONLY - no UI components
+                    return;
+                }
+                
+                // 2. Detect gibberish
+                if (detectGibberish(userText)) {
+                    const gibberishText = generateGibberishResponse();
+                    typeBotReply(gibberishText); // TEXT ONLY - no UI components
+                    return;
+                }
+                
+                // 3. Detect greeting (NON-CORE - text only)
+                const isGreeting = detectGreeting(userText);
+                
+                // 4. Detect housing intent (CORE) - STRICT ROUTING: GREETING → CORE → OTHER
+                const intent = detectIntent(userText);
             const slots = extractParams(userText);
             const isCore = intent !== null;
             
