@@ -3163,9 +3163,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.src = DEFAULT_FALLBACK_IMAGE;
                     }
                 });
-                // Force load attempt
-                if (!img.complete) {
-                    img.load();
+                // Force load attempt by setting src again if not complete
+                if (!img.complete && img.src) {
+                    const currentSrc = img.src;
+                    img.src = '';
+                    img.src = currentSrc;
                 }
             }
             
