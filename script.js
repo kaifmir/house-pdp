@@ -1572,11 +1572,11 @@ document.addEventListener('DOMContentLoaded', function() {
             pinLatestMessageUnderHeader();
         }
 
-        // Throttled scroll for typing animation - stick to bottom during streaming
+        // Throttled scroll for typing animation - pin latest message under header
         // Called during bot "type one letter at a time" streaming
         function scrollToBottomTyping(msgElement = null) {
-            // During typing, force scroll to keep latest text visible
-            scrollChatToBottom({ force: true });
+            // During typing, pin latest message under header
+            pinLatestMessageUnderHeader();
         }
 
         // Add user message
@@ -1748,9 +1748,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     lastWordCount = currentWordCount;
                 }
                 
-                // Auto-scroll during typing (every 3-5 chars)
-                if (i % 3 === 0) {
-                    scrollChatToBottom({ force: true });
+                // Pin latest message under header during typing (every ~6 chars)
+                if (i % 6 === 0 || i === 1) {
+                    pinLatestMessageUnderHeader();
                 }
                 if (i >= fullText.length) {
                     clearInterval(typewriterTimer);
@@ -3123,7 +3123,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 checkOverflow(msgEl);
             });
             
-            scrollChatToBottom({ force: true });
+            // Pin latest message under header after rendering
+            pinLatestMessageUnderHeader();
             return existingMsgId || msgEl.id;
         }
 
