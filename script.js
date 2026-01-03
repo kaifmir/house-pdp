@@ -3218,12 +3218,31 @@ document.addEventListener('DOMContentLoaded', function() {
             ]
         };
         
-        // Helper function to get listing image based on city (using local images)
-        function getListingImage(city) {
+        // Track used images to avoid repeats within a single property set
+        let usedImagesInCurrentSet = new Set();
+        
+        // Helper function to get listing image based on city (using local images, no repeats)
+        function getListingImage(city, resetTracker = false) {
+            if (resetTracker) {
+                usedImagesInCurrentSet.clear();
+            }
+            
             const cityKey = (city || '').toLowerCase();
             const images = CITY_IMAGE_MAP[cityKey] || LOCAL_IMAGES; // Default to all local images
-            // Return random image from city-specific set
-            return images[Math.floor(Math.random() * images.length)];
+            
+            // Filter out already used images
+            const availableImages = images.filter(img => !usedImagesInCurrentSet.has(img));
+            
+            // If all images are used, reset and use all images again
+            const imagesToUse = availableImages.length > 0 ? availableImages : images;
+            
+            // Select random image from available set
+            const selectedImage = imagesToUse[Math.floor(Math.random() * imagesToUse.length)];
+            
+            // Mark as used
+            usedImagesInCurrentSet.add(selectedImage);
+            
+            return selectedImage;
         }
 
         // Create property card element with modern design and Unsplash images
