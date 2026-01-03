@@ -1515,12 +1515,14 @@ html, body {
 /* Chat Screen - Container only, no scrolling */
 /* Step 2: Transform is on this element - header is OUTSIDE, so it's OK */
 .chat-screen {
+    --chat-bg: #F7F2EC;
+    --chat-bg-rgb: 247, 242, 236;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to bottom, #F5F5F5 0%, #EBEBEB 100%);
+    background: var(--chat-bg);
     z-index: 10002;
     width: 100%;
     max-width: 100%;
@@ -1551,6 +1553,8 @@ html, body {
     right: 0;
     z-index: 9999;
     background: transparent;
+    border: none !important;
+    box-shadow: none !important;
     pointer-events: none;
     transform: translate3d(0, var(--vv-top), 0);
     -webkit-transform: translate3d(0, var(--vv-top), 0);
@@ -1565,23 +1569,11 @@ html, body {
     inset: 0;
     background: linear-gradient(
         to bottom,
-        #F7F2EC 0%,
-        rgba(247, 242, 236, 0.92) 60%,
-        rgba(247, 242, 236, 0.75) 100%
+        rgba(var(--chat-bg-rgb, 247, 242, 236), 1) 0%,
+        rgba(var(--chat-bg-rgb, 247, 242, 236), 0.2) 100%
     );
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-    pointer-events: none;
-}
-
-.chat-top-bar::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 1px;
-    background: rgba(0, 0, 0, 0.06);
     pointer-events: none;
 }
 
