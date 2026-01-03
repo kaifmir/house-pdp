@@ -2145,31 +2145,37 @@ html, body {
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    scrollbar-width: none; /* Hide scrollbar completely */
+    -ms-overflow-style: none; /* Hide scrollbar on IE/Edge */
     box-sizing: border-box;
     scroll-snap-type: x mandatory;
 }
 
+/* Hide scrollbar completely for all browsers */
 .property-carousel::-webkit-scrollbar {
-    height: 4px;
-}
-
-.property-carousel::-webkit-scrollbar-track {
+    display: none; /* Hide scrollbar completely */
+    width: 0;
+    height: 0;
     background: transparent;
 }
 
+.property-carousel::-webkit-scrollbar-track {
+    display: none;
+}
+
 .property-carousel::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 2px;
+    display: none;
 }
 
 .property-carousel-wrapper {
     display: flex;
     gap: 12px;
     padding-bottom: 8px;
+    padding-left: 0;
+    padding-right: 16px;
     min-width: max-content;
     box-sizing: border-box;
+    align-items: stretch;
 }
 
 /* Legacy support */
@@ -2211,23 +2217,27 @@ html, body {
     border-radius: 16px;
     overflow: visible;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    width: 260px;
-    min-width: 260px;
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
     scroll-snap-align: start;
-    padding: 12px;
+    padding: 16px;
+    height: auto;
 }
 
 .property-card-image {
     width: 100%;
-    height: 140px;
+    height: 160px;
+    min-height: 160px;
     overflow: hidden;
     border-radius: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     background: #F5F5F5;
+    position: relative;
 }
 
 .property-card-image img {
@@ -2235,6 +2245,12 @@ html, body {
     height: 100%;
     object-fit: cover;
     display: block;
+    background: #F5F5F5;
+    transition: opacity 0.3s ease;
+}
+
+.property-card-image img[src=""] {
+    opacity: 0;
 }
 
 .property-card-content {
@@ -2328,14 +2344,21 @@ html, body {
     border-radius: 12px;
     background: #fff;
     color: #111;
-    font-size: 18px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
     padding: 0;
     box-sizing: border-box;
+    flex-shrink: 0;
+}
+
+.property-card-shortlist svg {
+    width: 20px;
+    height: 18px;
+    display: block;
+    flex-shrink: 0;
 }
 
 .property-card-shortlist:active {

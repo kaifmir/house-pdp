@@ -3123,15 +3123,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 : `₹${(prop.price / 100000).toFixed(0)}L`;
             
             const title = `${prop.bhk}BHK ${prop.type} in ${prop.locality}`;
-            const localityLine = prop.tags.length > 0 ? `Near ${prop.tags[0]}` : prop.locality;
+            // Fix "near near" issue: check if tag already starts with "Near"
+            let localityLine = prop.locality;
+            if (prop.tags.length > 0) {
+                const tag = prop.tags[0];
+                localityLine = tag.toLowerCase().startsWith('near') ? tag : `Near ${tag}`;
+            }
             const amenityChips = prop.amenities.slice(0, 3).map(a => `<span class="property-amenity-chip">${a}</span>`).join('');
             
-            // Get city-specific image (reliable, curated)
+            // Get city-specific image (reliable, curated) with better fallback
             const imageUrl = getListingImage(prop.city);
+            
+            // Better heart icon SVG (not squeezed)
+            const heartIcon = `<svg width="20" height="18" viewBox="0 0 20 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 17.35L8.55 16.03C3.4 11.36 0 8.28 0 4.5C0 1.96 1.96 0 4.5 0C6.24 0 7.91 0.81 9 2.09C10.09 0.81 11.76 0 13.5 0C16.04 0 18 1.96 18 4.5C18 8.28 14.6 11.36 9.45 16.04L10 17.35Z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>`;
             
             card.innerHTML = `
                 <div class="property-card-image">
-                    <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.src='${DEFAULT_FALLBACK_IMAGE}'; this.onerror=null;" />
+                    <img src="${imageUrl}" alt="${title}" loading="eager" onerror="this.onerror=null; this.src='${DEFAULT_FALLBACK_IMAGE}';" />
                 </div>
                 <div class="property-card-content">
                     <div class="property-card-title">${title}</div>
@@ -3140,10 +3150,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="property-card-amenities">${amenityChips}</div>
                     <div class="property-card-footer">
                         <button class="property-card-cta">View details</button>
-                        <button class="property-card-shortlist" aria-label="Shortlist">♡</button>
+                        <button class="property-card-shortlist" aria-label="Shortlist">${heartIcon}</button>
                     </div>
                 </div>
             `;
+            
+            // Ensure image loads - add additional fallback after DOM insertion
+            const img = card.querySelector('.property-card-image img');
+            if (img) {
+                img.addEventListener('error', function() {
+                    if (this.src !== DEFAULT_FALLBACK_IMAGE) {
+                        this.src = DEFAULT_FALLBACK_IMAGE;
+                    }
+                });
+                // Force load attempt
+                if (!img.complete) {
+                    img.load();
+                }
+            }
             
             // Add click handlers
             card.querySelector('.property-card-cta').addEventListener('click', () => {
