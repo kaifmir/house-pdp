@@ -976,7 +976,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================================================
     // PILLS AUTO-SCROLL: Transform-based marquee (GPU smooth on iOS + Android)
     // ============================================================================
-    // Switched from scrollLeft to transform translate3d to avoid WebKit quantization
+    // Bulletproof interaction state machine - never gets stuck
     // ============================================================================
     (function() {
         const marquee = document.getElementById('chipsMarquee');
@@ -990,15 +990,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const originalHTML = track.innerHTML;
         track.innerHTML = originalHTML + originalHTML;
 
+        // State
+        let isDragging = false;
+        let isPaused = false;
+        let pauseUntil = 0;
+        let lastMoveAt = 0;
+        let resumeTimer = null;
+        let activePointerId = null;
+
+        // Animation state
         let last = 0;
         let x = 0; // current translateX (px)
         const speed = 18; // px/sec subtle (tune 12–24)
-        let pausedUntil = 0;
-        let dragging = false;
+        
+        // Drag state
         let dragStartX = 0;
         let dragStartOffset = 0;
-        let lastMoveTs = 0;
-        let resumeTimer = null;
         
         // Momentum scrolling
         let momentumVelocity = 0;
@@ -1007,29 +1014,43 @@ document.addEventListener('DOMContentLoaded', function() {
         const friction = 0.95; // deceleration factor (0.9-0.98)
         const minVelocity = 0.5; // stop when velocity is below this
 
-        function pause(ms = 1000) {
-            pausedUntil = Date.now() + ms;
-        }
+        // Helpers
+        function now() { return performance.now(); }
 
-        function resumeSoon(ms = 900) {
+        function pause(ms = 900) {
+            isPaused = true;
+            pauseUntil = Date.now() + ms;
             clearTimeout(resumeTimer);
-            resumeTimer = setTimeout(() => {
-                dragging = false;
-                // don't leave paused forever
-                pausedUntil = Date.now() + 100;
-            }, ms);
+            resumeTimer = setTimeout(() => { isPaused = false; }, ms);
         }
 
-        function loop(t) {
+        function hardResume() {
+            isDragging = false;
+            isPaused = false;
+            pauseUntil = 0;
+            activePointerId = null;
+        }
+
+        function wrapPosition(pos) {
+            const halfWidth = track.scrollWidth / 2;
+            if (pos >= halfWidth) {
+                return pos - halfWidth;
+            } else if (pos <= -halfWidth) {
+                return pos + halfWidth;
+            }
+            return pos;
+        }
+
+        // rAF loop - never stops
+        function tick(t) {
             if (!last) last = t;
             const dt = (t - last) / 1000;
             last = t;
 
-            const halfWidth = track.scrollWidth / 2; // since 2x duplicate
+            const halfWidth = track.scrollWidth / 2;
+            const canAuto = !isDragging && (!isPaused || Date.now() > pauseUntil);
 
-            const canAutoMove = !dragging && Date.now() >= pausedUntil;
-
-            if (dragging) {
+            if (isDragging) {
                 // Don't animate during drag
             } else if (momentumVelocity !== 0) {
                 // Apply momentum scrolling
@@ -1039,13 +1060,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Stop when velocity is too low
                 if (Math.abs(momentumVelocity) < minVelocity) {
                     momentumVelocity = 0;
-                    pausedUntil = Date.now() + 100; // small delay then resume
+                    pause(100); // small delay then resume
                 }
                 
                 // Wrap position during momentum
                 x = wrapPosition(x);
                 track.style.transform = `translate3d(${x}px,0,0)`;
-            } else if (canAutoMove) {
+            } else if (canAuto) {
                 // Auto-scroll
                 x -= speed * dt; // move left (use + for right)
                 // wrap when we've moved one full set
@@ -1055,41 +1076,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 track.style.transform = `translate3d(${x}px,0,0)`;
             }
 
-            requestAnimationFrame(loop);
+            requestAnimationFrame(tick);
         }
-        requestAnimationFrame(loop);
+        requestAnimationFrame(tick);
 
-        // Manual drag (keeps it smooth + works on iOS)
-        function wrapPosition(pos) {
-            const halfWidth = track.scrollWidth / 2;
-            // Wrap continuously for seamless loop
-            if (pos >= halfWidth) {
-                return pos - halfWidth;
-            } else if (pos <= -halfWidth) {
-                return pos + halfWidth;
-            }
-            return pos;
-        }
-
+        // Drag lifecycle
         marquee.addEventListener('pointerdown', (e) => {
-            dragging = true;
-            lastMoveTs = performance.now();
-            momentumVelocity = 0; // stop any existing momentum
-            pause(999999); // freeze auto while dragging
+            isDragging = true;
+            activePointerId = e.pointerId;
+            lastMoveAt = now();
+
             if (marquee.setPointerCapture) {
                 marquee.setPointerCapture(e.pointerId);
             }
+
+            // stop auto immediately
+            isPaused = true;
+            pauseUntil = Date.now() + 999999; // temporarily; will be reset on end
+
+            // Setup drag
+            momentumVelocity = 0;
             dragStartX = e.clientX;
             dragStartOffset = x;
             lastDragX = e.clientX;
-            lastDragTime = performance.now();
+            lastDragTime = now();
         });
 
         marquee.addEventListener('pointermove', (e) => {
-            if (!dragging) return;
-            lastMoveTs = performance.now();
-            const now = performance.now();
-            const dt = (now - lastDragTime) / 1000; // seconds
+            if (!isDragging || e.pointerId !== activePointerId) return;
+            lastMoveAt = now();
+            
+            const nowTime = now();
+            const dt = (nowTime - lastDragTime) / 1000; // seconds
             const dx = e.clientX - dragStartX;
             x = dragStartOffset + dx;
             
@@ -1100,63 +1118,86 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             lastDragX = e.clientX;
-            lastDragTime = now;
+            lastDragTime = nowTime;
             track.style.transform = `translate3d(${x}px,0,0)`;
         });
 
         function endDrag() {
-            if (!dragging) return;
-            dragging = false;
-            // Wrap position on end to ensure we're in valid range for seamless loop
+            if (!isDragging) return;
+            isDragging = false;
+            activePointerId = null;
+
+            // Wrap position on end
             x = wrapPosition(x);
             track.style.transform = `translate3d(${x}px,0,0)`;
-            resumeSoon(900);
+
+            // resume auto after 700–900ms
+            pause(850);
         }
+
         marquee.addEventListener('pointerup', endDrag);
         marquee.addEventListener('pointercancel', endDrag);
         marquee.addEventListener('lostpointercapture', endDrag);
-        window.addEventListener('blur', endDrag);
+        window.addEventListener('blur', hardResume);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) hardResume();
+        });
 
-        // Also support touch events for older browsers (Android fallback)
-        marquee.addEventListener('touchstart', (e) => {
-            dragging = true;
-            lastMoveTs = performance.now();
-            momentumVelocity = 0; // stop any existing momentum
-            pause(999999);
-            dragStartX = e.touches[0].clientX;
-            dragStartOffset = x;
-            lastDragX = e.touches[0].clientX;
-            lastDragTime = performance.now();
-        }, { passive: false });
+        // Touch fallback for iOS (only if pointer events not supported)
+        const hasPointerEvents = 'PointerEvent' in window;
+        if (!hasPointerEvents) {
+            marquee.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                lastMoveAt = now();
+                isPaused = true;
+                pauseUntil = Date.now() + 999999;
+                dragStartX = e.touches[0].clientX;
+                dragStartOffset = x;
+                lastDragX = e.touches[0].clientX;
+                lastDragTime = now();
+            }, { passive: false });
 
-        marquee.addEventListener('touchmove', (e) => {
-            if (!dragging) return;
-            lastMoveTs = performance.now();
-            const now = performance.now();
-            const dt = (now - lastDragTime) / 1000; // seconds
-            const dx = e.touches[0].clientX - dragStartX;
-            x = dragStartOffset + dx;
-            
-            // Calculate velocity for momentum
-            if (dt > 0) {
-                const moveX = e.touches[0].clientX - lastDragX;
-                momentumVelocity = moveX / dt; // pixels per second
-            }
-            
-            lastDragX = e.touches[0].clientX;
-            lastDragTime = now;
-            track.style.transform = `translate3d(${x}px,0,0)`;
-        }, { passive: false });
+            marquee.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                lastMoveAt = now();
+                const nowTime = now();
+                const dt = (nowTime - lastDragTime) / 1000;
+                const dx = e.touches[0].clientX - dragStartX;
+                x = dragStartOffset + dx;
+                
+                if (dt > 0) {
+                    const moveX = e.touches[0].clientX - lastDragX;
+                    momentumVelocity = moveX / dt;
+                }
+                
+                lastDragX = e.touches[0].clientX;
+                lastDragTime = nowTime;
+                track.style.transform = `translate3d(${x}px,0,0)`;
+            }, { passive: false });
 
-        marquee.addEventListener('touchend', endDrag, { passive: true });
-        marquee.addEventListener('touchcancel', endDrag, { passive: true });
+            marquee.addEventListener('touchend', endDrag, { passive: true });
+            marquee.addEventListener('touchcancel', endDrag, { passive: true });
+        }
 
-        // Failsafe: if user stopped moving for 200ms, end drag
+        // Failsafe: if no pointermove happens for 200ms, auto-resume anyway
         setInterval(() => {
-            if (dragging && (performance.now() - lastMoveTs > 200)) {
+            if (isDragging && (now() - lastMoveAt > 200)) {
                 endDrag();
             }
         }, 150);
+
+        // Debug mode
+        if (window.__CHIPS_DEBUG__) {
+            const debugEl = document.createElement('div');
+            debugEl.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(0,0,0,0.8);color:#fff;padding:8px;font-size:11px;font-family:monospace;z-index:99999;border-radius:4px;';
+            document.body.appendChild(debugEl);
+            
+            function updateDebug() {
+                const remaining = pauseUntil > Date.now() ? (pauseUntil - Date.now()) : 0;
+                debugEl.textContent = `isDragging: ${isDragging}\nisPaused: ${isPaused}\npauseUntil: ${remaining}ms\nactivePointerId: ${activePointerId}`;
+            }
+            setInterval(updateDebug, 100);
+        }
     })();
     
     // Step 3: Reliable keyboard detection for chat-intro hide/show
