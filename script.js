@@ -1415,28 +1415,28 @@ document.addEventListener('DOMContentLoaded', function() {
             return `msg-${Date.now()}-${++messageIdCounter}`;
         }
 
-        // Auto-scroll state tracking
-        let isUserNearBottom = true;
+        // Auto-scroll state tracking - stick to bottom unless user scrolled up
+        let isAtBottom = true;
         let scrollTimeout = null;
         let typingScrollRaf = null;
 
-        // Check if user is near bottom (within ~80px)
-        function checkIfNearBottom() {
+        // Check if user is at bottom (within 24px threshold)
+        function checkIfAtBottom() {
             if (!chatMessages) return false;
-            const threshold = 80;
+            const threshold = 24;
             const distanceFromBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight;
             return distanceFromBottom <= threshold;
         }
 
-        // Update isUserNearBottom on scroll
+        // Update isAtBottom on scroll
         function handleScroll() {
-            isUserNearBottom = checkIfNearBottom();
+            isAtBottom = checkIfAtBottom();
         }
 
-        // Add scroll listener to track if user is near bottom (after functions are defined)
-        // Initialize near bottom state
+        // Add scroll listener to track if user is at bottom (after functions are defined)
+        // Initialize at bottom state
         if (chatMessages) {
-            isUserNearBottom = checkIfNearBottom();
+            isAtBottom = checkIfAtBottom();
             chatMessages.addEventListener('scroll', handleScroll, { passive: true });
         }
 
@@ -1533,10 +1533,12 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             messages.push(message);
             const msgElement = renderMessage(message);
-            // ChatGPT-style: Scroll new message to appear under header
-            if (msgElement) {
+            // Auto-scroll to latest message (stick to bottom)
+            if (isAtBottom) {
                 requestAnimationFrame(() => {
-                    scrollMessageIntoView(msgElement, { behavior: 'smooth' });
+                    requestAnimationFrame(() => {
+                        scrollToBottom({ immediate: true });
+                    });
                 });
             }
             return msgId;
@@ -1553,10 +1555,12 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             messages.push(message);
             const msgElement = renderMessage(message);
-            // ChatGPT-style: Scroll new message to appear under header
-            if (msgElement) {
+            // Auto-scroll to latest message (stick to bottom)
+            if (isAtBottom) {
                 requestAnimationFrame(() => {
-                    scrollMessageIntoView(msgElement, { behavior: 'smooth' });
+                    requestAnimationFrame(() => {
+                        scrollToBottom({ immediate: true });
+                    });
                 });
             }
             return msgId;
