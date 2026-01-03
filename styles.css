@@ -1939,18 +1939,18 @@ html, body {
 
 .msg-bot {
     justify-content: flex-start;
-    margin-top: 10px;
+    margin-top: 12px;
 }
 
 /* Extra spacing after bot turn with cards or chips */
 .msg-bot:has(.property-carousel),
 .msg-bot:has(.chat-chips) {
-    margin-bottom: 14px;
+    margin-bottom: 16px;
 }
 
 /* Ensure spacing when user message is followed by bot message */
 .msg-user + .msg-bot {
-    margin-top: 10px;
+    margin-top: 12px;
 }
 
 /* Bot message content - strict single column container */
@@ -2028,7 +2028,7 @@ html, body {
     width: 100%;
     max-width: 100%;
     justify-content: flex-start;
-    align-items: flex-start;
+    align-items: center;
     box-sizing: border-box;
     overflow: hidden;
 }
@@ -2055,7 +2055,7 @@ html, body {
     background: #F5F5F5;
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 999px;
-    padding: 0 12px;
+    padding: 0 16px;
     font-size: 14px;
     font-family: 'Inter', sans-serif;
     color: #111;
@@ -2063,9 +2063,10 @@ html, body {
     transition: all 0.2s ease;
     white-space: nowrap;
     -webkit-tap-highlight-color: transparent;
-    height: 32px;
-    min-height: 32px;
-    max-height: 36px;
+    height: 40px;
+    min-height: 40px;
+    line-height: 40px;
+    min-width: fit-content;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2158,15 +2159,14 @@ html, body {
     box-sizing: border-box;
 }
 
+/* Modern property card design */
 .property-card {
     background: #fff;
     border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    width: 240px;
-    min-width: 240px;
-    max-width: 280px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    width: 260px;
+    min-width: 260px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -2174,76 +2174,117 @@ html, body {
     scroll-snap-align: start;
 }
 
-.property-image {
+.property-card-image {
     width: 100%;
-    height: 180px;
-    background: linear-gradient(135deg, #F5F5F5 0%, #EBEBEB 100%);
-    position: relative;
-    border-radius: 16px 16px 0 0;
+    height: 140px;
+    overflow: hidden;
+    border-radius: 12px 12px 0 0;
+    background: #F5F5F5;
 }
 
-.property-image::after {
-    content: '🏠';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 48px;
-    opacity: 0.3;
+.property-card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
-.property-info {
-    padding: 16px;
+.property-card-content {
+    padding: 12px;
     display: flex;
     flex-direction: column;
+    gap: 8px;
     flex: 1;
 }
 
-.property-title {
-    font-size: 15px;
-    font-weight: 500;
-    color: #111;
-    margin-bottom: 6px;
-    font-family: 'Inter', sans-serif;
-    line-height: 1.3;
-}
-
-.property-price {
-    font-size: 18px;
+.property-card-title {
+    font-size: 14px;
     font-weight: 600;
     color: #111;
-    margin-bottom: 6px;
     font-family: 'Inter', sans-serif;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
 }
 
-.property-locality {
-    font-size: 13px;
+.property-card-price {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+}
+
+.property-card-location {
+    font-size: 12px;
     color: #666;
-    margin-bottom: 10px;
     font-family: 'Inter', sans-serif;
+    margin: 0;
 }
 
-.property-tags-row {
+.property-card-amenities {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    margin-bottom: 12px;
+    margin: 4px 0;
 }
 
-.property-tag-chip {
+.property-amenity-chip {
     background: #F5F5F5;
     border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 12px;
-    padding: 4px 10px;
+    border-radius: 8px;
+    padding: 4px 8px;
     font-size: 11px;
     color: #666;
     font-family: 'Inter', sans-serif;
 }
 
-.property-actions {
+.property-card-footer {
     display: flex;
     gap: 8px;
-    margin-top: auto;
+    margin-top: 8px;
+    align-items: center;
+}
+
+.property-card-cta {
+    flex: 1;
+    background: #111;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.property-card-cta:active {
+    background: #333;
+}
+
+.property-card-shortlist {
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    background: #fff;
+    color: #111;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+.property-card-shortlist:active {
+    background: #F5F5F5;
 }
 
 .btn-view {

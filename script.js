@@ -1819,22 +1819,28 @@ document.addEventListener('DOMContentLoaded', function() {
             return missing.length > 0 ? missing[0] : null;
         }
 
-        // Generate bot response - demo-friendly (always shows results, one question at a time)
+        // Check if we have minimum required fields to show results
+        function canShowResults() {
+            // Only show results when category (mode) and city/locality exist
+            return searchContext.mode && (searchContext.city || searchContext.locality);
+        }
+
+        // Generate bot response - only show cards when required fields are present
         function generateBotResponse(intent, userText) {
             const params = extractParams(userText);
             
             // Update context
             Object.assign(searchContext, params);
 
-            // Always get results (demo-friendly - never empty)
-            const results = filterProperties();
-            const resultCount = results.length > 0 ? results.length : getFallbackResults().length;
-
             // Get next missing param (only one at a time)
             const nextMissing = getNextMissingParam();
             
             let responseText = '';
             let chips = [];
+            let results = null; // Only show results if we can
+
+            // Check if we can show results (category + city/locality required)
+            const canShow = canShowResults();
 
             // Generate semi-professional, minimal response
             if (nextMissing === 'mode') {
@@ -1860,6 +1866,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // All required params present - show results summary
                 const modeText = searchContext.mode ? `${searchContext.mode} ` : '';
                 const locationText = searchContext.city || searchContext.locality || '';
+                const resultCount = filterProperties().length;
                 responseText = `Here are ${resultCount} ${modeText}properties${locationText ? ` in ${locationText}` : ''}:`;
                 
                 // Optional chips for refinement (only if not asking a question)
@@ -1870,12 +1877,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
+            // Only show results if we have category and city/locality
+            if (canShow) {
+                const filtered = filterProperties();
+                results = filtered.length > 0 ? filtered.slice(0, 3) : getFallbackResults();
+            }
+
             return {
                 text: responseText,
-                results: results.length > 0 ? results.slice(0, 3) : getFallbackResults(),
-                chips: chips.length > 0 ? chips : null, // Only show chips if we have them
-                summary: null, // Removed summary for cleaner UI
-                followUp: null // No separate follow-up - everything in one response
+                results: results, // null if we can't show yet
+                chips: chips.length > 0 ? chips : null,
+                summary: null,
+                followUp: null
             };
         }
 
@@ -2022,7 +2035,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return existingMsgId || msgEl.id;
         }
 
-        // Create property card element
+        // Unsplash image URLs for property cards
+        const unsplashImages = [
+            'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=520&h=280&fit=crop&auto=format',
+            'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=520&h=280&fit=crop&auto=format',
+            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=520&h=280&fit=crop&auto=format',
+            'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?w=520&h=280&fit=crop&auto=format',
+            'https://images.unsplash.com/photo-1560448204-61dc36dc5d4a?w=520&h=280&fit=crop&auto=format',
+            'https://images.unsplash.com/photo-1560448204-61dc36dc5d4b?w=520&h=280&fit=crop&auto=format'
+        ];
+
+        // Create property card element with modern design and Unsplash images
         function createPropertyCard(prop) {
             const card = document.createElement('div');
             card.className = 'property-card';
@@ -2035,27 +2058,32 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const title = `${prop.bhk}BHK ${prop.type} in ${prop.locality}`;
             const localityLine = prop.tags.length > 0 ? `Near ${prop.tags[0]}` : prop.locality;
-            const tagChips = prop.amenities.slice(0, 3).map(a => `<span class="property-tag-chip">${a}</span>`).join('');
+            const amenityChips = prop.amenities.slice(0, 3).map(a => `<span class="property-amenity-chip">${a}</span>`).join('');
+            
+            // Randomly select an Unsplash image
+            const imageUrl = unsplashImages[Math.floor(Math.random() * unsplashImages.length)];
             
             card.innerHTML = `
-                <div class="property-image"></div>
-                <div class="property-info">
-                    <div class="property-title">${title}</div>
-                    <div class="property-price">${price}</div>
-                    <div class="property-locality">${localityLine}</div>
-                    <div class="property-tags-row">${tagChips}</div>
-                    <div class="property-actions">
-                        <button class="btn-view">View details</button>
-                        <button class="btn-shortlist">♡</button>
+                <div class="property-card-image">
+                    <img src="${imageUrl}" alt="${title}" loading="lazy" />
+                </div>
+                <div class="property-card-content">
+                    <div class="property-card-title">${title}</div>
+                    <div class="property-card-price">${price}</div>
+                    <div class="property-card-location">${localityLine}</div>
+                    <div class="property-card-amenities">${amenityChips}</div>
+                    <div class="property-card-footer">
+                        <button class="property-card-cta">View details</button>
+                        <button class="property-card-shortlist" aria-label="Shortlist">♡</button>
                     </div>
                 </div>
             `;
             
             // Add click handlers
-            card.querySelector('.btn-view').addEventListener('click', () => {
+            card.querySelector('.property-card-cta').addEventListener('click', () => {
                 console.log('View details:', prop);
             });
-            card.querySelector('.btn-shortlist').addEventListener('click', () => {
+            card.querySelector('.property-card-shortlist').addEventListener('click', () => {
                 console.log('Shortlist:', prop);
             });
             
@@ -2180,10 +2208,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return "Hello. How can I help you today with your home search?";
         }
 
+        // Generate response for single letter or gibberish
+        function generateSingleLetterResponse() {
+            return "Could you share what you are looking for? For example, 2BHK for Rent in Gurgaon.";
+        }
+
         // Generate polite redirect for non-housing questions
         function generateRedirectResponse(userText) {
-            // Exact template: "I can help with home search and property related questions. What are you looking for today?"
-            return "I can help with home search and property related questions. What are you looking for today?";
+            // Exact template: "I can help with property search and locality insights. What are you looking for?"
+            return "I can help with property search and locality insights. What are you looking for?";
         }
 
         // Generate gibberish response
@@ -2198,17 +2231,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const normalized = userText ? userText.trim().toLowerCase() : '';
             
             // Step 2: Routing logic order (strict priority)
-            // 1. Detect gibberish first
+            // 1. Detect single letter or very short non-meaningful input
+            if (normalized.length === 1 || (normalized.length <= 2 && !detectGreeting(userText) && !detectIntent(userText))) {
+                const singleLetterText = generateSingleLetterResponse();
+                typeBotReply(singleLetterText);
+                return;
+            }
+            
+            // 2. Detect gibberish
             if (detectGibberish(userText)) {
                 const gibberishText = generateGibberishResponse();
                 typeBotReply(gibberishText);
                 return;
             }
             
-            // 2. Detect greeting
+            // 3. Detect greeting
             const isGreeting = detectGreeting(userText);
             
-            // 3. Detect housing intent
+            // 4. Detect housing intent
             const intent = detectIntent(userText);
             const slots = extractParams(userText);
             const isCore = intent !== null;
