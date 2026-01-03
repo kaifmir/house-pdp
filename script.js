@@ -1890,99 +1890,201 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Locality → City mapping (AUTO-INFERENCE - MANDATORY)
-            // If user mentions a locality, automatically infer the city
+            // COMPREHENSIVE DATASET: Top 30+ localities per city
+            // If user mentions ANY locality from this list → city is auto-resolved
+            // The bot MUST NEVER ask "Which city?" if a locality is present
             const localityToCityMap = {
-                // Delhi localities
+                // Delhi localities (30)
+                'vasant kunj': 'delhi',
+                'vasant vihar': 'delhi',
+                'saket': 'delhi',
+                'malviya nagar': 'delhi',
+                'greater kailash i': 'delhi',
+                'greater kailash ii': 'delhi',
+                'greater kailash': 'delhi', // Fallback for GK
+                'hauz khas': 'delhi',
+                'green park': 'delhi',
+                'defence colony': 'delhi',
+                'lajpat nagar': 'delhi',
+                'kalkaji': 'delhi',
+                'south extension': 'delhi',
                 'rohini': 'delhi',
+                'pitampura': 'delhi',
+                'shalimar bagh': 'delhi',
+                'ashok vihar': 'delhi',
+                'model town': 'delhi',
                 'dwarka': 'delhi',
                 'janakpuri': 'delhi',
+                'uttam nagar': 'delhi',
                 'rajouri garden': 'delhi',
-                'pitampura': 'delhi',
-                'vasant kunj': 'delhi',
-                'saket': 'delhi',
-                'lajpat nagar': 'delhi',
-                'defence colony': 'delhi',
-                'greater kailash': 'delhi',
-                'connaught place': 'delhi',
+                'punjabi bagh': 'delhi',
                 'karol bagh': 'delhi',
-                'laxmi nagar': 'delhi',
+                'patel nagar': 'delhi',
+                'connaught place': 'delhi',
                 'mayur vihar': 'delhi',
-                'noida': 'noida',
-                'sector': 'noida', // Generic sector - will need confirmation if ambiguous
+                'preet vihar': 'delhi',
+                'dilshad garden': 'delhi',
+                'shahdara': 'delhi',
+                'okhla': 'delhi',
                 
-                // Mumbai localities
-                'andheri': 'mumbai',
-                'bandra': 'mumbai',
-                'borivali': 'mumbai',
-                'powai': 'mumbai',
-                'worli': 'mumbai',
-                'lower parel': 'mumbai',
-                'kurla': 'mumbai',
-                'chembur': 'mumbai',
-                'vashi': 'mumbai',
-                'navi mumbai': 'mumbai',
-                'thane': 'mumbai',
-                'malad': 'mumbai',
-                'juhu': 'mumbai',
-                'santacruz': 'mumbai',
-                'goregaon': 'mumbai',
-                
-                // Bangalore localities
-                'indiranagar': 'bangalore',
-                'koramangala': 'bangalore',
-                'whitefield': 'bangalore',
-                'marathahalli': 'bangalore',
-                'electronic city': 'bangalore',
-                'hsr layout': 'bangalore',
-                'btm layout': 'bangalore',
-                'jayanagar': 'bangalore',
-                'malleshwaram': 'bangalore',
-                'rajajinagar': 'bangalore',
-                'hebbal': 'bangalore',
-                'yeshwanthpur': 'bangalore',
-                
-                // Gurgaon localities
+                // Gurgaon (Gurugram) localities (25)
                 'dlf phase 1': 'gurgaon',
                 'dlf phase 2': 'gurgaon',
                 'dlf phase 3': 'gurgaon',
                 'dlf phase 4': 'gurgaon',
                 'dlf phase 5': 'gurgaon',
+                'golf course road': 'gurgaon',
+                'golf course extension': 'gurgaon',
+                'cyber city': 'gurgaon',
+                'sector 14': 'gurgaon',
+                'sector 22': 'gurgaon',
+                'sector 23': 'gurgaon',
+                'sector 27': 'gurgaon',
+                'sector 31': 'gurgaon',
                 'sector 43': 'gurgaon',
-                'sector 29': 'gurgaon',
+                'sector 45': 'gurgaon',
+                'sector 46': 'gurgaon',
+                'sector 49': 'gurgaon',
+                'sector 50': 'gurgaon',
+                'sector 52': 'gurgaon',
                 'sector 56': 'gurgaon',
                 'sector 57': 'gurgaon',
-                'sector 58': 'gurgaon',
-                'cyber city': 'gurgaon',
+                'sushant lok phase 1': 'gurgaon',
+                'sushant lok phase 2': 'gurgaon',
+                'nirvana country': 'gurgaon',
+                'south city 1': 'gurgaon',
                 'gurugram': 'gurgaon',
                 'gurgaon': 'gurgaon',
                 
-                // Pune localities
-                'hinjewadi': 'pune',
-                'wakad': 'pune',
+                // Noida localities (29)
+                'sector 15': 'noida',
+                'sector 16': 'noida',
+                'sector 18': 'noida',
+                'sector 22': 'noida',
+                'sector 25': 'noida',
+                'sector 37': 'noida',
+                'sector 41': 'noida',
+                'sector 44': 'noida',
+                'sector 50': 'noida',
+                'sector 51': 'noida',
+                'sector 52': 'noida',
+                'sector 61': 'noida',
+                'sector 62': 'noida',
+                'sector 63': 'noida',
+                'sector 74': 'noida',
+                'sector 75': 'noida',
+                'sector 76': 'noida',
+                'sector 77': 'noida',
+                'sector 78': 'noida',
+                'sector 79': 'noida',
+                'sector 93': 'noida',
+                'sector 104': 'noida',
+                'sector 107': 'noida',
+                'sector 110': 'noida',
+                'sector 120': 'noida',
+                'sector 121': 'noida',
+                'sector 137': 'noida',
+                'sector 143': 'noida',
+                'sector 150': 'noida',
+                'noida': 'noida',
+                
+                // Mumbai localities (29)
+                'andheri east': 'mumbai',
+                'andheri west': 'mumbai',
+                'andheri': 'mumbai', // Fallback
+                'bandra east': 'mumbai',
+                'bandra west': 'mumbai',
+                'bandra': 'mumbai', // Fallback
+                'khar west': 'mumbai',
+                'santacruz east': 'mumbai',
+                'santacruz west': 'mumbai',
+                'santacruz': 'mumbai', // Fallback
+                'juhu': 'mumbai',
+                'powai': 'mumbai',
+                'vikhroli': 'mumbai',
+                'ghatkopar': 'mumbai',
+                'chembur': 'mumbai',
+                'kurla': 'mumbai',
+                'lower parel': 'mumbai',
+                'worli': 'mumbai',
+                'dadar': 'mumbai',
+                'prabhadevi': 'mumbai',
+                'malad east': 'mumbai',
+                'malad west': 'mumbai',
+                'malad': 'mumbai', // Fallback
+                'goregaon east': 'mumbai',
+                'goregaon west': 'mumbai',
+                'goregaon': 'mumbai', // Fallback
+                'kandivali east': 'mumbai',
+                'kandivali west': 'mumbai',
+                'kandivali': 'mumbai', // Fallback
+                'borivali east': 'mumbai',
+                'borivali west': 'mumbai',
+                'borivali': 'mumbai', // Fallback
+                'mira road': 'mumbai',
+                'thane west': 'mumbai',
+                'thane east': 'mumbai',
+                'thane': 'mumbai', // Fallback
+                'navi mumbai': 'mumbai',
+                'mumbai': 'mumbai',
+                'bombay': 'mumbai',
+                
+                // Bangalore localities (25)
+                'indiranagar': 'bangalore',
+                'whitefield': 'bangalore',
+                'hsr layout': 'bangalore',
+                'koramangala': 'bangalore',
+                'bellandur': 'bangalore',
+                'sarjapur road': 'bangalore',
+                'marathahalli': 'bangalore',
+                'electronic city': 'bangalore',
+                'btm layout': 'bangalore',
+                'jp nagar': 'bangalore',
+                'jayanagar': 'bangalore',
+                'banashankari': 'bangalore',
+                'yelahanka': 'bangalore',
+                'hebbal': 'bangalore',
+                'hennur': 'bangalore',
+                'kalyan nagar': 'bangalore',
+                'kr puram': 'bangalore',
+                'brookefield': 'bangalore',
+                'hoodi': 'bangalore',
+                'ulsoor': 'bangalore',
+                'malleshwaram': 'bangalore',
+                'rajajinagar': 'bangalore',
+                'vijayanagar': 'bangalore',
+                'basavanagudi': 'bangalore',
+                'nagarbhavi': 'bangalore',
+                'bangalore': 'bangalore',
+                'bengaluru': 'bangalore',
+                
+                // Pune localities (24)
                 'baner': 'pune',
-                'koregaon park': 'pune',
-                'viman nagar': 'pune',
-                'kharadi': 'pune',
+                'balewadi': 'pune',
+                'wakad': 'pune',
+                'hinjewadi phase 1': 'pune',
+                'hinjewadi phase 2': 'pune',
+                'hinjewadi phase 3': 'pune',
+                'hinjewadi': 'pune', // Fallback
+                'aundh': 'pune',
+                'pashan': 'pune',
+                'bavdhan': 'pune',
+                'kothrud': 'pune',
+                'karve nagar': 'pune',
                 'hadapsar': 'pune',
-                
-                // Hyderabad localities
-                'gachibowli': 'hyderabad',
-                'hitech city': 'hyderabad',
-                'banjara hills': 'hyderabad',
-                'jubilee hills': 'hyderabad',
-                'secunderabad': 'hyderabad',
-                
-                // Kolkata localities
-                'salt lake': 'kolkata',
-                'new town': 'kolkata',
-                'park street': 'kolkata',
-                'sector v': 'kolkata',
-                
-                // Chennai localities
-                'omr': 'chennai',
-                'porur': 'chennai',
-                'velachery': 'chennai',
-                't nagar': 'chennai'
+                'magarpatta': 'pune',
+                'kharadi': 'pune',
+                'viman nagar': 'pune',
+                'yerwada': 'pune',
+                'koregaon park': 'pune',
+                'kalyani nagar': 'pune',
+                'mundhwa': 'pune',
+                'wagholi': 'pune',
+                'pimpri': 'pune',
+                'chinchwad': 'pune',
+                'nigdi': 'pune',
+                'talegaon': 'pune',
+                'pune': 'pune'
             };
             
             // Direct city names (explicit mentions)
@@ -2087,21 +2189,74 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Infer city from locality (helper function)
+        // COMPREHENSIVE DATASET: Must match extractParams localityToCityMap
+        // STRICT RULE: If locality exists in this map, city is auto-resolved
         function inferCityFromLocality(locality) {
             if (!locality) return null;
             
             const localityToCityMap = {
-                'rohini': 'delhi', 'dwarka': 'delhi', 'janakpuri': 'delhi', 'rajouri garden': 'delhi',
-                'pitampura': 'delhi', 'vasant kunj': 'delhi', 'saket': 'delhi', 'lajpat nagar': 'delhi',
-                'andheri': 'mumbai', 'bandra': 'mumbai', 'borivali': 'mumbai', 'powai': 'mumbai',
-                'worli': 'mumbai', 'lower parel': 'mumbai', 'kurla': 'mumbai', 'chembur': 'mumbai',
-                'indiranagar': 'bangalore', 'koramangala': 'bangalore', 'whitefield': 'bangalore',
-                'marathahalli': 'bangalore', 'electronic city': 'bangalore', 'hsr layout': 'bangalore',
-                'dlf phase 1': 'gurgaon', 'dlf phase 2': 'gurgaon', 'sector 43': 'gurgaon',
-                'sector 29': 'gurgaon', 'cyber city': 'gurgaon', 'gurugram': 'gurgaon',
-                'hinjewadi': 'pune', 'wakad': 'pune', 'baner': 'pune', 'koregaon park': 'pune',
-                'gachibowli': 'hyderabad', 'hitech city': 'hyderabad',
-                'salt lake': 'kolkata', 'new town': 'kolkata'
+                // Delhi (30)
+                'vasant kunj': 'delhi', 'vasant vihar': 'delhi', 'saket': 'delhi', 'malviya nagar': 'delhi',
+                'greater kailash i': 'delhi', 'greater kailash ii': 'delhi', 'greater kailash': 'delhi',
+                'hauz khas': 'delhi', 'green park': 'delhi', 'defence colony': 'delhi', 'lajpat nagar': 'delhi',
+                'kalkaji': 'delhi', 'south extension': 'delhi', 'rohini': 'delhi', 'pitampura': 'delhi',
+                'shalimar bagh': 'delhi', 'ashok vihar': 'delhi', 'model town': 'delhi', 'dwarka': 'delhi',
+                'janakpuri': 'delhi', 'uttam nagar': 'delhi', 'rajouri garden': 'delhi', 'punjabi bagh': 'delhi',
+                'karol bagh': 'delhi', 'patel nagar': 'delhi', 'connaught place': 'delhi', 'mayur vihar': 'delhi',
+                'preet vihar': 'delhi', 'dilshad garden': 'delhi', 'shahdara': 'delhi', 'okhla': 'delhi',
+                
+                // Gurgaon (27)
+                'dlf phase 1': 'gurgaon', 'dlf phase 2': 'gurgaon', 'dlf phase 3': 'gurgaon',
+                'dlf phase 4': 'gurgaon', 'dlf phase 5': 'gurgaon', 'golf course road': 'gurgaon',
+                'golf course extension': 'gurgaon', 'cyber city': 'gurgaon', 'sector 14': 'gurgaon',
+                'sector 22': 'gurgaon', 'sector 23': 'gurgaon', 'sector 27': 'gurgaon', 'sector 31': 'gurgaon',
+                'sector 43': 'gurgaon', 'sector 45': 'gurgaon', 'sector 46': 'gurgaon', 'sector 49': 'gurgaon',
+                'sector 50': 'gurgaon', 'sector 52': 'gurgaon', 'sector 56': 'gurgaon', 'sector 57': 'gurgaon',
+                'sushant lok phase 1': 'gurgaon', 'sushant lok phase 2': 'gurgaon', 'nirvana country': 'gurgaon',
+                'south city 1': 'gurgaon', 'gurugram': 'gurgaon', 'gurgaon': 'gurgaon',
+                
+                // Noida (30)
+                'sector 15': 'noida', 'sector 16': 'noida', 'sector 18': 'noida', 'sector 22': 'noida',
+                'sector 25': 'noida', 'sector 37': 'noida', 'sector 41': 'noida', 'sector 44': 'noida',
+                'sector 50': 'noida', 'sector 51': 'noida', 'sector 52': 'noida', 'sector 61': 'noida',
+                'sector 62': 'noida', 'sector 63': 'noida', 'sector 74': 'noida', 'sector 75': 'noida',
+                'sector 76': 'noida', 'sector 77': 'noida', 'sector 78': 'noida', 'sector 79': 'noida',
+                'sector 93': 'noida', 'sector 104': 'noida', 'sector 107': 'noida', 'sector 110': 'noida',
+                'sector 120': 'noida', 'sector 121': 'noida', 'sector 137': 'noida', 'sector 143': 'noida',
+                'sector 150': 'noida', 'noida': 'noida',
+                
+                // Mumbai (38)
+                'andheri east': 'mumbai', 'andheri west': 'mumbai', 'andheri': 'mumbai',
+                'bandra east': 'mumbai', 'bandra west': 'mumbai', 'bandra': 'mumbai',
+                'khar west': 'mumbai', 'santacruz east': 'mumbai', 'santacruz west': 'mumbai', 'santacruz': 'mumbai',
+                'juhu': 'mumbai', 'powai': 'mumbai', 'vikhroli': 'mumbai', 'ghatkopar': 'mumbai',
+                'chembur': 'mumbai', 'kurla': 'mumbai', 'lower parel': 'mumbai', 'worli': 'mumbai',
+                'dadar': 'mumbai', 'prabhadevi': 'mumbai', 'malad east': 'mumbai', 'malad west': 'mumbai',
+                'malad': 'mumbai', 'goregaon east': 'mumbai', 'goregaon west': 'mumbai', 'goregaon': 'mumbai',
+                'kandivali east': 'mumbai', 'kandivali west': 'mumbai', 'kandivali': 'mumbai',
+                'borivali east': 'mumbai', 'borivali west': 'mumbai', 'borivali': 'mumbai',
+                'mira road': 'mumbai', 'thane west': 'mumbai', 'thane east': 'mumbai', 'thane': 'mumbai',
+                'navi mumbai': 'mumbai', 'mumbai': 'mumbai', 'bombay': 'mumbai',
+                
+                // Bangalore (27)
+                'indiranagar': 'bangalore', 'whitefield': 'bangalore', 'hsr layout': 'bangalore',
+                'koramangala': 'bangalore', 'bellandur': 'bangalore', 'sarjapur road': 'bangalore',
+                'marathahalli': 'bangalore', 'electronic city': 'bangalore', 'btm layout': 'bangalore',
+                'jp nagar': 'bangalore', 'jayanagar': 'bangalore', 'banashankari': 'bangalore',
+                'yelahanka': 'bangalore', 'hebbal': 'bangalore', 'hennur': 'bangalore',
+                'kalyan nagar': 'bangalore', 'kr puram': 'bangalore', 'brookefield': 'bangalore',
+                'hoodi': 'bangalore', 'ulsoor': 'bangalore', 'malleshwaram': 'bangalore',
+                'rajajinagar': 'bangalore', 'vijayanagar': 'bangalore', 'basavanagudi': 'bangalore',
+                'nagarbhavi': 'bangalore', 'bangalore': 'bangalore', 'bengaluru': 'bangalore',
+                
+                // Pune (26)
+                'baner': 'pune', 'balewadi': 'pune', 'wakad': 'pune',
+                'hinjewadi phase 1': 'pune', 'hinjewadi phase 2': 'pune', 'hinjewadi phase 3': 'pune',
+                'hinjewadi': 'pune', 'aundh': 'pune', 'pashan': 'pune', 'bavdhan': 'pune',
+                'kothrud': 'pune', 'karve nagar': 'pune', 'hadapsar': 'pune', 'magarpatta': 'pune',
+                'kharadi': 'pune', 'viman nagar': 'pune', 'yerwada': 'pune', 'koregaon park': 'pune',
+                'kalyani nagar': 'pune', 'mundhwa': 'pune', 'wagholi': 'pune', 'pimpri': 'pune',
+                'chinchwad': 'pune', 'nigdi': 'pune', 'talegaon': 'pune', 'pune': 'pune'
             };
             
             const normalizedLocality = locality.toLowerCase().trim();
@@ -2586,8 +2741,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return "To contact a seller or broker, you can open the property details page and submit a lead. I can help you find the right property to start with.";
             }
 
-            // Default redirect
-            return "I'm here to help with housing-related queries. Let me know what kind of home you're looking for.";
+            // Default redirect for random facts/off-topic
+            return "I focus on homes and localities. If you're exploring options to rent or buy, tell me your requirements.";
         }
 
         // Generate gibberish response
