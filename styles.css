@@ -1876,6 +1876,59 @@ html, body {
 
 /* Keyboard open state handled by .chat-intro.is-hidden class */
 
+/* Chat Messages */
+.msg {
+    display: flex;
+    margin: 10px 16px;
+}
+
+.msg-user {
+    justify-content: flex-end;
+}
+
+.msg-bot {
+    justify-content: flex-start;
+}
+
+.bubble {
+    background: #E9E9EB;
+    color: #111;
+    padding: 10px 12px;
+    border-radius: 16px;
+    max-width: min(78%, 420px);
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+/* Gentle appear animation */
+.msg-enter {
+    opacity: 0;
+    transform: translateY(6px);
+}
+
+.msg-enter.msg-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 140ms ease, transform 140ms ease;
+}
+
+/* Bot plain text */
+.bot-text {
+    max-width: min(78%, 560px);
+    color: #111;
+    line-height: 1.35;
+}
+
+/* Hide intro when chat starts */
+.chat-screen.chat-started #chat-intro {
+    opacity: 0;
+    transform: translateY(-6px);
+    max-height: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 160ms ease, transform 160ms ease, max-height 220ms ease;
+}
+
 /* Step 3: Composer - Fixed at bottom, positioned above keyboard using --kb-offset */
 .chat-input-bar {
     padding: 12px 16px;

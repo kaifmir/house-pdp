@@ -1367,4 +1367,169 @@ document.addEventListener('DOMContentLoaded', function() {
             // Don't manually set bottom - let CSS --kb-offset handle it
         });
     }
+
+    // ============================================================================
+    // CHAT v1: User messages + bot replies + intro hide
+    // ============================================================================
+    // Only handles message rendering and intro visibility
+    // Does NOT touch header/keyboard/pills logic
+    // ============================================================================
+    (function chatV1() {
+        const chatInput = document.getElementById('chat-input');
+        const chatSendBtn = document.getElementById('chat-send-btn');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatIntro = document.getElementById('chat-intro');
+        const chatScreen = document.getElementById('chat-screen');
+
+        if (!chatInput || !chatSendBtn || !chatMessages || !chatIntro) return;
+
+        // Messages state
+        const messages = [];
+        let messageIdCounter = 0;
+        let typewriterTimer = null;
+
+        // Generate unique message ID
+        function generateMessageId() {
+            return `msg-${Date.now()}-${++messageIdCounter}`;
+        }
+
+        // Scroll messages to bottom
+        function scrollToBottom() {
+            requestAnimationFrame(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+
+        // Add user message
+        function addUserMessage(text) {
+            const msgId = generateMessageId();
+            const message = {
+                id: msgId,
+                role: 'user',
+                text: text.trim(),
+                status: 'sent'
+            };
+            messages.push(message);
+            renderMessage(message);
+            scrollToBottom();
+            return msgId;
+        }
+
+        // Add bot message (empty initially for typewriter)
+        function addBotMessage(text = '') {
+            const msgId = generateMessageId();
+            const message = {
+                id: msgId,
+                role: 'bot',
+                text: text,
+                status: 'typing'
+            };
+            messages.push(message);
+            renderMessage(message);
+            scrollToBottom();
+            return msgId;
+        }
+
+        // Update message text (for typewriter)
+        function updateMessageText(msgId, text) {
+            const message = messages.find(m => m.id === msgId);
+            if (!message) return;
+            message.text = text;
+            const msgEl = document.getElementById(msgId);
+            if (msgEl) {
+                const textEl = msgEl.querySelector('.bot-text');
+                if (textEl) {
+                    textEl.textContent = text;
+                }
+            }
+            scrollToBottom();
+        }
+
+        // Render message to DOM
+        function renderMessage(message) {
+            const msgDiv = document.createElement('div');
+            msgDiv.id = message.id;
+            msgDiv.className = `msg msg-${message.role} msg-enter`;
+
+            if (message.role === 'user') {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+                bubble.textContent = message.text;
+                msgDiv.appendChild(bubble);
+            } else {
+                const textDiv = document.createElement('div');
+                textDiv.className = 'bot-text';
+                textDiv.textContent = message.text;
+                msgDiv.appendChild(textDiv);
+            }
+
+            chatMessages.appendChild(msgDiv);
+
+            // Trigger animation
+            requestAnimationFrame(() => {
+                msgDiv.classList.add('msg-enter-active');
+            });
+
+            return msgDiv;
+        }
+
+        // Typewriter effect for bot reply
+        function typeBotReply(fullText = 'Hi') {
+            const msgId = addBotMessage('');
+            let i = 0;
+
+            if (typewriterTimer) {
+                clearInterval(typewriterTimer);
+            }
+
+            typewriterTimer = setInterval(() => {
+                i++;
+                updateMessageText(msgId, fullText.slice(0, i));
+                if (i >= fullText.length) {
+                    clearInterval(typewriterTimer);
+                    typewriterTimer = null;
+                    const message = messages.find(m => m.id === msgId);
+                    if (message) {
+                        message.status = 'complete';
+                    }
+                }
+            }, 55);
+        }
+
+        // Handle send message
+        function handleSend() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            // Clear input
+            chatInput.value = '';
+
+            // Check if this is first message
+            const isFirstMessage = messages.length === 0;
+
+            // Add user message
+            addUserMessage(text);
+
+            // Hide intro on first message
+            if (isFirstMessage && chatScreen) {
+                chatScreen.classList.add('chat-started');
+            }
+
+            // Trigger bot reply after 200ms
+            setTimeout(() => {
+                typeBotReply('Hi');
+            }, 200);
+        }
+
+        // Send button click
+        chatSendBtn.addEventListener('click', handleSend);
+
+        // Enter key press
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+    })();
 });
