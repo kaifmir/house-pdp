@@ -1577,11 +1577,11 @@ html, body {
     z-index: 50;
     
     /* Vertical gradient: 100% opacity at top, 60% at bottom */
-    /* Using exact hex code from chat screen background */
+    /* Using exact grey hex code from chat screen background gradient */
     background: linear-gradient(
         to bottom,
-        #F7F2EC 0%,
-        rgba(247, 242, 236, 0.60) 100%
+        #F5F5F5 0%,
+        rgba(245, 245, 245, 0.60) 100%
     ) !important;
     
     /* Remove all effects */
