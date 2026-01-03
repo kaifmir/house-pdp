@@ -3056,16 +3056,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const resultsWrapper = document.createElement('div');
                 resultsWrapper.className = 'bot-results';
                 
-                // Create carousel container (no wrapper needed - direct flex)
-                const carouselContainer = document.createElement('div');
-                carouselContainer.className = 'property-carousel';
+                // Create property rail (proper carousel container)
+                const propertyRail = document.createElement('div');
+                propertyRail.className = 'property-rail';
 
                 safeCarousel.forEach(prop => {
                     const card = createPropertyCard(prop);
-                    carouselContainer.appendChild(card);
+                    propertyRail.appendChild(card);
                 });
 
-                resultsWrapper.appendChild(carouselContainer);
+                resultsWrapper.appendChild(propertyRail);
                 botMessage.appendChild(resultsWrapper);
             }
             

@@ -2144,32 +2144,51 @@ html, body {
     margin-top: 12px;
 }
 
-/* Horizontal carousel container */
-.property-carousel {
+/* Horizontal carousel rail - proper scrolling container */
+.property-rail {
     display: flex;
     gap: 12px;
     overflow-x: auto;
-    padding: 4px 16px 8px 16px;
-    margin: 0 -16px;              /* lets cards breathe edge-to-edge */
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding: 4px 16px 8px 16px;
+    margin: 0 -16px; /* lets cards breathe edge-to-edge */
     scrollbar-width: none; /* Hide scrollbar completely */
     -ms-overflow-style: none; /* Hide scrollbar on IE/Edge */
 }
 
-.property-carousel::-webkit-scrollbar { 
+.property-rail::-webkit-scrollbar { 
     display: none; 
     width: 0;
     height: 0;
     background: transparent;
 }
 
-.property-carousel::-webkit-scrollbar-track {
+.property-rail::-webkit-scrollbar-track {
     display: none;
 }
 
-.property-carousel::-webkit-scrollbar-thumb {
+.property-rail::-webkit-scrollbar-thumb {
     display: none;
+}
+
+/* Legacy support - map old class to new */
+.property-carousel {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding: 4px 16px 8px 16px;
+    margin: 0 -16px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.property-carousel::-webkit-scrollbar { 
+    display: none; 
 }
 
 /* Legacy support */
@@ -2208,10 +2227,10 @@ html, body {
 /* Card sizing: never overflow viewport */
 .property-card {
     flex: 0 0 78%;
-    max-width: 78%;
+    max-width: 320px;
     min-width: 260px;
     background: #ffffff;
-    border-radius: 16px;
+    border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.06);
     overflow: hidden;
     scroll-snap-align: start;
@@ -2227,15 +2246,15 @@ html, body {
     flex: 1;
 }
 
-/* Image */
+/* Image container with padding */
 .property-card__imgwrap {
     padding: 12px 12px 0 12px; /* creates that nice inset gap */
 }
 
 .property-card__img {
     width: 100%;
-    aspect-ratio: 3 / 2;
-    border-radius: 12px;
+    aspect-ratio: 4 / 3;
+    border-radius: 16px;
     object-fit: cover;
     display: block;
     background: #f2f2f2;
@@ -2292,16 +2311,19 @@ html, body {
     flex-shrink: 0;
 }
 
-/* Actions */
+/* Actions - CTA row with full-width button + separate save button */
 .property-card__actions {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-top: auto;
 }
 
 .property-cta {
     flex: 1 1 auto;
+    width: 100%;
     height: 44px;
+    min-height: 44px;
     border: none;
     border-radius: 12px;
     background: #111;
@@ -2314,6 +2336,8 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 0 16px;
+    box-sizing: border-box;
 }
 
 .property-cta:active {
@@ -2323,14 +2347,19 @@ html, body {
 .property-like {
     width: 44px;
     height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     border-radius: 12px;
     border: 1px solid rgba(0,0,0,0.10);
     background: #fff;
-    display: grid;
-    place-items: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 .property-like:active {
@@ -2341,6 +2370,7 @@ html, body {
     width: 20px;
     height: 20px;
     display: block;
+    flex-shrink: 0;
 }
 
 .btn-view {
