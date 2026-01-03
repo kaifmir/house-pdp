@@ -1232,108 +1232,67 @@ document.addEventListener('DOMContentLoaded', function() {
     primeViewport();
     
     // ============================================================================
-    // KEYBOARD PARITY LAYER (single source of truth)
+    // KEYBOARD PARITY - Instant, no-jump updates
     // ============================================================================
-    // Computes --kb-offset, --vv-top, --header-h, --composer-h
-    // Updates on visualViewport resize/scroll, focusin/focusout, pageshow, visibilitychange
-    // Works on iOS + Android (no per-platform duplicated logic)
+    // Header stays at top: 0 always, composer moves instantly above keyboard
+    // No transitions, no animations, no jumps
     // ============================================================================
-    (function keyboardParityLayer() {
-        const root = document.documentElement;
+    (function keyboardParity() {
         const header = document.querySelector('.chat-top-bar');
         const composer = document.querySelector('.chat-input-bar');
-        const messages = document.querySelector('.chat-messages');
-        
-        if (!header || !composer || !messages) {
-            parityLog('Keyboard parity: missing elements', { header: !!header, composer: !!composer, messages: !!messages });
-            return;
+        const input = composer?.querySelector('input, textarea');
+
+        if (!header || !composer || !input) return;
+
+        function setInstantMode(on) {
+            if (on) document.documentElement.classList.add('kb-instant');
+            else document.documentElement.classList.remove('kb-instant');
         }
 
-        let raf = null;
-
-        function updateAll() {
-            // Update header height
-            const headerHeight = header.offsetHeight;
-            root.style.setProperty('--header-h', `${headerHeight}px`);
-            
-            // Update composer height
-            const composerHeight = composer.offsetHeight;
-            root.style.setProperty('--composer-h', `${composerHeight}px`);
-            root.style.setProperty('--composer-height', `${composerHeight}px`);
-            
-            // Update visual viewport offset (header pinning)
+        function computeKb() {
             const vv = window.visualViewport;
-            const vvTop = vv ? vv.offsetTop : 0;
-            root.style.setProperty('--vv-top', `${vvTop}px`);
-            
-            // Update keyboard offset (composer positioning)
-            if (vv) {
-                const kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-                root.style.setProperty('--kb-offset', `${kb}px`);
-                root.style.setProperty('--kb', `${kb}px`);
-                
-                if (window.__CHAT_DEBUG__) {
-                    const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
-                    parityLog('Keyboard parity:', {
-                        scrollY: scrollY,
-                        vvTop: vv.offsetTop,
-                        vvHeight: vv.height,
-                        keyboardHeight: kb,
-                        headerH: headerHeight,
-                        composerH: composerHeight
-                    });
-                    
-                    if (Math.abs(scrollY) > 1) {
-                        console.warn('[Parity] Window scroll detected:', scrollY, '- only messages container should scroll');
-                    }
-                }
-            } else {
-                root.style.setProperty('--kb-offset', '0px');
-                root.style.setProperty('--kb', '0px');
-            }
+            if (!vv) return 0;
+            const kb = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+            return Math.round(kb);
         }
 
-        // Run multiple times to beat iOS timing (first open + reopen)
-        function syncHard() {
-            if (raf) cancelAnimationFrame(raf);
-            updateAll();
-            raf = requestAnimationFrame(() => {
-                updateAll();
-                setTimeout(updateAll, 50);
-                setTimeout(updateAll, 150);
-                setTimeout(updateAll, 300);
-            });
+        function apply() {
+            const kb = computeKb();
+            // header NEVER moves
+            header.style.top = '0px';
+            header.style.transform = 'translate3d(0, 0, 0)';
+
+            // composer moves instantly
+            composer.style.bottom = kb ? `${kb}px` : '0px';
+
+            // prevent any forced scroll jumps
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
+
+            setInstantMode(kb > 0);
         }
 
-        // Key events: visualViewport changes
-        window.addEventListener('load', syncHard);
-        window.addEventListener('resize', syncHard);
-        if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', syncHard);
-            window.visualViewport.addEventListener('scroll', syncHard);
+        function applySoon() {
+            apply();
+            requestAnimationFrame(apply);
+            setTimeout(apply, 0);
+            setTimeout(apply, 50);
         }
 
-        // Critical: re-prime on every keyboard open/close
+        // Events
+        const vv = window.visualViewport;
+        vv?.addEventListener('resize', apply);
+        vv?.addEventListener('scroll', apply);
+        window.addEventListener('orientationchange', applySoon);
+        window.addEventListener('pageshow', applySoon);
         document.addEventListener('focusin', (e) => {
-            if (!e.target.matches('input, textarea, [contenteditable="true"]')) return;
-            syncHard();
+            if (e.target === input) applySoon();
         });
-
         document.addEventListener('focusout', (e) => {
-            if (!e.target.matches('input, textarea, [contenteditable="true"]')) return;
-            // iOS often updates offsetTop AFTER blur
-            setTimeout(syncHard, 50);
-            setTimeout(syncHard, 200);
+            if (e.target === input) applySoon();
         });
 
-        // Critical: iOS bfcache restores stale viewport values
-        window.addEventListener('pageshow', syncHard);
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) syncHard();
-        });
-
-        // Initial
-        syncHard();
+        applySoon();
     })();
     
     // Legacy keyboard handling removed - now using CSS --kb-offset approach above

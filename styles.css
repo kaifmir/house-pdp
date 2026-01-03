@@ -1497,6 +1497,14 @@ html, body {
     /* Prevent any scrolling on html/body */
     overscroll-behavior: none;
     -webkit-overflow-scrolling: none;
+    scroll-behavior: auto !important;
+}
+
+/* Instant keyboard mode - no transitions */
+.kb-instant .chat-input-bar,
+.kb-instant .chat-top-bar {
+    transition: none !important;
+    animation: none !important;
 }
 
 /* Chat Screen - Container only, no scrolling */
@@ -1879,7 +1887,6 @@ html, body {
     z-index: 9999;
     background: transparent;
     pointer-events: none;
-    transition: bottom 0.3s ease-out;
 }
 
 .chat-input-wrapper {
