@@ -2596,7 +2596,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // CRITICAL: Check if user answered the last question
             // If they did, don't ask it again
-            if (lastQuestionKey === 'category' && params.mode) {
+            if (lastQuestionKey === 'category' && (params.category || params.intentType || params.mode)) {
                 lastQuestionKey = null;
                 lastQuestionValueSnapshot = null;
             } else if (lastQuestionKey === 'cityOrLocality' && (params.city || params.locality)) {
@@ -2605,7 +2605,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (lastQuestionKey === 'bhkOrType' && (params.bhk || params.propertyType)) {
                 lastQuestionKey = null;
                 lastQuestionValueSnapshot = null;
-            } else if (lastQuestionKey === 'budget' && params.budget) {
+            } else if (lastQuestionKey === 'budget' && (params.budget || params.budgetMin || params.budgetMax)) {
                 lastQuestionKey = null;
                 lastQuestionValueSnapshot = null;
             }
