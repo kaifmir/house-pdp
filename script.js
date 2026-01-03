@@ -1445,10 +1445,10 @@ document.addEventListener('DOMContentLoaded', function() {
         let scrollTimeout = null;
         let typingScrollRaf = null;
 
-        // Check if user is at bottom (within 24px threshold)
+        // Check if user is near bottom (within 120px threshold for auto-scroll)
         function checkIfAtBottom() {
             if (!chatMessages) return false;
-            const threshold = 24;
+            const threshold = 120; // Increased threshold for better UX
             const distanceFromBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight;
             return distanceFromBottom <= threshold;
         }
@@ -2040,24 +2040,24 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const params = {};
 
-            // Category (Rent/Buy/PG/Commercial/Plot/Projects) - priority order (use corrected text)
+            // Category (Rent/Buy/PG/Commercial/Plot/Projects) - priority order (use searchText)
             // Return as both category and intentType for backward compatibility
-            if (corrected.match(/\bpg\b/)) {
+            if (searchText.match(/\bpg\b/)) {
                 params.category = 'pg';
                 params.intentType = 'pg'; // Backward compat
-            } else if (corrected.match(/\b(commercial|office|shop|retail|warehouse)\b/)) {
+            } else if (searchText.match(/\b(commercial|office|shop|retail|warehouse)\b/)) {
                 params.category = 'commercial';
                 params.intentType = 'commercial'; // Backward compat
-            } else if (corrected.match(/\b(plot|land)\b/)) {
+            } else if (searchText.match(/\b(plot|land)\b/)) {
                 params.category = 'plot';
                 params.intentType = 'plot'; // Backward compat
-            } else if (corrected.match(/\b(project|projects|new project|under construction|ready to move|r2m|new launch)\b/)) {
+            } else if (searchText.match(/\b(project|projects|new project|under construction|ready to move|r2m|new launch)\b/)) {
                 params.category = 'projects';
                 params.intentType = 'projects'; // Backward compat
-            } else if (corrected.match(/\b(rent|renting|for rent|to rent)\b/)) {
+            } else if (searchText.match(/\b(rent|renting|for rent|to rent)\b/)) {
                 params.category = 'rent';
                 params.intentType = 'rent'; // Backward compat
-            } else if (corrected.match(/\b(buy|buying|purchase|for sale|to buy)\b/)) {
+            } else if (searchText.match(/\b(buy|buying|purchase|for sale|to buy)\b/)) {
                 params.category = 'buy';
                 params.intentType = 'buy'; // Backward compat
             }
