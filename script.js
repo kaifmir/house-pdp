@@ -1564,13 +1564,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const msgEl = document.getElementById(msgId);
             if (msgEl) {
                 const textEl = msgEl.querySelector('.bot-text');
-                // Auto-scroll during typing animation (streaming text)
-                scrollToBottomTyping(msgEl);
                 if (textEl) {
                     textEl.textContent = text;
                 }
-                // Use throttled scroll for typing animation - scroll this message
-                scrollToBottomTyping(msgEl);
+                // Auto-scroll during typing animation (streaming text)
+                // Call scrollChatToBottom to keep latest text visible
+                scrollChatToBottom(true);
             }
         }
 
