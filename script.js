@@ -1472,23 +1472,32 @@ document.addEventListener('DOMContentLoaded', function() {
             scrollToBottom(options);
         }
 
-        // Legacy scrollToBottom for backward compatibility (uses anchor)
-        // Scroll messages to bottom - stick to bottom unless user scrolled up
-        // Chat layout: stack from top, scroll behind header, stick-to-bottom auto-scroll
+        // Auto-scroll utility - ChatGPT-style behavior
+        // Always scrolls to bottom when called, but respects user scroll if they've scrolled up
         function scrollToBottom(options = {}) {
             if (!chatMessages) return;
             
-            // Only scroll if user is at bottom (don't fight user scroll)
+            // If messages don't overflow, keep scrollTop at 0 (messages stay near top under header)
+            if (chatMessages.scrollHeight <= chatMessages.clientHeight) {
+                chatMessages.scrollTop = 0;
+                return;
+            }
+            
+            // Only scroll if user is at bottom (don't fight user scroll) unless forced
             if (!isAtBottom && !options.force) {
                 return;
             }
 
-            // Use requestAnimationFrame twice to avoid iOS timing issues
+            // Scroll to bottom using scrollTo for smooth behavior
             const doScroll = () => {
-                chatMessages.scrollTop = chatMessages.scrollHeight;
+                chatMessages.scrollTo({
+                    top: chatMessages.scrollHeight,
+                    behavior: options.immediate ? "auto" : "smooth"
+                });
             };
             
             if (options.immediate) {
+                // Immediate scroll for typing animation
                 requestAnimationFrame(() => {
                     requestAnimationFrame(doScroll);
                 });
@@ -1506,8 +1515,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Throttled scroll for typing animation - stick to bottom during streaming
+        // Called during bot "type one letter at a time" streaming
         function scrollToBottomTyping(msgElement = null) {
-            if (!isAtBottom) return; // Don't scroll if user scrolled up
+            if (!chatMessages) return;
+            
+            // If messages don't overflow, keep scrollTop at 0
+            if (chatMessages.scrollHeight <= chatMessages.clientHeight) {
+                chatMessages.scrollTop = 0;
+                return;
+            }
+            
+            // Don't scroll if user manually scrolled up (optional but ideal)
+            if (!isAtBottom) return;
             
             if (typingScrollRaf) {
                 cancelAnimationFrame(typingScrollRaf);
@@ -1515,7 +1534,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             typingScrollRaf = requestAnimationFrame(() => {
                 // Always scroll to bottom during typing to keep latest content visible
-                scrollToBottom({ immediate: true }); // Use immediate for smooth streaming
+                // Use immediate for smooth streaming without delay
+                chatMessages.scrollTo({
+                    top: chatMessages.scrollHeight,
+                    behavior: "auto"
+                });
                 typingScrollRaf = null;
             });
         }
@@ -1531,14 +1554,12 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             messages.push(message);
             const msgElement = renderMessage(message);
-            // Auto-scroll to latest message (stick to bottom)
-            if (isAtBottom) {
+            // Auto-scroll to latest message after append
+            requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        scrollToBottom({ immediate: true });
-                    });
+                    scrollToBottom({ immediate: true, force: true });
                 });
-            }
+            });
             return msgId;
         }
 
@@ -1553,14 +1574,12 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             messages.push(message);
             const msgElement = renderMessage(message);
-            // Auto-scroll to latest message (stick to bottom)
-            if (isAtBottom) {
+            // Auto-scroll to latest message after append
+            requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        scrollToBottom({ immediate: true });
-                    });
+                    scrollToBottom({ immediate: true, force: true });
                 });
-            }
+            });
             return msgId;
         }
 
@@ -1572,6 +1591,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const msgEl = document.getElementById(msgId);
             if (msgEl) {
                 const textEl = msgEl.querySelector('.bot-text');
+                // Auto-scroll during typing animation (streaming text)
+                scrollToBottomTyping(msgEl);
                 if (textEl) {
                     textEl.textContent = text;
                 }

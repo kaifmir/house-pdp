@@ -1587,17 +1587,18 @@ html, body {
     /* VisualViewport pinning: offsetTop accounts for iOS keyboard/layout viewport shifts */
 }
 
-.chat-top-bar::before {
+.chat-top-bar::after {
     content: "";
     position: absolute;
     inset: 0;
     pointer-events: none;
     background: linear-gradient(
         to bottom,
-        #F5F5F5 0%,
-        #F5F5F5 50%,
-        rgba(245, 245, 245, 0.2) 100%
+        var(--chat-bg, #F5F5F5) 0%,
+        var(--chat-bg, #F5F5F5) 50%,
+        rgba(var(--chat-bg-rgb, 245, 245, 245), 0.2) 100%
     );
+    z-index: -1;
 }
 
 .chat-back-btn {
@@ -1697,17 +1698,17 @@ html, body {
     flex-direction: column;
     justify-content: flex-start; /* CRITICAL: Stack from top, NOT center, NOT space-between */
     align-items: stretch;
-    gap: 12px; /* Consistent spacing between message blocks */
+    gap: 16px; /* Increased spacing between user message and bot reply */
     font-family: 'Inter', sans-serif;
     box-sizing: border-box;
     /* Top padding: header height + 16px so first message sits 16px below header */
+    padding: 16px;
     padding-top: calc(var(--header-height, 68px) + 16px + env(safe-area-inset-top));
-    padding-left: 16px;
-    padding-right: 16px;
     padding-bottom: calc(var(--composer-h, 80px) + 16px + env(safe-area-inset-bottom)); /* Bottom padding above input */
     width: 100%;
     max-width: 100%;
     min-height: 0; /* Critical for flex child to scroll */
+    scroll-padding-top: var(--header-height, 68px); /* Helpful for scrollIntoView */
 }
 
 /* Remove spacer - messages should stack naturally from top */
