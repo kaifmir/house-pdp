@@ -1382,6 +1382,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const chatScreen = document.getElementById('chat-screen');
 
         if (!chatInput || !chatSendBtn || !chatMessages || !chatIntro) return;
+        
+        // Debug flag for logging (must be declared before use)
+        const DEBUG = false;
 
         // Helper to get chat messages element
         function getChatMessagesEl() {
