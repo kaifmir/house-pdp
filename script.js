@@ -1573,9 +1573,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (textEl) {
                     textEl.textContent = text;
                 }
+                // Use throttled scroll for typing animation - scroll this message
+                scrollToBottomTyping(msgEl);
             }
-            // Use throttled scroll for typing animation
-            scrollToBottomTyping();
         }
 
         // Render message to DOM (legacy - for user messages and simple bot messages)
