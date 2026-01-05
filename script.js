@@ -2087,7 +2087,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return 'family_search';
             }
             // Price trend intent - check BEFORE investment_search
-            if (normalized.match(/(price\s+trend|trend|rates|pricing|avg\s+price|property\s+prices|price\s+in)/i)) {
+            // Keep it tight: only triggers on pricing-related intent
+            if (normalized.match(/(price\s+trend|pricing\s+trend|trend\s+in|price\s+in|rates\s+in|^rates\s+|property\s+prices|avg\s+price|average\s+price)/i)) {
                 return 'price_trend';
             }
             
@@ -3779,6 +3780,115 @@ document.addEventListener('DOMContentLoaded', function() {
         function generateGibberishResponse() {
             return "I did not understand that. Please share what you are looking for. For example, 2BHK for Rent in Rohini with a budget.";
         }
+        
+        // Trend query detector (top-level utility)
+        function isTrendQuery(text) {
+            if (!text || typeof text !== 'string') return false;
+            const t = text.toLowerCase().trim();
+            // Keep it tight: only triggers on pricing-related intent
+            return (
+                t.includes("price trend") ||
+                t.includes("pricing trend") ||
+                t.includes("trend in") ||
+                t.includes("price in") ||
+                t.includes("rates in") ||
+                t.startsWith("rates ") ||
+                t.includes("property prices") ||
+                t.includes("avg price") ||
+                t.includes("average price")
+            );
+        }
+        
+        // Handle trend intent (separate from housing flow)
+        function handleTrendIntent(userText) {
+            try {
+                const intent = detectIntent(userText);
+                
+                // Debug logging
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    console.log('[Trend Intent]', { text: userText, intent, isTrend: isTrendQuery(userText) });
+                }
+                
+                // Ensure we have trend intent
+                if (intent !== 'price_trend') {
+                    // Fallback: if detectIntent didn't catch it but isTrendQuery did, force it
+                    if (isTrendQuery(userText)) {
+                        // Re-route as trend
+                        const response = generateBotResponse('price_trend', userText);
+                        renderTrendResponse(response);
+                        return;
+                    }
+                    return;
+                }
+                
+                // Get trend response
+                const response = generateBotResponse('price_trend', userText);
+                
+                // Render trend response (NO property cards)
+                renderTrendResponse(response);
+                
+            } catch (error) {
+                console.error('Error in handleTrendIntent:', error);
+                // Fallback to simple text reply
+                typeBotReply("I encountered an error processing the price trend query. Please try again.");
+            }
+        }
+        
+        // Render trend response (text + trend card only, NO property cards)
+        function renderTrendResponse(response) {
+            // Set bot responding state
+            isBotResponding = true;
+            updateSendButtonState();
+            
+            // Create message container
+            const msgId = addBotMessage('');
+            const msgEl = document.getElementById(msgId);
+            if (!msgEl) return;
+            
+            // Type out the text first
+            let i = 0;
+            const fullText = response.text || '';
+            
+            if (typewriterTimer) {
+                clearInterval(typewriterTimer);
+            }
+            
+            typewriterTimer = setInterval(() => {
+                // Check if user stopped the response
+                if (!isBotResponding) {
+                    clearInterval(typewriterTimer);
+                    typewriterTimer = null;
+                    // Finalize message
+                    renderBotTurn({
+                        text: fullText.slice(0, i),
+                        chips: null,
+                        carousel: null, // NO property cards
+                        trendCard: response.trendCard || null
+                    }, msgId);
+                    return;
+                }
+                
+                i++;
+                const currentText = fullText.slice(0, i);
+                updateMessageText(msgId, currentText);
+                
+                // Render trend card once typing is complete
+                if (i >= fullText.length) {
+                    clearInterval(typewriterTimer);
+                    typewriterTimer = null;
+                    isBotResponding = false;
+                    updateSendButtonState();
+                    
+                    // Final render with trend card
+                    renderBotTurn({
+                        text: fullText,
+                        chips: null,
+                        carousel: null, // NO property cards
+                        trendCard: response.trendCard || null
+                    }, msgId);
+                }
+            }, 50);
+        }
 
         // Main housing intent handler with debug logging
         // Wrapped in try/catch to prevent crashes from breaking the chat loop
@@ -3787,6 +3897,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Step 1: Read input value (already done, but ensure we have it)
                 const raw = userText;
                 const normalized = userText ? userText.trim().toLowerCase() : '';
+                
+                // ✅ Trend FIRST. If matched, DO NOT run housing search.
+                if (isTrendQuery(userText)) {
+                    handleTrendIntent(userText);
+                    return; // <- critical (prevents property cards)
+                }
                 
                 // Step 2: Routing logic order (strict priority for NON-CORE conversations)
                 // NON-CORE HANDLERS (text-only, no UI, no cards, no chips)
