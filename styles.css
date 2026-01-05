@@ -1576,13 +1576,8 @@ html, body {
     right: 0;
     z-index: 50;
     
-    /* Vertical gradient: 100% opacity at top, 60% at bottom */
-    /* Using exact grey hex code from chat screen background gradient */
-    background: linear-gradient(
-        to bottom,
-        #F5F5F5 0%,
-        rgba(245, 245, 245, 0.60) 100%
-    ) !important;
+    /* 40% opacity header background - single flat color */
+    background: rgba(var(--chat-bg-rgb, 247, 242, 236), 0.4) !important;
     
     /* Remove all effects */
     background-color: transparent !important;
@@ -1609,19 +1604,8 @@ html, body {
 }
 
 .chat-top-bar::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 20px;
-    background: linear-gradient(
-        to bottom,
-        transparent 0%,
-        rgba(245, 245, 245, 0.3) 100%
-    );
-    pointer-events: none;
-    z-index: 1;
+    content: none !important;
+    display: none !important;
 }
 
 .chat-back-btn {

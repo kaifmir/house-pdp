@@ -2155,7 +2155,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Generate mock trend data (deterministic based on locality)
         function generateTrendData(locality, city) {
-            if (!locality) return null;
+            // Allow generating even if locality is "Unknown" - will show trend card anyway
+            if (!locality) locality = 'Unknown';
             
             // Deterministic hash from locality string
             let hash = 0;
@@ -2965,7 +2966,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Params are extracted and context is updated BEFORE checking pending questions
         function generateBotResponse(intent, userText) {
             // Handle price trend intent FIRST (before normal housing flow)
-            if (intent === 'price_trend') {
+            if (intent === 'price_trend' || isTrendQuery(userText)) {
                 const locality = extractTrendLocality(userText);
                 let city = null;
                 
@@ -2974,24 +2975,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     city = inferCityFromLocality(locality);
                 }
                 
-                // If locality is unknown or city can't be inferred, ask for clarification
-                if (!locality || !city) {
-                    return {
-                        text: locality ? 'Which city is this locality in?' : 'Which locality are you asking about?',
-                        chips: null,
-                        results: null,
-                        trendCard: null
-                    };
+                // NEVER ask follow-ups - show trend card even if city is unknown
+                // If city not found, label as "(city not confirmed)" and continue
+                if (!locality) {
+                    // If no locality extracted, try to extract from text directly
+                    const normalized = normalizeText(userText);
+                    const words = normalized.split(/\s+/);
+                    // Take last 1-3 words as potential locality
+                    const potentialLocality = words.slice(-3).join(' ').trim();
+                    if (potentialLocality.length > 0 && potentialLocality.length < 50) {
+                        const inferredCity = inferCityFromLocality(potentialLocality);
+                        if (inferredCity) {
+                            city = inferredCity;
+                            locality = potentialLocality;
+                        }
+                    }
                 }
                 
-                // Generate trend data
-                const trendData = generateTrendData(locality, city);
+                // Generate trend data (even if city is null - will show "city not confirmed")
+                const trendData = generateTrendData(locality || 'Unknown', city);
+                
+                // If city not found, update the data to show "city not confirmed"
+                if (!city && trendData) {
+                    trendData.city = '(city not confirmed)';
+                }
                 
                 // Generate response text
                 const directionText = trendData.direction === 'Up' ? 'slightly up' : 
                                      trendData.direction === 'Down' ? 'slightly down' : 'relatively stable';
                 const yoyText = trendData.yoyPct >= 0 ? `+${trendData.yoyPct}%` : `${trendData.yoyPct}%`;
-                const responseText = `${trendData.locality} prices look ${directionText} overall. YoY is around ${yoyText}, with ${trendData.direction === 'Up' ? 'steady' : trendData.direction === 'Down' ? 'moderate' : 'minimal'} movement in the last 6 months.`;
+                const localityName = trendData.locality || 'this area';
+                const responseText = `${localityName} prices look ${directionText} overall. YoY is around ${yoyText}, with ${trendData.direction === 'Up' ? 'steady' : trendData.direction === 'Down' ? 'moderate' : 'minimal'} movement in the last 6 months.`;
                 
                 return {
                     text: responseText,
