@@ -3165,6 +3165,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 results: results, // null if pendingQuestion exists
                 chips: chips.length > 0 ? chips : null,
                 summary: null,
+                trendCard: null, // Only set for price_trend intent
                 followUp: null
             };
         }
