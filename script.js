@@ -2207,7 +2207,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const formattedCity = city ? city.split(' ').map(word => 
                 word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-            ).join(' ') : '';
+            ).join(' ') : '(city not confirmed)';
             
             return {
                 locality: formattedLocality,
@@ -2216,7 +2216,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 yoyPct,
                 sixMPct,
                 currentPsf,
-                updatedText: 'Updated 2 weeks ago'
+                updatedText: 'Last updated: Today (demo)'
             };
         }
         
