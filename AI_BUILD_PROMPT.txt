@@ -1,0 +1,29 @@
+# COMPLETE BUILD PROMPT FOR HOUSING.COM CHATBOT UI
+
+You are building an exact replica of a mobile-first conversational chatbot interface. Follow these instructions precisely.
+
+## CRITICAL REQUIREMENTS
+
+1. Mobile-only (desktop blocker)
+2. ChatGPT-style message stacking (top-aligned, scroll behind header)
+3. 40% transparent header (flat rgba, no gradients)
+4. Infinite pills marquee (smooth scroll, auto-resume)
+5. Intent routing: Price trends NEVER show property cards
+6. Keyboard handling: visualViewport, no jumps
+7. Send/Stop toggle during bot response
+8. Property cards: horizontal carousel, local images
+9. Trend cards: always show, even unknown localities
+
+## FILE STRUCTURE
+
+Create these files:
+- index.html (complete HTML)
+- styles.css (complete CSS)
+- script.js (complete JavaScript)
+- images/property/ (8 interior images)
+- chat-bot.png, face.png, bg.jpg, avatar.png, buy-icon.png, plot.png, recents.png
+
+## NEXT: Copy the 3 complete code files provided below
+
+The files are large, so I'll provide them in sections. Copy each section exactly.
+
