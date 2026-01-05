@@ -3335,7 +3335,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Strict renderBotTurn function - enforces layout contract (no duplicates)
         function renderBotTurn(options, existingMsgId = null) {
-            const { text, chips, carousel } = options;
+            const { text, chips, carousel, trendCard } = options;
             
             // Strict contract: only text, chips, carousel - no followUp (handled in generateBotResponse)
             
