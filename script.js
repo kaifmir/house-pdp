@@ -1888,6 +1888,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Step 3: Trigger bot reply after 200ms (text is already captured)
             // ✅ Trend FIRST. If matched, DO NOT run housing search.
             setTimeout(() => {
+                // Debug logging
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    console.log('[Intent Routing]', { text: text, trend: isTrendQuery(text) });
+                }
+                
                 if (isTrendQuery(text)) {
                     handleTrendIntent(text);
                 } else {
