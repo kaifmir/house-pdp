@@ -2086,12 +2086,242 @@ document.addEventListener('DOMContentLoaded', function() {
             if (normalized.match(/(school|kids|safe|hospital|family)/i)) {
                 return 'family_search';
             }
-            if (normalized.match(/(invest|appreciation|upcoming|trend|roi)/i)) {
+            // Price trend intent - check BEFORE investment_search
+            if (normalized.match(/(price\s+trend|trend|rates|pricing|avg\s+price|property\s+prices|price\s+in)/i)) {
+                return 'price_trend';
+            }
+            
+            if (normalized.match(/(invest|appreciation|upcoming|roi)/i)) {
                 return 'investment_search';
             }
 
             // Default to rent/buy search if housing keywords present
             return 'rent_buy_search';
+        }
+        
+        // Extract locality from price trend queries
+        function extractTrendLocality(text) {
+            if (!text || typeof text !== 'string') return null;
+            
+            const normalized = normalizeText(text);
+            
+            // Pattern 1: "price trend in [locality]"
+            const inPattern = /(?:price\s+trend|trend|rates|pricing|avg\s+price|property\s+prices|price)\s+in\s+([a-z\s]+?)(?:\?|$|\.)/i;
+            const inMatch = normalized.match(inPattern);
+            if (inMatch && inMatch[1]) {
+                const locality = inMatch[1].trim();
+                if (locality.length > 0 && locality.length < 50) {
+                    return locality;
+                }
+            }
+            
+            // Pattern 2: "[locality] price trend" or "rates [locality]"
+            const afterPattern = /(?:price\s+trend|trend|rates|pricing)\s+([a-z\s]+?)(?:\?|$|\.)/i;
+            const afterMatch = normalized.match(afterPattern);
+            if (afterMatch && afterMatch[1]) {
+                const locality = afterMatch[1].trim();
+                if (locality.length > 0 && locality.length < 50) {
+                    return locality;
+                }
+            }
+            
+            // Pattern 3: Take last 1-3 words if query contains trend/rates/price
+            if (normalized.match(/(trend|rates|pricing|price)/i)) {
+                const words = normalized.split(/\s+/);
+                // Remove trend-related words
+                const filtered = words.filter(w => !w.match(/^(price|trend|rates|pricing|in|the|a|an|are|how)$/i));
+                if (filtered.length > 0) {
+                    // Take last 1-3 words as locality
+                    const locality = filtered.slice(-3).join(' ').trim();
+                    if (locality.length > 0 && locality.length < 50) {
+                        return locality;
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        // Generate mock trend data (deterministic based on locality)
+        function generateTrendData(locality, city) {
+            if (!locality) return null;
+            
+            // Deterministic hash from locality string
+            let hash = 0;
+            const locStr = (locality + (city || '')).toLowerCase();
+            for (let i = 0; i < locStr.length; i++) {
+                hash = ((hash << 5) - hash) + locStr.charCodeAt(i);
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            
+            // Use hash to generate consistent values
+            const seed = Math.abs(hash);
+            
+            // Trend direction: Up (60%), Down (25%), Flat (15%)
+            const directionRand = (seed % 100);
+            let direction, yoyPct, sixMPct;
+            if (directionRand < 60) {
+                direction = 'Up';
+                yoyPct = 3 + (seed % 9); // 3-12%
+                sixMPct = 1 + (seed % 5); // 1-6%
+            } else if (directionRand < 85) {
+                direction = 'Down';
+                yoyPct = -(2 + (seed % 4)); // -2 to -5%
+                sixMPct = -(1 + (seed % 2)); // -1 to -2%
+            } else {
+                direction = 'Flat';
+                yoyPct = (seed % 3) - 1; // -1 to 1%
+                sixMPct = (seed % 3) - 1; // -1 to 1%
+            }
+            
+            // Current price per sq.ft (based on city)
+            const cityPrices = {
+                'delhi': { min: 8500, max: 18000 },
+                'mumbai': { min: 12000, max: 28000 },
+                'bangalore': { min: 6000, max: 15000 },
+                'pune': { min: 5500, max: 12000 },
+                'gurgaon': { min: 7000, max: 16000 },
+                'noida': { min: 6000, max: 14000 }
+            };
+            
+            const cityKey = (city || 'delhi').toLowerCase();
+            const priceRange = cityPrices[cityKey] || cityPrices['delhi'];
+            const currentPsf = priceRange.min + (seed % (priceRange.max - priceRange.min));
+            
+            // Format locality name (capitalize words)
+            const formattedLocality = locality.split(' ').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            ).join(' ');
+            
+            const formattedCity = city ? city.split(' ').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            ).join(' ') : '';
+            
+            return {
+                locality: formattedLocality,
+                city: formattedCity,
+                direction,
+                yoyPct,
+                sixMPct,
+                currentPsf,
+                updatedText: 'Updated 2 weeks ago'
+            };
+        }
+        
+        // Get Unsplash image for locality/city
+        function getTrendImage(city) {
+            const cityImages = {
+                'delhi': [
+                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?w=300&h=300&fit=crop&q=80'
+                ],
+                'mumbai': [
+                    'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560448204-61dc36dc5d4a?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80'
+                ],
+                'bangalore': [
+                    'https://images.unsplash.com/photo-1560448204-61dc36dc5d4b?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=300&fit=crop&q=80'
+                ],
+                'pune': [
+                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80'
+                ],
+                'gurgaon': [
+                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560448204-61dc36dc5d4a?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=300&fit=crop&q=80'
+                ],
+                'noida': [
+                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?w=300&h=300&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80'
+                ]
+            };
+            
+            const cityKey = (city || 'delhi').toLowerCase();
+            const images = cityImages[cityKey] || cityImages['delhi'];
+            // Use deterministic selection based on city
+            const index = Math.abs(cityKey.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % images.length;
+            return images[index];
+        }
+        
+        // Render trend card HTML
+        function renderTrendCard(trend) {
+            if (!trend) return '';
+            
+            const imageUrl = getTrendImage(trend.city);
+            
+            // Generate simple sparkline SVG path
+            const sparklinePoints = [];
+            const width = 120;
+            const height = 40;
+            const pointCount = 8;
+            
+            // Generate points based on trend direction
+            for (let i = 0; i < pointCount; i++) {
+                const x = (i / (pointCount - 1)) * width;
+                let y;
+                if (trend.direction === 'Up') {
+                    y = height - (i / (pointCount - 1)) * (height * 0.4) - (height * 0.2);
+                } else if (trend.direction === 'Down') {
+                    y = (height * 0.2) + (i / (pointCount - 1)) * (height * 0.4);
+                } else {
+                    y = height * 0.4 + (Math.sin(i * 0.5) * height * 0.1);
+                }
+                sparklinePoints.push(`${x},${y}`);
+            }
+            const sparklinePath = `M ${sparklinePoints.join(' L ')}`;
+            
+            const directionClass = trend.direction.toLowerCase();
+            const yoySign = trend.yoyPct >= 0 ? '+' : '';
+            const sixMSign = trend.sixMPct >= 0 ? '+' : '';
+            
+            return `
+                <div class="trend-card">
+                    <div class="trend-header">
+                        <img src="${imageUrl}" alt="${trend.locality}" class="trend-thumb" loading="lazy">
+                        <div class="trend-meta">
+                            <div class="trend-title">${trend.locality}</div>
+                            <div class="trend-subtitle">${trend.city || 'Delhi'}</div>
+                        </div>
+                    </div>
+                    <div class="trend-body">
+                        <div class="trend-pill trend-pill-${directionClass}">${trend.direction}</div>
+                        <div class="trend-yoy">YoY ${yoySign}${trend.yoyPct}%</div>
+                    </div>
+                    <div class="trend-spark">
+                        <svg width="120" height="40" viewBox="0 0 120 40" preserveAspectRatio="none">
+                            <path d="${sparklinePath}" fill="none" stroke="${trend.direction === 'Up' ? '#4CAF50' : trend.direction === 'Down' ? '#F44336' : '#9E9E9E'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div class="trend-stats">
+                        <div class="trend-stat">
+                            <div class="trend-stat-label">Current</div>
+                            <div class="trend-stat-value">₹${trend.currentPsf.toLocaleString()}/sq.ft</div>
+                        </div>
+                        <div class="trend-stat">
+                            <div class="trend-stat-label">6M</div>
+                            <div class="trend-stat-value">${sixMSign}${trend.sixMPct}%</div>
+                        </div>
+                        <div class="trend-stat">
+                            <div class="trend-stat-label">YoY</div>
+                            <div class="trend-stat-value">${yoySign}${trend.yoyPct}%</div>
+                        </div>
+                    </div>
+                    <div class="trend-note">Indicative estimates.</div>
+                </div>
+            `;
         }
 
         // Normalize text: lowercase, trim, collapse spaces, remove spaces around single letters
@@ -2723,6 +2953,43 @@ document.addEventListener('DOMContentLoaded', function() {
         // CRITICAL: This function NEVER asks for something the user already provided
         // Params are extracted and context is updated BEFORE checking pending questions
         function generateBotResponse(intent, userText) {
+            // Handle price trend intent FIRST (before normal housing flow)
+            if (intent === 'price_trend') {
+                const locality = extractTrendLocality(userText);
+                let city = null;
+                
+                // Try to infer city from locality
+                if (locality) {
+                    city = inferCityFromLocality(locality);
+                }
+                
+                // If locality is unknown or city can't be inferred, ask for clarification
+                if (!locality || !city) {
+                    return {
+                        text: locality ? 'Which city is this locality in?' : 'Which locality are you asking about?',
+                        chips: null,
+                        results: null,
+                        trendCard: null
+                    };
+                }
+                
+                // Generate trend data
+                const trendData = generateTrendData(locality, city);
+                
+                // Generate response text
+                const directionText = trendData.direction === 'Up' ? 'slightly up' : 
+                                     trendData.direction === 'Down' ? 'slightly down' : 'relatively stable';
+                const yoyText = trendData.yoyPct >= 0 ? `+${trendData.yoyPct}%` : `${trendData.yoyPct}%`;
+                const responseText = `${trendData.locality} prices look ${directionText} overall. YoY is around ${yoyText}, with ${trendData.direction === 'Up' ? 'steady' : trendData.direction === 'Down' ? 'moderate' : 'minimal'} movement in the last 6 months.`;
+                
+                return {
+                    text: responseText,
+                    chips: null,
+                    results: null,
+                    trendCard: trendData
+                };
+            }
+            
             // Normalize and extract params
             const raw = userText;
             const normalized = normalizeText(raw);
@@ -3154,6 +3421,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 resultsWrapper.appendChild(propertyRail);
                 botMessage.appendChild(resultsWrapper);
+            }
+            
+            // 4. TrendCard (optional) - for price trend queries
+            if (trendCard) {
+                const trendWrapper = document.createElement('div');
+                trendWrapper.className = 'trend-wrapper';
+                trendWrapper.innerHTML = renderTrendCard(trendCard);
+                botMessage.appendChild(trendWrapper);
             }
             
             // Append to message element
@@ -3631,7 +3906,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         renderBotTurn({
                             text: fullText.slice(0, i),
                             chips: response.chips || null,
-                            carousel: response.results || null
+                            carousel: response.results || null,
+                            trendCard: response.trendCard || null
                         }, msgId);
                         return;
                     }
@@ -3662,7 +3938,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             renderBotTurn({
                                 text: response.text,
                                 chips: response.chips || null,
-                                carousel: response.results || null
+                                carousel: response.results || null,
+                                trendCard: response.trendCard || null
                             }, msgId);
                         }, 100);
                     }
