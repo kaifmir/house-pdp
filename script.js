@@ -1886,8 +1886,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             // Step 3: Trigger bot reply after 200ms (text is already captured)
+            // ✅ Trend FIRST. If matched, DO NOT run housing search.
             setTimeout(() => {
-                handleHousingIntent(text);
+                if (isTrendQuery(text)) {
+                    handleTrendIntent(text);
+                } else {
+                    handleHousingIntent(text);
+                }
             }, 200);
         }
 
@@ -3403,8 +3408,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // 3. CarouselRow (optional, horizontal scroll) - below chips/text
-            // Safety gate: Never show cards if pendingQuestion exists
-            if (safeCarousel && safeCarousel.length > 0) {
+            // Safety gate: Never show cards if pendingQuestion exists OR if trend card is present
+            // Guard: Don't render property cards if this is a trend response
+            if (trendCard) {
+                // This is a trend response - skip property cards entirely
+            } else if (safeCarousel && safeCarousel.length > 0) {
                 // Create bot-results wrapper
                 const resultsWrapper = document.createElement('div');
                 resultsWrapper.className = 'bot-results';
