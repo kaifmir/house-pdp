@@ -97,6 +97,50 @@ body.wireframe-mode svg {
     filter: grayscale(1) saturate(0);
 }
 
+/* Wireframe-only bottom sheet: replace Houzy icon imagery with a simple softly-spinning shape */
+body.wireframe-mode .scouty-chat-bot-icon {
+    opacity: 0 !important;
+}
+
+body.wireframe-mode .scouty-icons-container::before {
+    content: "";
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    border-radius: 28px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    background: rgba(0, 0, 0, 0.06);
+    animation: houzySoftSpin 22s linear infinite;
+    will-change: transform;
+}
+
+@keyframes houzySoftSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Bottom navigation: remove animated/blur effects in wireframe */
+body.wireframe-mode .nav-icon-rotate {
+    animation: none !important;
+}
+
+body.wireframe-mode .scouty-greeting-text span {
+    animation: none !important;
+    filter: none !important;
+}
+
+/* Bottom sheet CTA: softer grey, no shine/gradient animation in wireframe */
+body.wireframe-mode .scouty-cta {
+    background: rgba(0, 0, 0, 0.06) !important;
+    border: 1px solid rgba(0, 0, 0, 0.16) !important;
+    color: var(--text-dark) !important;
+    animation: none !important;
+}
+
+body.wireframe-mode .scouty-cta::before {
+    display: none !important;
+}
+
 /* Step 1: Hard lock page scroll when chat screen is active (critical for Android) */
 .chat-screen.active ~ *,
 body:has(.chat-screen.active) {
