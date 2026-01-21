@@ -15,6 +15,47 @@ function parityLog(...args) {
 }
 
 // ============================================================================
+// UI MODE TOGGLE (Final UI <-> Wireframe)
+// ============================================================================
+// Non-destructive: wireframe is a CSS-only overlay controlled by <body> class.
+// - Use `?wireframe=1` to force wireframe
+// - Use `?final=1` to force final UI
+// - Persisted in localStorage key: uiMode = "wireframe" | "final"
+// - Programmatic API:
+//     window.setUIMode('wireframe' | 'final')
+//     window.getUIMode()
+// ============================================================================
+
+function setUIMode(mode) {
+    const m = mode === 'wireframe' ? 'wireframe' : 'final';
+    document.body.classList.toggle('wireframe-mode', m === 'wireframe');
+    try {
+        localStorage.setItem('uiMode', m);
+    } catch (_) {}
+}
+
+function getUIMode() {
+    try {
+        return localStorage.getItem('uiMode') || 'final';
+    } catch (_) {
+        return 'final';
+    }
+}
+
+window.setUIMode = setUIMode;
+window.getUIMode = getUIMode;
+
+function initUIModeFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('wireframe')) return setUIMode('wireframe');
+    if (params.has('final')) return setUIMode('final');
+    return setUIMode(getUIMode());
+}
+
+// Initialize early on DOM ready (body must exist)
+document.addEventListener('DOMContentLoaded', initUIModeFromURL);
+
+// ============================================================================
 // PARITY QA CHECKLIST (verify before marking "fixed"):
 // ============================================================================
 // [ ] Edge fade visible on iOS + Android
