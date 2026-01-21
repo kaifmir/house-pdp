@@ -87,96 +87,14 @@ body.wireframe-mode * {
     text-shadow: none !important;
 }
 
-/* Hide all images (icons, photos, scouty) but preserve layout where possible */
-body.wireframe-mode img {
-    visibility: hidden !important;
+/* Keep visuals monochrome without introducing new "boxy" wireframe shapes */
+body.wireframe-mode {
+    filter: grayscale(1) saturate(0);
 }
 
-/* Neutralize background images/gradients to keep wireframe clean */
-body.wireframe-mode * {
-    background-image: none !important;
-}
-
-/* Give common icon containers a subtle placeholder surface */
-body.wireframe-mode .property-icon,
-body.wireframe-mode .chevron-down,
-body.wireframe-mode .search-button,
-body.wireframe-mode .arrow-right,
-body.wireframe-mode .clock-icon,
-body.wireframe-mode .nav-icon-wrapper,
-body.wireframe-mode .avatar-container {
-    background: #e9e9e9 !important;
-    border: 1px solid #d2d2d2 !important;
-}
-
-/* Property type icons: keep the round/square feel via the container */
-body.wireframe-mode .property-icon {
-    position: relative;
-}
-
-body.wireframe-mode .property-icon::after {
-    content: "";
-    position: absolute;
-    inset: 6px;
-    border-radius: 8px;
-    border: 1px solid #d0d0d0;
-    background: #f0f0f0;
-    pointer-events: none;
-}
-
-/* Avatar: show a simple silhouette block */
-body.wireframe-mode .avatar-container {
-    border-radius: 999px !important;
-    overflow: hidden;
-}
-
-body.wireframe-mode .avatar-fallback {
-    display: none !important;
-}
-
-body.wireframe-mode .avatar-container::after {
-    content: "";
-    position: absolute;
-    inset: 6px;
-    border-radius: 999px;
-    background: #f0f0f0;
-    border: 1px solid #d0d0d0;
-}
-
-/* Scouty: replace with a subtle grey wireframe pill/circle */
-body.wireframe-mode .scouty-icons-container,
-body.wireframe-mode .chat-title-icon,
-body.wireframe-mode .nav-icon-wrapper {
-    position: relative;
-}
-
-body.wireframe-mode .scouty-icons-container::before {
-    content: "";
-    display: block;
-    width: 78px;
-    height: 78px;
-    margin: 0 auto 12px;
-    border-radius: 22px;
-    background: #e9e9e9;
-    border: 1px solid #d2d2d2;
-}
-
-/* Recommendation cards / large images: replace with grey slabs */
-body.wireframe-mode .recent-card,
-body.wireframe-mode .recommendation-card,
-body.wireframe-mode .property-card,
-body.wireframe-mode .carousel-card {
-    background: #f4f4f4 !important;
-    border: 1px solid #d8d8d8 !important;
-}
-
-/* Buttons/CTAs: remove color emphasis */
-body.wireframe-mode button,
-body.wireframe-mode .post-property-btn,
-body.wireframe-mode .scouty-cta {
-    background: #ededed !important;
-    border: 1px solid #d2d2d2 !important;
-    color: #111 !important;
+body.wireframe-mode img,
+body.wireframe-mode svg {
+    filter: grayscale(1) saturate(0);
 }
 
 /* Step 1: Hard lock page scroll when chat screen is active (critical for Android) */
