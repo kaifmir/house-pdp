@@ -119,9 +119,20 @@ body.wireframe-mode .scouty-icons-container {
     animation: none !important;
 }
 
-/* Bottom navigation: restore slow rotation in wireframe */
+/* Bottom navigation: restore slow rotation in wireframe, make icon lighter */
 body.wireframe-mode .nav-icon-rotate {
     animation: constantRotate 12s linear infinite !important;
+}
+
+body.wireframe-mode .nav-icon-img {
+    opacity: 0.6 !important;
+    filter: grayscale(1) saturate(0) brightness(1.2) !important;
+}
+
+/* Chat header icon: make lighter in wireframe */
+body.wireframe-mode .chat-title-icon {
+    opacity: 0.6 !important;
+    filter: grayscale(1) saturate(0) brightness(1.2) !important;
 }
 
 body.wireframe-mode .scouty-greeting-text span {
