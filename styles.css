@@ -97,24 +97,17 @@ body.wireframe-mode svg {
     filter: grayscale(1) saturate(0);
 }
 
-/* Wireframe-only bottom sheet: replace Houzy icon imagery with a simple softly-spinning shape */
+/* Wireframe-only bottom sheet: show icon at 40% opacity, smaller size, with slow rotation */
 body.wireframe-mode .scouty-chat-bot-icon {
-    opacity: 0.6 !important;
-    animation: none !important;
+    opacity: 0.4 !important;
+    width: 100px !important;
+    height: 100px !important;
+    animation: constantRotate 12s linear infinite !important;
     filter: grayscale(1) saturate(0) !important;
 }
 
 body.wireframe-mode .scouty-icons-container::before {
-    content: "";
-    position: absolute;
-    /* Match the bottom-nav icon wrapper pill shape */
-    width: 52px;
-    height: 36px;
-    border-radius: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.18);
-    background: rgba(0, 0, 0, 0.06);
-    animation: none;
-    will-change: transform;
+    display: none !important;
 }
 
 /* Remove background layer/animations from bottom sheet in wireframe */
@@ -126,9 +119,9 @@ body.wireframe-mode .scouty-icons-container {
     animation: none !important;
 }
 
-/* Bottom navigation: remove animated/blur effects in wireframe */
+/* Bottom navigation: restore slow rotation in wireframe */
 body.wireframe-mode .nav-icon-rotate {
-    animation: none !important;
+    animation: constantRotate 12s linear infinite !important;
 }
 
 body.wireframe-mode .scouty-greeting-text span {
