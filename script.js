@@ -643,7 +643,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Handle specific nav actions
                 if (navType === 'chat') {
-                    const hasSeenSplash = sessionStorage.getItem('scoutySplashSeen') === 'true';
+                    const hasSeenSplash = sessionStorage.getItem('houzySplashSeen') === 'true';
                     if (hasSeenSplash) {
                         const chatScreen = document.getElementById('chat-screen');
                         if (chatScreen) {
@@ -822,7 +822,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Mark splash as seen in sessionStorage (resets on page refresh)
-            sessionStorage.setItem('scoutySplashSeen', 'true');
+            sessionStorage.setItem('houzySplashSeen', 'true');
             // Close bottom sheet
             closeBottomSheet();
             // Open chat screen
