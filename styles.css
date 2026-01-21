@@ -125,14 +125,14 @@ body.wireframe-mode .nav-icon-rotate {
 }
 
 body.wireframe-mode .nav-icon-img {
-    opacity: 0.6 !important;
-    filter: grayscale(1) saturate(0) brightness(1.2) !important;
+    opacity: 0.4 !important;
+    filter: grayscale(1) saturate(0) brightness(2.5) !important;
 }
 
 /* Chat header icon: make lighter in wireframe */
 body.wireframe-mode .chat-title-icon {
-    opacity: 0.6 !important;
-    filter: grayscale(1) saturate(0) brightness(1.2) !important;
+    opacity: 0.4 !important;
+    filter: grayscale(1) saturate(0) brightness(2.5) !important;
 }
 
 body.wireframe-mode .scouty-greeting-text span {
