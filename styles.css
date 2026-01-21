@@ -138,8 +138,8 @@ body.wireframe-mode .scouty-greeting-text span {
 
 /* Bottom sheet CTA: softer grey, no shine/gradient animation in wireframe */
 body.wireframe-mode .scouty-cta {
-    background: rgba(0, 0, 0, 0.22) !important;
-    border: 1px solid rgba(0, 0, 0, 0.28) !important;
+    background: rgba(0, 0, 0, 0.45) !important;
+    border: 1px solid rgba(0, 0, 0, 0.5) !important;
     color: var(--text-dark) !important;
     animation: none !important;
 }
@@ -168,7 +168,7 @@ body.wireframe-mode .scouty-cta::before {
 }
 
 body.wireframe-mode .bottom-sheet-close {
-    background: rgba(0, 0, 0, 0.06);
+    background: transparent !important;
 }
 
 /* Step 1: Hard lock page scroll when chat screen is active (critical for Android) */
