@@ -105,18 +105,23 @@ body.wireframe-mode .scouty-chat-bot-icon {
 body.wireframe-mode .scouty-icons-container::before {
     content: "";
     position: absolute;
-    width: 110px;
-    height: 110px;
-    border-radius: 28px;
+    /* Match the bottom-nav icon wrapper pill shape */
+    width: 52px;
+    height: 36px;
+    border-radius: 16px;
     border: 1px solid rgba(0, 0, 0, 0.18);
     background: rgba(0, 0, 0, 0.06);
-    animation: houzySoftSpin 22s linear infinite;
+    animation: none;
     will-change: transform;
 }
 
-@keyframes houzySoftSpin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+/* Remove background layer/animations from bottom sheet in wireframe */
+body.wireframe-mode .bottom-sheet-gradient-bg {
+    display: none !important;
+}
+
+body.wireframe-mode .scouty-icons-container {
+    animation: none !important;
 }
 
 /* Bottom navigation: remove animated/blur effects in wireframe */
@@ -131,14 +136,38 @@ body.wireframe-mode .scouty-greeting-text span {
 
 /* Bottom sheet CTA: softer grey, no shine/gradient animation in wireframe */
 body.wireframe-mode .scouty-cta {
-    background: rgba(0, 0, 0, 0.06) !important;
-    border: 1px solid rgba(0, 0, 0, 0.16) !important;
+    background: rgba(0, 0, 0, 0.14) !important;
+    border: 1px solid rgba(0, 0, 0, 0.22) !important;
     color: var(--text-dark) !important;
     animation: none !important;
 }
 
 body.wireframe-mode .scouty-cta::before {
     display: none !important;
+}
+
+/* Bottom sheet close button */
+.bottom-sheet-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(255, 255, 255, 0.8);
+    color: var(--text-dark);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.wireframe-mode .bottom-sheet-close {
+    background: rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.18);
 }
 
 /* Step 1: Hard lock page scroll when chat screen is active (critical for Android) */

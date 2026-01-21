@@ -170,7 +170,7 @@ document.addEventListener('focusin', (e) => {
 }, { passive: true });
 
 // DOM element cache
-let desktopBlocker, mobileContainer, bottomSheet, bottomSheetContent, bottomSheetOverlay;
+let desktopBlocker, mobileContainer, bottomSheet, bottomSheetContent, bottomSheetOverlay, bottomSheetCloseBtn;
 let bottomSheetHandle, bottomSheetBody, scoutyGreetingText, scoutyCTA;
 let navItems, navSliderBg, bottomNav;
 
@@ -205,6 +205,7 @@ function initDOMCache() {
     bottomSheet = document.getElementById('bottom-sheet');
     bottomSheetContent = document.querySelector('.bottom-sheet-content');
     bottomSheetOverlay = document.querySelector('.bottom-sheet-overlay');
+    bottomSheetCloseBtn = document.getElementById('bottom-sheet-close');
     bottomSheetHandle = document.querySelector('.bottom-sheet-handle');
     bottomSheetBody = document.querySelector('.bottom-sheet-body');
     scoutyGreetingText = document.getElementById('scouty-greeting-text');
@@ -401,7 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const greetingParts = [
         { text: "I am ", color: "var(--text-dark)" },
-        { text: "Scóuty", color: "var(--primary-purple)", bold: true },
+        { text: "Houzy", color: "var(--primary-purple)", bold: true },
         { text: ", here to help you find that dream house!", color: "var(--text-dark)" }
     ];
     
@@ -684,6 +685,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Bottom Sheet overlay
     if (bottomSheetOverlay) {
         bottomSheetOverlay.addEventListener('click', closeBottomSheet);
+    }
+    if (bottomSheetCloseBtn) {
+        bottomSheetCloseBtn.addEventListener('click', closeBottomSheet);
     }
     
     // Drag to close functionality
