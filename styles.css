@@ -99,7 +99,9 @@ body.wireframe-mode svg {
 
 /* Wireframe-only bottom sheet: replace Houzy icon imagery with a simple softly-spinning shape */
 body.wireframe-mode .scouty-chat-bot-icon {
-    opacity: 0 !important;
+    opacity: 0.6 !important;
+    animation: none !important;
+    filter: grayscale(1) saturate(0) !important;
 }
 
 body.wireframe-mode .scouty-icons-container::before {
@@ -136,8 +138,8 @@ body.wireframe-mode .scouty-greeting-text span {
 
 /* Bottom sheet CTA: softer grey, no shine/gradient animation in wireframe */
 body.wireframe-mode .scouty-cta {
-    background: rgba(0, 0, 0, 0.14) !important;
-    border: 1px solid rgba(0, 0, 0, 0.22) !important;
+    background: rgba(0, 0, 0, 0.22) !important;
+    border: 1px solid rgba(0, 0, 0, 0.28) !important;
     color: var(--text-dark) !important;
     animation: none !important;
 }
@@ -154,7 +156,7 @@ body.wireframe-mode .scouty-cta::before {
     width: 34px;
     height: 34px;
     border-radius: 10px;
-    border: 1px solid rgba(0, 0, 0, 0.12);
+    border: none;
     background: rgba(255, 255, 255, 0.8);
     color: var(--text-dark);
     display: inline-flex;
@@ -167,7 +169,6 @@ body.wireframe-mode .scouty-cta::before {
 
 body.wireframe-mode .bottom-sheet-close {
     background: rgba(0, 0, 0, 0.06);
-    border-color: rgba(0, 0, 0, 0.18);
 }
 
 /* Step 1: Hard lock page scroll when chat screen is active (critical for Android) */
