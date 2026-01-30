@@ -14,6 +14,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Preload critical homepage icons for faster loading -->
+    <link rel="preload" href="assets/chevron-down.png" as="image">
+    <link rel="preload" href="buy-icon.png" as="image">
+    <link rel="preload" href="assets/rupee-icon.png" as="image">
+    <link rel="preload" href="assets/arrow-right.png" as="image">
 </head>
 <body class="wireframe-mode">
     <div class="desktop-blocker">
@@ -29,7 +34,7 @@
             <div class="header-top">
                 <div class="user-greeting">
                     <div class="avatar-container">
-                        <img src="avatar.png" alt="Avatar" class="avatar-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <img src="avatar.png" alt="Avatar" class="avatar-img" loading="lazy" onerror="if(!this.dataset.failed){this.dataset.failed='1';this.style.display='none';if(this.nextElementSibling){this.nextElementSibling.style.display='block';}}">
                         <div class="avatar-fallback">
                             <div class="avatar-gradient"></div>
                             <div class="avatar-silhouette"></div>
@@ -37,7 +42,7 @@
                     </div>
                     <span class="greeting-text">Hi Shashwat</span>
                     <div class="chevron-down">
-                        <img src="assets/chevron-down.png" alt="Chevron" class="chevron-icon" onerror="this.src='https://www.figma.com/api/mcp/asset/8fe802ca-751e-483f-9ad1-149b8e9ce8ab'">
+                        <img src="assets/chevron-down.png" alt="Chevron" class="chevron-icon" loading="eager" decoding="async">
                     </div>
                 </div>
                 <button class="post-property-btn">
@@ -51,37 +56,37 @@
                 <div class="property-types">
                     <div class="property-type-card active" data-type="buy">
                         <div class="property-icon buy-icon">
-                            <img src="buy-icon.png" alt="Buy" onerror="this.src='https://www.figma.com/api/mcp/asset/3898a13e-ba6f-444d-91ed-079f523b59da'">
+                            <img src="buy-icon.png" alt="Buy" loading="eager" decoding="async">
                         </div>
                         <span>Buy</span>
                     </div>
                     <div class="property-type-card" data-type="project">
                         <div class="property-icon">
-                            <img src="assets/property-project-icon.svg" alt="Project" onerror="this.src='https://www.figma.com/api/mcp/asset/f2b28f52-62f9-4720-ab3e-c85c43ab5ce0'">
+                            <img src="assets/property-project-icon.svg" alt="Project" loading="eager" decoding="async">
                         </div>
                         <span>Project</span>
                     </div>
                     <div class="property-type-card" data-type="rent">
                         <div class="property-icon">
-                            <img src="assets/property-rent-icon.svg" alt="Rent" onerror="this.src='https://www.figma.com/api/mcp/asset/ef34545e-ac86-4448-8338-ad43f83acb5c'">
+                            <img src="assets/property-rent-icon.svg" alt="Rent" loading="eager" decoding="async">
                         </div>
                         <span>Rent</span>
                     </div>
                     <div class="property-type-card" data-type="plot">
                         <div class="property-icon">
-                            <img src="plot.png" alt="Plot">
+                            <img src="plot.png" alt="Plot" loading="eager" decoding="async">
                         </div>
                         <span>Plot</span>
                     </div>
                     <div class="property-type-card" data-type="commercial">
                         <div class="property-icon">
-                            <img src="assets/property-commercial-icon.svg" alt="Commercial" onerror="this.src='https://www.figma.com/api/mcp/asset/34e2436f-71a5-4615-bf09-71dd7c3df6a5'">
+                            <img src="assets/property-commercial-icon.svg" alt="Commercial" loading="eager" decoding="async">
                         </div>
                         <span>Commercial</span>
                     </div>
                     <div class="property-type-card" data-type="pg">
                         <div class="property-icon">
-                            <img src="assets/property-pg-icon.svg" alt="PG" onerror="this.src='https://www.figma.com/api/mcp/asset/31223e86-e2d0-440d-8ccf-a49e72e681ff'">
+                            <img src="assets/property-pg-icon.svg" alt="PG" loading="eager" decoding="async">
                         </div>
                         <span>PG</span>
                     </div>
@@ -95,13 +100,16 @@
                         <span class="location-label">Searching in</span>
                         <span class="location-value">Delhi</span>
                         <div class="chevron-down small">
-                            <img src="assets/chevron-down.png" alt="Chevron" class="chevron-icon" onerror="this.src='https://www.figma.com/api/mcp/asset/8fe802ca-751e-483f-9ad1-149b8e9ce8ab'">
+                            <img src="assets/chevron-down.png" alt="Chevron" class="chevron-icon" loading="eager" decoding="async">
                         </div>
                     </div>
                     <div class="search-input-container">
                         <input type="text" class="search-input" placeholder="" autocomplete="off" inputmode="search" id="search-input">
                         <button class="search-button" type="button">
-                            <img src="assets/search-icon.png" alt="Search" class="search-icon" onerror="this.src='https://www.figma.com/api/mcp/asset/e144467e-857e-46ea-9c12-d068bba8e13d'">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
                         </button>
                     </div>
                 </div>
@@ -110,9 +118,9 @@
             <!-- Recent Searches -->
             <div class="recent-searches">
                 <div class="recent-searches-header">
-                    <img src="recents.png" alt="Recents" class="recents-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <img src="recents.png" alt="Recents" class="recents-logo" loading="lazy" onerror="if(!this.dataset.failed){this.dataset.failed='1';this.style.display='none';if(this.nextElementSibling){this.nextElementSibling.style.display='flex';}}">
                     <div class="clock-icon" style="display: none;">
-                        <img src="assets/clock-icon.png" alt="Clock" onerror="this.src='https://www.figma.com/api/mcp/asset/af305777-d888-4d86-a458-92a1ad5ba66e'">
+                        <img src="assets/clock-icon.png" alt="Clock" loading="eager" decoding="async">
                     </div>
                     <span>Continue where you left</span>
                 </div>
@@ -122,13 +130,13 @@
                             <div class="recent-card-info">
                                 <div class="recent-card-top">
                                     <span class="bhk-info">2, 3, 4 BHK</span>
-                                    <img src="assets/rupee-icon.png" alt="Rupee" class="rupee-icon" onerror="this.src='https://www.figma.com/api/mcp/asset/f2613d06-bf6f-498b-ad61-812d45eab116'">
+                                    <img src="assets/rupee-icon.png" alt="Rupee" class="rupee-icon" loading="eager" decoding="async">
                                     <span class="price-info">₹2.3 - ₹4.8 Cr</span>
                                 </div>
                                 <p class="recent-card-location">Noida Sector 129, Extension - II</p>
                             </div>
                             <div class="arrow-right">
-                                <img src="assets/arrow-right.png" alt="Arrow" onerror="this.src='https://www.figma.com/api/mcp/asset/dd1078d3-4609-4593-a8d2-52c4c49bb9cd'">
+                                <img src="assets/arrow-right.png" alt="Arrow" loading="eager" decoding="async">
                             </div>
                         </div>
                     </div>
@@ -137,13 +145,13 @@
                             <div class="recent-card-info">
                                 <div class="recent-card-top">
                                     <span class="bhk-info">2, 3, 4 BHK</span>
-                                    <img src="assets/rupee-icon.png" alt="Rupee" class="rupee-icon" onerror="this.src='https://www.figma.com/api/mcp/asset/f2613d06-bf6f-498b-ad61-812d45eab116'">
+                                    <img src="assets/rupee-icon.png" alt="Rupee" class="rupee-icon" loading="eager" decoding="async">
                                     <span class="price-info">₹2.3 - ₹4.8 Cr</span>
                                 </div>
                                 <p class="recent-card-location">Noida Sector 129, Extension - II</p>
                             </div>
                             <div class="arrow-right">
-                                <img src="assets/arrow-right.png" alt="Arrow" onerror="this.src='https://www.figma.com/api/mcp/asset/dd1078d3-4609-4593-a8d2-52c4c49bb9cd'">
+                                <img src="assets/arrow-right.png" alt="Arrow" loading="eager" decoding="async">
                             </div>
                         </div>
                     </div>
@@ -155,7 +163,7 @@
                 <span class="explore-question">Not sure about locality?</span>
                 <button class="explore-link">
                     <span>Explore options</span>
-                    <img src="assets/chevron-right.png" alt="Chevron" class="chevron-right-icon" onerror="this.src='https://www.figma.com/api/mcp/asset/6541afa6-c4a4-4a52-a1ea-ed7105dddaef'">
+                    <img src="assets/chevron-right.png" alt="Chevron" class="chevron-right-icon" loading="eager" decoding="async">
                 </button>
             </div>
         </div>
@@ -172,7 +180,7 @@
             <div class="recommendations-scroll">
                 <div class="recommendation-card">
                     <div class="recommendation-image">
-                        <img src="assets/recommendation-1.jpg" alt="Opus Property" onerror="this.src='https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800&h=600&fit=crop&q=80'">
+                        <img src="assets/recommendation-1.jpg" alt="Opus Property" loading="lazy" onerror="if(!this.dataset.failed){this.dataset.failed='1';this.src='https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800&h=600&fit=crop&q=80';}">
                         <div class="image-overlay"></div>
                     </div>
                     <div class="recommendation-info">
@@ -183,7 +191,7 @@
                 </div>
                 <div class="recommendation-card">
                     <div class="recommendation-image">
-                        <img src="assets/recommendation-2.jpg" alt="Opus Property" onerror="this.src='https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop&q=80'">
+                        <img src="assets/recommendation-2.jpg" alt="Opus Property" loading="lazy" onerror="if(!this.dataset.failed){this.dataset.failed='1';this.src='https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop&q=80';}">
                         <div class="image-overlay"></div>
                     </div>
                     <div class="recommendation-info">

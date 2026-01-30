@@ -1521,10 +1521,10 @@ document.addEventListener('DOMContentLoaded', function() {
         function scrollMessageIntoView(msgElement, options = {}) {
             if (!msgElement) return;
             
-            const messages = document.getElementById("chat-messages");
+            const messages = domCache.chatMessages;
             if (!messages) return;
             
-            const header = document.querySelector(".chat-top-bar");
+            const header = domCache.chatTopBar;
             const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 68;
             
             // Get message position relative to messages container
@@ -1565,20 +1565,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 msgDiv.appendChild(bubble);
             
             // Add to chat stack
-            const stack = document.getElementById('chat-stack');
+            const stack = domCache.chatStack;
             if (stack) {
                 stack.appendChild(msgDiv);
                 
                 // KEY BEHAVIOR: Scroll message to top of viewport (below header)
                 // This keeps new messages visible at top instead of scrolling down
-            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
                     scrollMessageIntoView(msgDiv);
                 });
             }
             
             return msgId;
         }
-        
+
         // Show typing indicator (loader-5 animation)
         function showTypingIndicator() {
             // Remove any existing typing indicator
@@ -1608,7 +1608,7 @@ document.addEventListener('DOMContentLoaded', function() {
             msgDiv.appendChild(botContent);
             
             // Add to chat stack
-            const stack = document.getElementById('chat-stack');
+            const stack = domCache.chatStack;
             if (stack) {
                 stack.appendChild(msgDiv);
             }
@@ -1622,6 +1622,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (typingIndicator) {
                 typingIndicator.remove();
             }
+        }
+        
+        // Utility: Remove element by ID (with null check)
+        function removeElementById(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.remove();
+                return true;
+            }
+            return false;
         }
         
         // Render bot message - appears below user message, no auto-scroll
@@ -1638,14 +1648,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Hide typing indicator
                 hideTypingIndicator();
                 
-                const msgId = generateMessageId();
-                const message = {
-                    id: msgId,
-                    role: 'bot',
+            const msgId = generateMessageId();
+            const message = {
+                id: msgId,
+                role: 'bot',
                     text: text.trim(),
                     timestamp: Date.now()
-                };
-                messages.push(message);
+            };
+            messages.push(message);
                 
                 // Create message element
                 const msgDiv = document.createElement('div');
@@ -1662,14 +1672,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 botContent.appendChild(botText);
                 msgDiv.appendChild(botContent);
                 
-                // Add to chat stack
-                const stack = document.getElementById('chat-stack');
-                if (stack) {
-                    stack.appendChild(msgDiv);
-                    
-                    // Bot messages appear below user message - no auto-scroll
-                    // User can see it in context without page jumping
-                }
+            // Add to chat stack
+            const stack = domCache.chatStack;
+            if (stack) {
+                stack.appendChild(msgDiv);
+                
+                // Bot messages appear below user message - no auto-scroll
+                // User can see it in context without page jumping
+            }
             }, delay);
             
             return 'typing'; // Return placeholder ID while typing
@@ -1822,7 +1832,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 for (let j = 1; j <= len1; j++) {
                     if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
                         matrix[i][j] = matrix[i - 1][j - 1];
-                    } else {
+            } else {
                         matrix[i][j] = Math.min(
                             matrix[i - 1][j - 1] + 1,
                             matrix[i][j - 1] + 1,
@@ -1998,6 +2008,100 @@ document.addEventListener('DOMContentLoaded', function() {
             isComplete: false
         };
         
+        // User location state
+        let userLocation = {
+            latitude: null,
+            longitude: null,
+            hasLocation: false
+        };
+        
+        // Shared constants - Unsplash house image URLs (curated modern houses)
+        const ALL_UNSPLASH_IMAGES = [
+            'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-156401379991-9e60461eb61e?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1568605117035-2bf5c19ec013?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600585154340-be0671e3e94d?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600566753194-8e4b8c4c5b5a?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600585154084-4d0d3e5b3b5a?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600585152915-d0ec10b55c56?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600047509358-9dc75507daeb?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600607688904-5730f1357d3e?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600566753085-3b0b0b0b0b0b?w=800&h=600&fit=crop',
+            'https://images.unsplash.com/photo-1600585154340-be0671e3e94d?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1600585152915-d0ec10b55c56?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1600047509358-9dc75507daeb?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1600607688904-5730f1357d3e?w=800&h=600&fit=crop&q=80'
+        ];
+        
+        // Property praise texts for brochures
+        const PROPERTY_PRAISE_TEXTS = [
+            "Luxury living redefined with world-class amenities and premium finishes throughout.",
+            "Experience the epitome of modern architecture with spacious layouts and elegant design.",
+            "Premium lifestyle destination featuring state-of-the-art facilities and breathtaking views.",
+            "Sophisticated living spaces crafted with attention to detail and exceptional quality.",
+            "Your dream home awaits with contemporary design and unmatched luxury amenities.",
+            "Exclusive residential project offering the perfect blend of comfort and elegance.",
+            "Premium residences designed for those who appreciate fine living and quality craftsmanship."
+        ];
+        
+        // Cached DOM elements (lazy initialization)
+        const domCache = {
+            get chatStack() {
+                return this._chatStack || (this._chatStack = document.getElementById('chat-stack'));
+            },
+            get chatMessages() {
+                return this._chatMessages || (this._chatMessages = document.getElementById('chat-messages'));
+            },
+            get chatTopBar() {
+                return this._chatTopBar || (this._chatTopBar = document.querySelector('.chat-top-bar'));
+            },
+            get chatInputBar() {
+                return this._chatInputBar || (this._chatInputBar = document.querySelector('.chat-input-bar'));
+            },
+            clear() {
+                this._chatStack = null;
+                this._chatMessages = null;
+                this._chatTopBar = null;
+                this._chatInputBar = null;
+            }
+        };
+        
+        // Utility: Get random item from array
+        function getRandomItem(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+        
+        // Utility: Select unique items from array
+        function selectUniqueItems(array, count, excludeSet = new Set()) {
+            const available = array.filter(item => !excludeSet.has(item));
+            if (available.length === 0) return [];
+            
+            const selected = [];
+            const used = new Set(excludeSet);
+            const shuffled = shuffleArray([...available]);
+            
+            for (let i = 0; i < Math.min(count, shuffled.length); i++) {
+                const item = shuffled[i];
+                if (!used.has(item)) {
+                    selected.push(item);
+                    used.add(item);
+                }
+            }
+            
+            return selected;
+        }
+        
         // Reset conversation state
         function resetConversationState() {
             conversationState = {
@@ -2008,7 +2112,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 priceMax: null,
                 locality: null,
                 city: null,
-                isComplete: false
+                isComplete: false,
+                useLocation: false
             };
         }
         
@@ -2021,22 +2126,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 .trim();
         }
         
-        // Fuzzy match common words with typos
-        function fuzzyMatchWord(input, target, threshold = 0.7) {
+        // Fuzzy match common words with typos - more aggressive matching
+        function fuzzyMatchWord(input, target, threshold = 0.65) {
             const inputNorm = normalizeText(input);
-            const targetNorm = target.toLowerCase();
+            const targetNorm = target.toLowerCase().trim();
             
             // Exact match
             if (inputNorm.includes(targetNorm)) return true;
             
-            // Check similarity
+            // Check if target is contained in input (handles spacing issues)
+            const inputWords = inputNorm.split(/\s+/);
+            for (const word of inputWords) {
+                if (word.includes(targetNorm) || targetNorm.includes(word)) {
+                    if (word.length >= targetNorm.length * 0.6) return true; // At least 60% length match
+                }
+            }
+            
+            // Check similarity with lower threshold for better typo tolerance
             const sim = similarity(inputNorm, targetNorm);
             if (sim >= threshold) return true;
             
-            // Check if target is contained in input (handles spacing issues)
-            const words = inputNorm.split(/\s+/);
-            for (const word of words) {
-                if (similarity(word, targetNorm) >= threshold) return true;
+            // Check Levenshtein distance for close matches
+            const distance = levenshteinDistance(inputNorm, targetNorm);
+            const maxLen = Math.max(inputNorm.length, targetNorm.length);
+            if (maxLen > 0) {
+                const similarityScore = 1 - (distance / maxLen);
+                if (similarityScore >= threshold) return true;
+            }
+            
+            // Check word-by-word similarity
+            for (const word of inputWords) {
+                const wordSim = similarity(word, targetNorm);
+                if (wordSim >= threshold) return true;
+                
+                // Also check Levenshtein distance for individual words
+                const wordDistance = levenshteinDistance(word, targetNorm);
+                const wordMaxLen = Math.max(word.length, targetNorm.length);
+                if (wordMaxLen > 0) {
+                    const wordSimilarityScore = 1 - (wordDistance / wordMaxLen);
+                    if (wordSimilarityScore >= threshold) return true;
+                }
             }
             
             return false;
@@ -2091,6 +2220,17 @@ document.addEventListener('DOMContentLoaded', function() {
         function extractInformation(text) {
             const normalized = normalizeText(text);
             const updates = {};
+            
+            // Detect location-based queries (extract all info first, then show dialog if needed)
+            const hasLocationQuery = fuzzyMatchWord(text, 'explore properties near me', 0.7) ||
+                fuzzyMatchWord(text, 'properties near me', 0.7) ||
+                fuzzyMatchWord(text, 'near me', 0.7) ||
+                /explore.*near.*me|properties.*near.*me|show.*near.*me|around.*me/i.test(normalized);
+            
+            if (hasLocationQuery) {
+                updates.useLocation = true;
+                // Don't return early - continue extracting other info (BHK, price, etc.)
+            }
             
             // Detect rent/buy intent (with typo and grammatical tolerance)
             if (!conversationState.intent) {
@@ -2197,11 +2337,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 if (containsVariation(unit, 'thousand') || unit === 'k') {
                                     updates.price = price / 100; // 50k = 0.5 lakh
-                                    break;
+                    break;
                                 } else if (unit && (unit === 'rs' || unit === 'rupees' || unit === 'rupee')) {
                                     if (price >= 10000) {
                                         updates.price = price / 100000;
-                                    } else {
+            } else {
                                         updates.price = price / 100;
                                     }
                                     break;
@@ -2209,13 +2349,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                     // Plain number in typical rent range
                                     if (price >= 10000) {
                                         updates.price = price / 100000; // 50000 = 0.5 lakh
-                                    } else {
+                    } else {
                                         updates.price = price / 100; // 5000 = 0.05 lakh
                                     }
-                                    break;
-                                }
-                            }
-                        }
+                        break;
+                    }
+                }
+            }
                     }
                 } else {
                     // For buy: look for price ranges like "2-3 cr", "50-80 lakhs", "2 cr to 4 cr"
@@ -2261,9 +2401,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                     break;
                                 } else if (containsVariation(unit, 'lakh') || unit === 'lac') {
                                     updates.price = price / 100;
-                                    break;
-                                }
-                            }
+                    break;
+                }
+            }
                         }
                     }
                 }
@@ -2313,8 +2453,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const hasBHK = !!conversationState.bhk && conversationState.bhk >= 1 && conversationState.bhk <= 10;
             const hasPrice = !!(conversationState.price || conversationState.priceMin);
             const hasLocality = !!conversationState.locality && conversationState.locality.length >= 3;
+            const hasLocation = !!conversationState.useLocation && userLocation.hasLocation;
             
-            // If all required fields are present (even if extracted with typos), show properties
+            // If using location, we don't need locality - just need intent, BHK, and price
+            if (hasLocation || conversationState.useLocation) {
+                return hasIntent && hasBHK && hasPrice;
+            }
+            
+            // Otherwise, need all fields including locality
             return hasIntent && hasBHK && hasPrice && hasLocality;
         }
         
@@ -2366,7 +2512,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!conversationState.price && !conversationState.priceMin) {
                 missing.push('budget');
             }
-            if (!conversationState.locality) {
+            // Only ask for locality if not using location
+            if (!conversationState.locality && !conversationState.useLocation) {
                 missing.push('locality');
             }
             
@@ -2382,6 +2529,111 @@ document.addEventListener('DOMContentLoaded', function() {
             ];
             
             return questions[Math.floor(Math.random() * questions.length)];
+        }
+        
+        // Calculate distance between two coordinates (Haversine formula)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c; // Distance in km
+            return distance;
+        }
+        
+        // Show location permission dialog
+        function showLocationPermissionDialog() {
+            // Remove existing dialog if any
+            const existing = document.getElementById('location-permission-dialog');
+            if (existing) existing.remove();
+            
+            const dialog = document.createElement('div');
+            dialog.id = 'location-permission-dialog';
+            dialog.className = 'location-permission-dialog';
+            
+            dialog.innerHTML = `
+                <div class="location-dialog-content">
+                    <h1 class="location-dialog-title">To continue, your device will need to use Location Accuracy</h1>
+                    <p class="location-dialog-subtitle">The following settings should be on:</p>
+                    <div class="location-dialog-settings">
+                        <div class="location-setting-item">
+                            <svg class="location-setting-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            <span>Device location</span>
+                        </div>
+                        <div class="location-setting-item">
+                            <svg class="location-setting-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <line x1="12" y1="2" x2="12" y2="6"></line>
+                                <line x1="12" y1="18" x2="12" y2="22"></line>
+                                <line x1="2" y1="12" x2="6" y2="12"></line>
+                                <line x1="18" y1="12" x2="22" y2="12"></line>
+                        </svg>
+                            <div class="location-setting-text">
+                                <span>Location Accuracy</span>
+                                <p class="location-accuracy-description">Location Accuracy, which provides more accurate location for apps and services. To do this, Google periodically processes information about device sensors and wireless signals from your device to crowdsource wireless signal locations. These are used without identifying you to improve location accuracy and location-based services and to improve, provide and maintain Google's services based on Google's and third parties' legitimate interests to serve users' needs.</p>
+                    </div>
+                        </div>
+                        </div>
+                    <p class="location-dialog-footer">You can change this at any time in location settings. <a href="#" class="location-link">Manage settings</a> or <a href="#" class="location-link">learn more</a></p>
+                    <div class="location-dialog-buttons">
+                        <button class="location-btn-secondary" id="location-deny-btn">No, thanks</button>
+                        <button class="location-btn-primary" id="location-allow-btn">Turn on</button>
+                        </div>
+                </div>
+            `;
+            
+            document.body.appendChild(dialog);
+            document.body.style.overflow = 'hidden';
+            
+            // Handle button clicks
+            document.getElementById('location-deny-btn').onclick = function() {
+                dialog.remove();
+                document.body.style.overflow = '';
+                addBotMessage("No problem! You can still search for properties by location name. Try saying '3 BHK in Delhi' or 'Properties in Gurgaon'.");
+            };
+            
+            document.getElementById('location-allow-btn').onclick = function() {
+                dialog.remove();
+                document.body.style.overflow = '';
+                
+                // For prototype: Use dummy location immediately
+                showTypingIndicator();
+                
+                // Set dummy location (Delhi coordinates)
+                userLocation.latitude = 28.6139;
+                userLocation.longitude = 77.2090;
+                userLocation.hasLocation = true;
+                conversationState.useLocation = true;
+                
+                // Small delay for realistic feel
+                setTimeout(() => {
+                    hideTypingIndicator();
+                    
+                    // Check if we have all required info before showing properties
+                    if (isConversationComplete()) {
+                        addBotMessage("Great! I've got your location. Let me show you properties near you.");
+                        setTimeout(() => {
+                            showPropertyCards();
+                        }, 1000);
+                    } else {
+                        // Still missing some info, ask for it
+                        const followUp = getFollowUpQuestion();
+                        if (followUp) {
+                            addBotMessage("Great! I've got your location. " + followUp);
+                        } else {
+                            addBotMessage("Great! I've got your location. Could you tell me what type of property you're looking for? (e.g., 2 BHK, 3 BHK)");
+                        }
+                    }
+                }, 1500);
+            };
         }
         
         // Shuffle array to randomize order
@@ -2400,45 +2652,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const numCards = 4 + Math.floor(Math.random() * 2); // 4 or 5 cards
             const cards = [];
             
-            // Unsplash house image URLs (curated modern houses - using reliable sources)
-            const allUnsplashImages = [
-                'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-156401379991-9e60461eb61e?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1568605117035-2bf5c19ec013?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600585154340-be0671e3e94d?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600566753194-8e4b8c4c5b5a?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600585154525-9e4b8c4c5b5a?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600566752354-8e4b8c4c5b5a?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600585154084-4d0d3e5b3b5a?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600585152915-d0ec10b55c56?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600047509358-9dc75507daeb?w=800&h=600&fit=crop',
-                'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800&h=600&fit=crop'
-            ];
-            
-            // Shuffle and take unique images for each card (ensure no duplicates)
-            const shuffledImages = shuffleArray([...allUnsplashImages]);
-            const unsplashImages = [];
-            const usedImageIndices = new Set();
-            
-            // Select unique images for each card
-            for (let i = 0; i < numCards; i++) {
-                let attempts = 0;
-                let imageIndex;
-                do {
-                    imageIndex = Math.floor(Math.random() * shuffledImages.length);
-                    attempts++;
-                } while (usedImageIndices.has(imageIndex) && attempts < 50); // Prevent infinite loop
-                
-                usedImageIndices.add(imageIndex);
-                unsplashImages.push(shuffledImages[imageIndex]);
-            }
+            // Select unique images for each card using utility function
+            const unsplashImages = selectUniqueItems(ALL_UNSPLASH_IMAGES, numCards);
             
             // Property names (will be customized based on locality)
             const propertyNames = [
@@ -2460,67 +2675,132 @@ document.addEventListener('DOMContentLoaded', function() {
                 const imageUrl = unsplashImages[i]; // Each card gets a unique image
                 const propertyName = propertyNames[i % propertyNames.length];
                 
-                // Generate price based on user's budget
-                let price;
-                if (conversationState.priceMin && conversationState.priceMax) {
-                    const range = conversationState.priceMax - conversationState.priceMin;
-                    price = (conversationState.priceMin + (range * (i / numCards))).toFixed(1);
-                } else if (conversationState.price) {
-                    const variation = (conversationState.price * 0.1) * (i - numCards / 2) / numCards;
-                    price = (conversationState.price + variation).toFixed(1);
+                // Generate price based on property type (rent vs buy/project)
+                let priceValue;
+                let priceUnit;
+                const isRent = conversationState.intent === 'rent';
+                
+                if (isRent) {
+                    // Rent properties: less than 1 lakh (use thousands)
+                    if (conversationState.priceMin && conversationState.priceMax) {
+                        // User provided a rent range
+                        const range = conversationState.priceMax - conversationState.priceMin;
+                        const basePrice = conversationState.priceMin + (range * (i / numCards));
+                        // Convert to thousands (assuming price is in lakhs)
+                        priceValue = Math.round(basePrice * 100 * 1000);
+                        priceUnit = 'k';
+                    } else if (conversationState.price) {
+                        // User provided a single rent price
+                        const variation = (conversationState.price * 0.1) * (i - numCards / 2) / numCards;
+                        const basePrice = conversationState.price + variation;
+                        // Convert to thousands
+                        priceValue = Math.round(basePrice * 100 * 1000);
+                        priceUnit = 'k';
+                    } else {
+                        // Default rent range: 15k - 90k (less than 1 lakh)
+                        priceValue = Math.round(15000 + Math.random() * 75000);
+                        priceUnit = 'k';
+                    }
                 } else {
-                    price = (2.5 + i * 0.3).toFixed(1); // Default range
+                    // Buy/Project properties: 90 lakh+ (use crores or high lakhs)
+                    if (conversationState.priceMin && conversationState.priceMax) {
+                        // User provided a buy range
+                        const range = conversationState.priceMax - conversationState.priceMin;
+                        const basePrice = conversationState.priceMin + (range * (i / numCards));
+                        
+                        // If base price is less than 0.9 Cr (90 lakhs), adjust it
+                        const adjustedPrice = Math.max(basePrice, 0.9);
+                        
+                        // Randomly use crores or high lakhs (90L+)
+                        const useCrores = Math.random() > 0.3; // 70% chance of crores
+                        if (useCrores) {
+                            priceValue = adjustedPrice.toFixed(1);
+                            priceUnit = 'Cr';
+                        } else {
+                            // Use lakhs (90L - 1.5Cr in lakhs)
+                            priceValue = (adjustedPrice * 100).toFixed(1);
+                            priceUnit = 'L';
+                        }
+                    } else if (conversationState.price) {
+                        // User provided a single buy price
+                        const variation = (conversationState.price * 0.1) * (i - numCards / 2) / numCards;
+                        let basePrice = conversationState.price + variation;
+                        
+                        // Ensure minimum 90 lakhs
+                        basePrice = Math.max(basePrice, 0.9);
+                        
+                        const useCrores = Math.random() > 0.3;
+                        if (useCrores) {
+                            priceValue = basePrice.toFixed(1);
+                            priceUnit = 'Cr';
+                        } else {
+                            priceValue = (basePrice * 100).toFixed(1);
+                            priceUnit = 'L';
+                        }
+                    } else {
+                        // Default buy/project range: 90L - 5Cr
+                        const useCrores = Math.random() > 0.3;
+                        if (useCrores) {
+                            // Crores: 0.9 Cr - 5 Cr
+                            priceValue = (0.9 + Math.random() * 4.1).toFixed(1);
+                            priceUnit = 'Cr';
+                        } else {
+                            // High lakhs: 90L - 150L
+                            priceValue = (90 + Math.random() * 60).toFixed(1);
+                            priceUnit = 'L';
+                        }
+                    }
                 }
+                
+                const price = {
+                    value: priceValue,
+                    unit: priceUnit
+                };
                 
                 // Generate built-up area (realistic range: 1200-3500 sq.ft)
                 const builtUpArea = Math.floor(1200 + Math.random() * 2300);
                 
                 // Generate gallery images (3-5 images per property) - ensure unique images
                 const numGalleryImages = 3 + Math.floor(Math.random() * 3);
-                const galleryImages = [];
-                const usedGalleryIndices = new Set();
                 
                 // Track all images used in this card stack (to avoid duplicates across cards)
-                const allUsedInStack = new Set([...usedImageIndices]);
+                const allUsedInStack = new Set(unsplashImages);
                 
-                // First image in gallery is the card's main image
-                const mainImageIndex = shuffledImages.indexOf(imageUrl);
-                if (mainImageIndex !== -1) {
-                    usedGalleryIndices.add(mainImageIndex);
-                    allUsedInStack.add(mainImageIndex);
-                }
-                
-                // Add other unique images for gallery (avoiding images used in other cards)
-                for (let j = 0; j < numGalleryImages - 1; j++) {
-                    let attempts = 0;
-                    let galleryIndex;
-                    do {
-                        galleryIndex = Math.floor(Math.random() * shuffledImages.length);
-                        attempts++;
-                    } while ((usedGalleryIndices.has(galleryIndex) || allUsedInStack.has(galleryIndex)) && attempts < 100);
-                    
-                    if (attempts < 100) {
-                        usedGalleryIndices.add(galleryIndex);
-                        allUsedInStack.add(galleryIndex);
-                        galleryImages.push(shuffledImages[galleryIndex]);
-                    }
-                }
+                // Select additional unique images for gallery (excluding main image and already used images)
+                const additionalImages = selectUniqueItems(ALL_UNSPLASH_IMAGES, numGalleryImages - 1, allUsedInStack);
                 
                 // Always include the main image as first in gallery
-                galleryImages.unshift(imageUrl);
+                const galleryImages = [imageUrl, ...additionalImages];
+                
+                // Generate random coordinates for property (if using location)
+                let propertyLat = null;
+                let propertyLon = null;
+                let distance = null;
+                
+                if (userLocation.hasLocation && conversationState.useLocation) {
+                    // Generate property coordinates within ~20km radius
+                    const radius = 20; // km
+                    const angle = Math.random() * 2 * Math.PI;
+                    const distanceFromCenter = Math.random() * radius;
+                    propertyLat = userLocation.latitude + (distanceFromCenter * Math.cos(angle) / 111); // ~111 km per degree
+                    propertyLon = userLocation.longitude + (distanceFromCenter * Math.sin(angle) / (111 * Math.cos(userLocation.latitude * Math.PI / 180)));
+                    distance = calculateDistance(userLocation.latitude, userLocation.longitude, propertyLat, propertyLon);
+                }
                 
                 cards.push({
                     id: `property-${i + 1}`,
                     name: propertyName,
                     image: imageUrl,
                     gallery: galleryImages, // Array of gallery images
-                    price: price,
+                    price: price.value,
+                    priceUnit: price.unit,
                     bhk: conversationState.bhk || 3,
                     locality: conversationState.locality || 'Location',
                     type: conversationState.intent === 'rent' ? 'rent' : 'sale',
                     propertyType: propertyTypes[i % propertyTypes.length],
                     status: propertyStatuses[i % propertyStatuses.length],
-                    builtUpArea: builtUpArea
+                    builtUpArea: builtUpArea,
+                    distance: distance // Distance in km
                 });
             }
             
@@ -2531,11 +2811,13 @@ document.addEventListener('DOMContentLoaded', function() {
         function renderPropertyCards(cards) {
             const carousel = document.createElement('div');
             carousel.className = 'property-carousel';
+            carousel.style.pointerEvents = 'auto';
             
             cards.forEach(card => {
                 const cardElement = document.createElement('div');
                 cardElement.className = 'property-card';
                 cardElement.setAttribute('data-property-id', card.id);
+                cardElement.style.pointerEvents = 'auto';
                 
                 // Card image wrapper
                 const imageWrapper = document.createElement('div');
@@ -2546,43 +2828,275 @@ document.addEventListener('DOMContentLoaded', function() {
                 image.alt = card.name;
                 image.className = 'property-card__img';
                 image.loading = 'lazy';
-                image.style.cursor = 'pointer'; // Indicate it's clickable
+                image.style.cursor = 'pointer';
+                image.style.pointerEvents = 'auto';
+                image.style.position = 'relative';
+                image.style.zIndex = '1';
                 
                 // Handle image loading errors with fallback
                 image.onerror = function() {
-                    // Fallback to a reliable Unsplash image if original fails
-                    this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop';
-                    this.onerror = null; // Prevent infinite loop
+                    if (!this.dataset.failed) {
+                        this.dataset.failed = '1';
+                        this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop';
+                        this.onerror = null; // Prevent infinite loop
+                    }
                 };
                 
-                // Click on image to open gallery
-                image.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent event bubbling
-                    openPropertyGallery(card);
-                });
-                
-                // Make image wrapper clickable too
-                imageWrapper.style.cursor = 'pointer';
-                imageWrapper.addEventListener('click', (e) => {
-                    // Only open gallery if clicking on wrapper, not favorite button
-                    if (e.target === imageWrapper || e.target === image) {
-                        openPropertyGallery(card);
+                // GALLERY CREATION FUNCTION - DEFINED ONCE
+                function createGallery() {
+                    // Remove existing gallery
+                    removeElementById('property-gallery-overlay');
+                    
+                    // Create gallery
+                    const overlay = document.createElement('div');
+                    overlay.id = 'property-gallery-overlay';
+                    overlay.className = 'property-gallery-overlay';
+                    overlay.style.position = 'fixed';
+                    overlay.style.top = '0';
+                    overlay.style.left = '0';
+                    overlay.style.right = '0';
+                    overlay.style.bottom = '0';
+                    overlay.style.background = '#ffffff';
+                    overlay.style.zIndex = '999999';
+                    overlay.style.display = 'flex';
+                    overlay.style.alignItems = 'center';
+                    overlay.style.justifyContent = 'center';
+                    
+                    const closeBtn = document.createElement('button');
+                    closeBtn.className = 'property-gallery-close';
+                    closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                    closeBtn.style.cssText = 'position: absolute !important; top: 20px !important; right: 20px !important; width: 44px !important; height: 44px !important; background: transparent !important; border: none !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+                    closeBtn.onclick = function() {
+                        overlay.remove();
+                        document.body.style.overflow = '';
+                    };
+                    
+                    const container = document.createElement('div');
+                    container.className = 'property-gallery-container';
+                    
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'property-gallery-images';
+                    const images = (card.gallery && card.gallery.length > 0) ? card.gallery : [card.image];
+                    
+                    images.forEach(function(url, idx) {
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.className = 'property-gallery-image';
+                        img.style.display = idx === 0 ? 'block' : 'none';
+                        img.loading = 'eager';
+                        img.onerror = function() {
+                            // Fallback to a reliable image if gallery image fails
+                            this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop';
+                            this.onerror = null; // Prevent infinite loop
+                        };
+                        img.onload = function() {
+                            // Image loaded successfully
+                            this.style.opacity = '1';
+                        };
+                        img.style.opacity = '0';
+                        img.style.transition = 'opacity 0.3s ease';
+                        imgContainer.appendChild(img);
+                    });
+                    
+                    let currentIdx = 0;
+                    const prev = document.createElement('button');
+                    prev.className = 'property-gallery-nav property-gallery-prev';
+                    prev.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+                    prev.style.cssText = 'position: absolute !important; top: 50% !important; left: 20px !important; right: auto !important; transform: translateY(-50%) !important; width: 50px !important; height: 50px !important; background: #ffffff !important; border: none !important; border-radius: 50% !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+                    prev.onclick = function() {
+                        currentIdx = (currentIdx - 1 + images.length) % images.length;
+                        imgContainer.querySelectorAll('.property-gallery-image').forEach(function(img, i) {
+                            img.style.display = i === currentIdx ? 'block' : 'none';
+                        });
+                    };
+                    
+                    const next = document.createElement('button');
+                    next.className = 'property-gallery-nav property-gallery-next';
+                    next.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+                    next.style.cssText = 'position: absolute !important; top: 50% !important; right: 20px !important; left: auto !important; transform: translateY(-50%) !important; width: 50px !important; height: 50px !important; background: #ffffff !important; border: none !important; border-radius: 50% !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+                    next.onclick = function() {
+                        currentIdx = (currentIdx + 1) % images.length;
+                        imgContainer.querySelectorAll('.property-gallery-image').forEach(function(img, i) {
+                            img.style.display = i === currentIdx ? 'block' : 'none';
+                        });
+                    };
+                    
+                    container.appendChild(imgContainer);
+                    if (images.length > 1) {
+                        container.appendChild(prev);
+                        container.appendChild(next);
                     }
+                    
+                    // View Property button
+                    const viewPropertyBtn = document.createElement('button');
+                    viewPropertyBtn.className = 'property-gallery-view-btn';
+                    viewPropertyBtn.textContent = 'View Property';
+                    viewPropertyBtn.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Close gallery first
+                        overlay.remove();
+                        document.body.style.overflow = '';
+                        // Open PDP
+                        openPropertyDetailPage(card);
+                    };
+                    
+                    overlay.appendChild(closeBtn);
+                    overlay.appendChild(container);
+                    overlay.appendChild(viewPropertyBtn);
+                    overlay.onclick = function(e) {
+                        if (e.target === overlay) {
+                            overlay.remove();
+                            document.body.style.overflow = '';
+                        }
+                    };
+                    
+                    document.body.appendChild(overlay);
+                    document.body.style.overflow = 'hidden';
+                }
+                
+                // STORE CARD DATA ON IMAGE ELEMENT
+                image.setAttribute('data-property-id', card.id);
+                image.setAttribute('data-gallery-images', JSON.stringify(card.gallery || [card.image]));
+                image.setAttribute('data-card-image', card.image);
+                
+                // CLICK HANDLER
+                function handleImageClick(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    
+                    // Remove existing
+                    removeElementById('property-gallery-overlay');
+                    
+                    // Create gallery with white background
+                    const overlay = document.createElement('div');
+                    overlay.id = 'property-gallery-overlay';
+                    overlay.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; background: #ffffff !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+                    
+                    const closeBtn = document.createElement('button');
+                    closeBtn.className = 'property-gallery-close';
+                    closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                    closeBtn.style.cssText = 'position: absolute !important; top: 20px !important; right: 20px !important; width: 44px !important; height: 44px !important; background: transparent !important; border: none !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+                    closeBtn.onclick = function() {
+                        overlay.remove();
+                        document.body.style.overflow = '';
+                    };
+                    
+                    const container = document.createElement('div');
+                    container.className = 'property-gallery-container';
+                    
+                    const imgContainer = document.createElement('div');
+                    imgContainer.className = 'property-gallery-images';
+                    const images = (card.gallery && card.gallery.length > 0) ? card.gallery : [card.image];
+                    
+                    images.forEach(function(url, idx) {
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.className = 'property-gallery-image';
+                        img.style.display = idx === 0 ? 'block' : 'none';
+                        img.loading = 'eager';
+                        img.onerror = function() {
+                            // Fallback to a reliable image if gallery image fails
+                            this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop';
+                            this.onerror = null; // Prevent infinite loop
+                        };
+                        img.onload = function() {
+                            // Image loaded successfully
+                            this.style.opacity = '1';
+                        };
+                        img.style.opacity = '0';
+                        img.style.transition = 'opacity 0.3s ease';
+                        imgContainer.appendChild(img);
+                    });
+                    
+                    let currentIdx = 0;
+                    const prev = document.createElement('button');
+                    prev.className = 'property-gallery-nav property-gallery-prev';
+                    prev.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+                    prev.style.cssText = 'position: absolute !important; top: 50% !important; left: 20px !important; right: auto !important; transform: translateY(-50%) !important; width: 50px !important; height: 50px !important; background: #ffffff !important; border: none !important; border-radius: 50% !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+                    prev.onclick = function() {
+                        currentIdx = (currentIdx - 1 + images.length) % images.length;
+                        imgContainer.querySelectorAll('.property-gallery-image').forEach(function(img, i) {
+                            img.style.display = i === currentIdx ? 'block' : 'none';
+                        });
+                    };
+                    
+                    const next = document.createElement('button');
+                    next.className = 'property-gallery-nav property-gallery-next';
+                    next.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+                    next.style.cssText = 'position: absolute !important; top: 50% !important; right: 20px !important; left: auto !important; transform: translateY(-50%) !important; width: 50px !important; height: 50px !important; background: #ffffff !important; border: none !important; border-radius: 50% !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+                    next.onclick = function() {
+                        currentIdx = (currentIdx + 1) % images.length;
+                        imgContainer.querySelectorAll('.property-gallery-image').forEach(function(img, i) {
+                            img.style.display = i === currentIdx ? 'block' : 'none';
+                        });
+                    };
+                    
+                    container.appendChild(imgContainer);
+                    if (images.length > 1) {
+                        container.appendChild(prev);
+                        container.appendChild(next);
+                    }
+                    
+                    // View Property button
+                    const viewPropertyBtn = document.createElement('button');
+                    viewPropertyBtn.className = 'property-gallery-view-btn';
+                    viewPropertyBtn.textContent = 'View Property';
+                    viewPropertyBtn.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Close gallery first
+                        overlay.remove();
+                        document.body.style.overflow = '';
+                        // Open PDP
+                        openPropertyDetailPage(card);
+                    };
+                    
+                    overlay.appendChild(closeBtn);
+                    overlay.appendChild(container);
+                    overlay.appendChild(viewPropertyBtn);
+                    overlay.onclick = function(e) {
+                        if (e.target === overlay) {
+                            overlay.remove();
+                            document.body.style.overflow = '';
+                        }
+                    };
+                    
+                    document.body.appendChild(overlay);
+                    document.body.style.overflow = 'hidden';
+                    return false;
+                }
+                
+                // ATTACH TO IMAGE
+                image.onclick = handleImageClick;
+                image.addEventListener('click', handleImageClick, true);
+                image.addEventListener('click', handleImageClick, false);
+                image.addEventListener('mousedown', handleImageClick);
+                image.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    handleImageClick(e);
                 });
                 
-                // Favorite button (top right)
-                const favoriteBtn = document.createElement('button');
-                favoriteBtn.className = 'property-card-favorite';
-                favoriteBtn.setAttribute('aria-label', 'Save property');
-                favoriteBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
-                favoriteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevent opening gallery when clicking favorite
-                    // Handle favorite toggle
-                    favoriteBtn.classList.toggle('active');
-                });
+                // Also make wrapper clickable - MULTIPLE HANDLERS
+                imageWrapper.style.cursor = 'pointer';
+                imageWrapper.style.pointerEvents = 'auto';
+                
+                function wrapperClickHandler(e) {
+                    if (e.target.closest('.property-card-favorite')) {
+                        return;
+                    }
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('✅ WRAPPER CLICKED - Opening gallery');
+                    createGallery();
+                }
+                
+                imageWrapper.onclick = wrapperClickHandler;
+                imageWrapper.addEventListener('click', wrapperClickHandler, true);
+                imageWrapper.addEventListener('click', wrapperClickHandler, false);
                 
                 imageWrapper.appendChild(image);
-                imageWrapper.appendChild(favoriteBtn);
                 
                 // Card body
                 const body = document.createElement('div');
@@ -2601,18 +3115,37 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Location with pin icon
                 const location = document.createElement('div');
                 location.className = 'property-card__location';
+                let locationText = card.locality;
+                if (card.distance !== null && card.distance !== undefined) {
+                    const distanceText = card.distance < 1 
+                        ? `${Math.round(card.distance * 1000)}m away`
+                        : `${card.distance.toFixed(1)} km away`;
+                    locationText = `${card.locality} • ${distanceText}`;
+                }
                 location.innerHTML = `
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                         <circle cx="12" cy="10" r="3"></circle>
                     </svg>
-                    <span>${card.locality}</span>
+                    <span>${locationText}</span>
                 `;
                 
                 // Price
                 const price = document.createElement('div');
                 price.className = 'property-card__price';
-                price.textContent = `₹${card.price} Cr`;
+                // Format price with appropriate unit (k, L, or Cr)
+                const priceUnit = card.priceUnit || 'Cr';
+                if (priceUnit === 'k') {
+                    // Format thousands: 50k, 1.2L (if > 100k)
+                    const priceNum = parseFloat(card.price);
+                    if (priceNum >= 100000) {
+                        price.textContent = `₹${(priceNum / 100000).toFixed(1)}L`;
+                    } else {
+                        price.textContent = `₹${(priceNum / 1000).toFixed(0)}k`;
+                    }
+                } else {
+                    price.textContent = `₹${card.price} ${priceUnit}`;
+                }
                 
                 // Property details (BHK)
                 const chips = document.createElement('div');
@@ -2622,21 +3155,69 @@ document.addEventListener('DOMContentLoaded', function() {
                 bhkChip.textContent = `${card.bhk} BHK`;
                 chips.appendChild(bhkChip);
                 
+                // CTA Section with View button and Favorite button
+                const ctaSection = document.createElement('div');
+                ctaSection.className = 'property-card__cta-section';
+                
                 // View CTA button
                 const viewBtn = document.createElement('button');
                 viewBtn.className = 'property-card__view-btn';
                 viewBtn.textContent = 'View';
-                viewBtn.addEventListener('click', () => {
-                    // Handle view button click (can open property details)
-                    console.log('View property:', card.id);
+                viewBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openPropertyDetailPage(card);
                 });
+                
+                // Favorite button (next to CTA)
+                const favoriteBtn = document.createElement('button');
+                favoriteBtn.className = 'property-card-favorite';
+                favoriteBtn.setAttribute('aria-label', 'Save property');
+                favoriteBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
+                favoriteBtn.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    favoriteBtn.classList.toggle('active');
+                    // Update SVG to filled when active
+                    const svg = favoriteBtn.querySelector('svg path');
+                    if (favoriteBtn.classList.contains('active')) {
+                        svg.setAttribute('fill', 'currentColor');
+                        svg.setAttribute('stroke', 'none');
+                    } else {
+                        svg.setAttribute('fill', 'none');
+                        svg.setAttribute('stroke', 'currentColor');
+                    }
+                    return false;
+                };
+                
+                ctaSection.appendChild(viewBtn);
+                ctaSection.appendChild(favoriteBtn);
                 
                 body.appendChild(typeStatus);
                 body.appendChild(builtUpArea);
                 body.appendChild(location);
                 body.appendChild(price);
                 body.appendChild(chips);
-                body.appendChild(viewBtn);
+                body.appendChild(ctaSection);
+                
+                // Make entire card clickable (except image) to open PDP
+                cardElement.style.cursor = 'pointer';
+                cardElement.addEventListener('click', function(e) {
+                    // Don't open PDP if clicking on image or image wrapper (those open gallery)
+                    if (e.target.closest('.property-card__imgwrap') || 
+                        e.target.closest('.property-card__img') ||
+                        e.target.closest('.property-card-favorite')) {
+                        return;
+                    }
+                    // Don't open PDP if clicking on View button (it has its own handler)
+                    if (e.target.closest('.property-card__view-btn')) {
+                        return;
+                    }
+                    // Open PDP for any other click on the card
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openPropertyDetailPage(card);
+                });
                 
                 cardElement.appendChild(imageWrapper);
                 cardElement.appendChild(body);
@@ -2644,6 +3225,480 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             return carousel;
+        }
+        
+        // Open Property Detail Page (PDP)
+        function openPropertyDetailPage(card) {
+            // Remove existing PDP if any
+            removeElementById('property-detail-page');
+            
+            // Create PDP overlay
+            const pdpOverlay = document.createElement('div');
+            pdpOverlay.id = 'property-detail-page';
+            pdpOverlay.className = 'property-detail-page';
+            
+            // Back button
+            const backBtn = document.createElement('button');
+            backBtn.className = 'pdp-back-btn';
+            backBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+            backBtn.onclick = function() {
+                // Add slide-out animation
+                pdpOverlay.classList.add('pdp-slide-out');
+                setTimeout(() => {
+                    pdpOverlay.remove();
+                    document.body.style.overflow = '';
+                }, 300); // Match animation duration
+            };
+            
+            // PDP Content Container
+            const pdpContent = document.createElement('div');
+            pdpContent.className = 'pdp-content';
+            
+            // Hero Image
+            const heroImage = document.createElement('div');
+            heroImage.className = 'pdp-hero-image';
+            const heroImg = document.createElement('img');
+            heroImg.src = card.image;
+            heroImg.alt = card.name;
+            heroImg.loading = 'eager';
+            heroImg.onerror = function() {
+                if (!this.dataset.failed) {
+                    this.dataset.failed = '1';
+                    this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop';
+                    this.onerror = null;
+                }
+            };
+            heroImage.appendChild(heroImg);
+            
+            // Content Wrapper
+            const contentWrapper = document.createElement('div');
+            contentWrapper.className = 'pdp-content-wrapper';
+            
+            // Property Name
+            const propertyName = document.createElement('h1');
+            propertyName.className = 'pdp-property-name';
+            propertyName.textContent = card.name;
+            
+            // Location
+            const location = document.createElement('div');
+            location.className = 'pdp-location';
+            location.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                <span>${card.locality}</span>
+            `;
+            
+            // Price
+            const price = document.createElement('div');
+            price.className = 'pdp-price';
+            // Format price with appropriate unit (k, L, or Cr)
+            const priceUnit = card.priceUnit || 'Cr';
+            if (priceUnit === 'k') {
+                const priceNum = parseFloat(card.price);
+                if (priceNum >= 100000) {
+                    price.textContent = `₹${(priceNum / 100000).toFixed(1)}L`;
+            } else {
+                    price.textContent = `₹${(priceNum / 1000).toFixed(0)}k`;
+                }
+            } else {
+                price.textContent = `₹${card.price} ${priceUnit}`;
+            }
+            
+            // Details Grid
+            const detailsGrid = document.createElement('div');
+            detailsGrid.className = 'pdp-details-grid';
+            
+            const detailItems = [
+                { label: 'BHK', value: `${card.bhk} BHK` },
+                { label: 'Built-up Area', value: `${card.builtUpArea.toLocaleString()} sq.ft` },
+                { label: 'Type', value: card.propertyType },
+                { label: 'Status', value: card.status }
+            ];
+            
+            detailItems.forEach(item => {
+                const detailItem = document.createElement('div');
+                detailItem.className = 'pdp-detail-item';
+                detailItem.innerHTML = `
+                    <div class="pdp-detail-label">${item.label}</div>
+                    <div class="pdp-detail-value">${item.value}</div>
+                `;
+                detailsGrid.appendChild(detailItem);
+            });
+            
+            // Description
+            const description = document.createElement('div');
+            description.className = 'pdp-description';
+            description.innerHTML = `
+                <h2>About this property</h2>
+                <p>This beautiful ${card.propertyType.toLowerCase()} is ${card.status.toLowerCase()} and offers ${card.bhk} bedrooms with a built-up area of ${card.builtUpArea.toLocaleString()} sq.ft. Located in the prime area of ${card.locality}, this property is perfect for modern living.</p>
+            `;
+            
+            // Gallery Section
+            const gallerySection = document.createElement('div');
+            gallerySection.className = 'pdp-gallery-section';
+            gallerySection.innerHTML = '<h2>Gallery</h2>';
+            const galleryGrid = document.createElement('div');
+            galleryGrid.className = 'pdp-gallery-grid';
+            const galleryImages = (card.gallery && card.gallery.length > 0) ? card.gallery : [card.image];
+            galleryImages.slice(0, 6).forEach((url, idx) => {
+                const galleryItem = document.createElement('div');
+                galleryItem.className = 'pdp-gallery-item';
+                const galleryImg = document.createElement('img');
+                galleryImg.src = url;
+                galleryImg.alt = `${card.name} - Image ${idx + 1}`;
+                galleryImg.loading = 'lazy';
+                galleryImg.onerror = function() {
+                    if (!this.dataset.failed) {
+                        this.dataset.failed = '1';
+                        this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop';
+                        this.onerror = null;
+                    }
+                };
+                galleryItem.appendChild(galleryImg);
+                galleryItem.onclick = function() {
+                    // Open gallery from PDP
+                    removeElementById('property-gallery-overlay');
+                    // Trigger gallery opening - we can reuse the createGallery logic
+                    // For simplicity, just open the first image in gallery
+                };
+                galleryGrid.appendChild(galleryItem);
+            });
+            gallerySection.appendChild(galleryGrid);
+            
+            // CTA Buttons
+            const ctaSection = document.createElement('div');
+            ctaSection.className = 'pdp-cta-section';
+            const contactBtn = document.createElement('button');
+            contactBtn.className = 'pdp-cta-primary';
+            contactBtn.textContent = 'Contact Owner';
+            const scheduleBtn = document.createElement('button');
+            scheduleBtn.className = 'pdp-cta-secondary';
+            scheduleBtn.textContent = 'Schedule Visit';
+            
+            // Assemble content
+            contentWrapper.appendChild(propertyName);
+            contentWrapper.appendChild(location);
+            contentWrapper.appendChild(price);
+            contentWrapper.appendChild(detailsGrid);
+            contentWrapper.appendChild(description);
+            contentWrapper.appendChild(gallerySection);
+            ctaSection.appendChild(contactBtn);
+            ctaSection.appendChild(scheduleBtn);
+            
+            pdpContent.appendChild(heroImage);
+            pdpContent.appendChild(contentWrapper);
+            pdpContent.appendChild(ctaSection);
+            
+            pdpOverlay.appendChild(backBtn);
+            pdpOverlay.appendChild(pdpContent);
+            
+            document.body.appendChild(pdpOverlay);
+            document.body.style.overflow = 'hidden';
+            
+            // Smooth scroll to top
+            pdpContent.scrollTop = 0;
+        }
+        
+        // Open property gallery in fullscreen
+        function openPropertyGallery(card) {
+            // Create gallery overlay
+            const galleryOverlay = document.createElement('div');
+            galleryOverlay.className = 'property-gallery-overlay';
+            galleryOverlay.id = 'property-gallery-overlay';
+            
+            // Create close button
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'property-gallery-close';
+            closeBtn.setAttribute('aria-label', 'Close gallery');
+            closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            closeBtn.addEventListener('click', () => {
+                closePropertyGallery();
+            });
+            
+            // Create gallery container
+            const galleryContainer = document.createElement('div');
+            galleryContainer.className = 'property-gallery-container';
+            
+            // Create image container
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'property-gallery-images';
+            
+            let currentImageIndex = 0;
+            const images = card.gallery && card.gallery.length > 0 ? card.gallery : [card.image];
+            
+            // Create image elements
+            images.forEach((imgUrl, index) => {
+                const img = document.createElement('img');
+                img.src = imgUrl;
+                img.alt = `${card.name} - Image ${index + 1}`;
+                img.className = 'property-gallery-image';
+                if (index !== 0) img.style.display = 'none';
+                imageContainer.appendChild(img);
+            });
+            
+            // Create navigation arrows
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'property-gallery-nav property-gallery-prev';
+            prevBtn.setAttribute('aria-label', 'Previous image');
+            prevBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+            
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'property-gallery-nav property-gallery-next';
+            nextBtn.setAttribute('aria-label', 'Next image');
+            nextBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+            
+            // Navigation functions
+            function showImage(index) {
+                const allImages = imageContainer.querySelectorAll('.property-gallery-image');
+                allImages.forEach((img, i) => {
+                    img.style.display = i === index ? 'block' : 'none';
+                });
+                currentImageIndex = index;
+                
+                // Update button visibility
+                if (images.length > 1) {
+                    prevBtn.style.display = 'flex';
+                    nextBtn.style.display = 'flex';
+            } else {
+                    prevBtn.style.display = 'none';
+                    nextBtn.style.display = 'none';
+                }
+            }
+            
+            function nextImage() {
+                const nextIndex = (currentImageIndex + 1) % images.length;
+                showImage(nextIndex);
+            }
+            
+            function prevImage() {
+                const prevIndex = (currentImageIndex - 1 + images.length) % images.length;
+                showImage(prevIndex);
+            }
+            
+            prevBtn.addEventListener('click', prevImage);
+            nextBtn.addEventListener('click', nextImage);
+            
+            // Swipe support for mobile
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            imageContainer.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            
+            imageContainer.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+            
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                const diff = touchStartX - touchEndX;
+                
+                if (Math.abs(diff) > swipeThreshold) {
+                    if (diff > 0) {
+                        nextImage(); // Swipe left - next
+            } else {
+                        prevImage(); // Swipe right - previous
+                    }
+                }
+            }
+            
+            // Keyboard navigation
+            function handleKeyPress(e) {
+                if (e.key === 'ArrowLeft') prevImage();
+                if (e.key === 'ArrowRight') nextImage();
+                if (e.key === 'Escape') closePropertyGallery();
+            }
+            
+            document.addEventListener('keydown', handleKeyPress);
+            galleryOverlay._keyHandler = handleKeyPress; // Store for cleanup
+            
+            // Close on overlay click (but not on image click)
+            galleryOverlay.addEventListener('click', (e) => {
+                if (e.target === galleryOverlay) {
+                    closePropertyGallery();
+                }
+            });
+            
+            // Assemble gallery
+            galleryContainer.appendChild(imageContainer);
+            if (images.length > 1) {
+                galleryContainer.appendChild(prevBtn);
+                galleryContainer.appendChild(nextBtn);
+            }
+            galleryOverlay.appendChild(closeBtn);
+            galleryOverlay.appendChild(galleryContainer);
+            
+            // Add to body
+            document.body.appendChild(galleryOverlay);
+            document.body.style.overflow = 'hidden'; // Prevent body scroll
+            
+            // Show first image
+            showImage(0);
+        }
+        
+        // Close property gallery
+        function closePropertyGallery() {
+            const galleryOverlay = document.getElementById('property-gallery-overlay');
+            if (galleryOverlay) {
+                // Remove keyboard listener
+                if (galleryOverlay._keyHandler) {
+                    document.removeEventListener('keydown', galleryOverlay._keyHandler);
+                }
+                galleryOverlay.remove();
+                document.body.style.overflow = ''; // Restore body scroll
+            }
+        }
+        
+        // Show brochure message with CTA
+        function showBrochureMessage() {
+            showTypingIndicator();
+            
+            const delay = 1800 + Math.random() * 1000; // 1800-2800ms delay
+            
+            setTimeout(() => {
+                hideTypingIndicator();
+                
+                const msgId = generateMessageId();
+                const message = {
+                    id: msgId,
+                    role: 'bot',
+                    text: 'Here\'s the project brochure for you.',
+                    timestamp: Date.now(),
+                    hasBrochure: true
+                };
+                messages.push(message);
+                
+                // Create message element
+                const msgDiv = document.createElement('div');
+                msgDiv.id = msgId;
+                msgDiv.className = 'msg msg-bot';
+                
+                const botContent = document.createElement('div');
+                botContent.className = 'bot-message-content';
+                
+                // Add text
+                const botText = document.createElement('div');
+                botText.className = 'bot-text';
+                botText.textContent = message.text;
+                
+                // Create brochure component
+                const brochureComponent = document.createElement('div');
+                brochureComponent.className = 'brochure-component';
+                
+                // Use a random property image as brochure cover
+                const randomCoverImage = getRandomItem(ALL_UNSPLASH_IMAGES);
+                
+                const brochureCover = document.createElement('div');
+                brochureCover.className = 'brochure-cover';
+                const coverImg = document.createElement('img');
+                coverImg.src = randomCoverImage;
+                coverImg.alt = 'Project Brochure';
+                coverImg.className = 'brochure-cover-image';
+                coverImg.loading = 'lazy';
+                brochureCover.appendChild(coverImg);
+                
+                const brochureInfo = document.createElement('div');
+                brochureInfo.className = 'brochure-info';
+                const brochureTitle = document.createElement('div');
+                brochureTitle.className = 'brochure-title';
+                brochureTitle.textContent = 'Project Brochure';
+                const brochureSubtitle = document.createElement('div');
+                brochureSubtitle.className = 'brochure-subtitle';
+                brochureSubtitle.textContent = 'View detailed project information';
+                
+                brochureInfo.appendChild(brochureTitle);
+                brochureInfo.appendChild(brochureSubtitle);
+                
+                const brochureCta = document.createElement('button');
+                brochureCta.className = 'brochure-cta property-card__view-btn';
+                brochureCta.textContent = 'View';
+                brochureCta.onclick = function() {
+                    openBrochurePDF(randomCoverImage);
+                };
+                
+                brochureComponent.appendChild(brochureCover);
+                brochureComponent.appendChild(brochureInfo);
+                brochureComponent.appendChild(brochureCta);
+                
+                botContent.appendChild(botText);
+                botContent.appendChild(brochureComponent);
+                msgDiv.appendChild(botContent);
+                
+                // Add to chat stack
+                const stack = domCache.chatStack;
+                if (stack) {
+                    stack.appendChild(msgDiv);
+                    
+                    // Scroll message to top
+                    requestAnimationFrame(() => {
+                        scrollMessageIntoView(msgDiv);
+                    });
+                }
+            }, delay);
+        }
+        
+        // Open fullscreen PDF brochure viewer
+        function openBrochurePDF(coverImage) {
+            // Remove existing brochure viewer
+            removeElementById('brochure-pdf-overlay');
+            
+            // Get random property praise text
+            const randomPraise = getRandomItem(PROPERTY_PRAISE_TEXTS);
+            
+            // Create overlay
+            const overlay = document.createElement('div');
+            overlay.id = 'brochure-pdf-overlay';
+            overlay.className = 'brochure-pdf-overlay';
+            
+            // Create close button
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'brochure-pdf-close';
+            closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            closeBtn.onclick = function() {
+                overlay.remove();
+                document.body.style.overflow = '';
+            };
+            
+            // Create PDF container
+            const pdfContainer = document.createElement('div');
+            pdfContainer.className = 'brochure-pdf-container';
+            
+            // Create brochure content (image + text overlay)
+            const brochureContent = document.createElement('div');
+            brochureContent.className = 'brochure-pdf-content';
+            
+            // Brochure image
+            const brochureImage = document.createElement('img');
+            brochureImage.src = coverImage;
+            brochureImage.alt = 'Project Brochure';
+            brochureImage.className = 'brochure-pdf-image';
+            
+            // Text overlay
+            const textOverlay = document.createElement('div');
+            textOverlay.className = 'brochure-pdf-text';
+            const textTitle = document.createElement('div');
+            textTitle.className = 'brochure-pdf-title';
+            textTitle.textContent = 'Project Brochure';
+            const textDescription = document.createElement('div');
+            textDescription.className = 'brochure-pdf-description';
+            textDescription.textContent = randomPraise;
+            
+            textOverlay.appendChild(textTitle);
+            textOverlay.appendChild(textDescription);
+            
+            brochureContent.appendChild(brochureImage);
+            brochureContent.appendChild(textOverlay);
+            
+            pdfContainer.appendChild(brochureContent);
+            overlay.appendChild(closeBtn);
+            overlay.appendChild(pdfContainer);
+            
+            document.body.appendChild(overlay);
+            document.body.style.overflow = 'hidden';
         }
         
         // Show property cards with loading indicator
@@ -2695,6 +3750,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const stack = document.getElementById('chat-stack');
                 if (stack) {
                     stack.appendChild(msgDiv);
+                    
+                    // KEY BEHAVIOR: Scroll message to top of viewport (below header)
+                    // This keeps new messages visible at top instead of scrolling down
+                    requestAnimationFrame(() => {
+                        scrollMessageIntoView(msgDiv);
+                    });
                 }
             }, delay);
             
@@ -2714,11 +3775,28 @@ document.addEventListener('DOMContentLoaded', function() {
                     const response = getGreetingResponse();
                     addBotMessage(response);
                 } else {
+                    // Check for brochure request first
+                    const normalized = normalizeText(text);
+                    const isBrochureRequest = /show.*brochure|brochure.*show|view.*brochure|brochure.*view|download.*brochure|brochure.*download/i.test(normalized) ||
+                        fuzzyMatchWord(text, 'show brochure', 0.7) ||
+                        fuzzyMatchWord(text, 'brochure', 0.7);
+                    
+                    if (isBrochureRequest) {
+                        showBrochureMessage();
+                    return;
+                }
+                
                     // Extract information from user message (with smart extraction for typos)
                     const updates = smartExtract(text);
                     
                     // Update conversation state
                     Object.assign(conversationState, updates);
+                    
+                    // If location is requested but not yet granted, show dialog
+                    if (updates.useLocation && !userLocation.hasLocation) {
+                        showLocationPermissionDialog();
+                        return; // Don't proceed until location is granted
+                    }
                     
                     // Check if we have all information (very lenient - shows properties if info is present)
                     if (isConversationComplete()) {
@@ -2775,6 +3853,101 @@ document.addEventListener('DOMContentLoaded', function() {
                 handleUserMessage(text);
             });
         });
+        
+        // ============================================================================
+        // GLOBAL CLICK HANDLER FOR PROPERTY IMAGES (OUTSIDE IIFE SCOPE)
+        // ============================================================================
+        
+        // Global gallery opener - accessible from anywhere
+        window.openPropertyImageGallery = function(cardData) {
+            const existing = document.getElementById('property-gallery-overlay');
+            if (existing) existing.remove();
+            
+            const overlay = document.createElement('div');
+            overlay.id = 'property-gallery-overlay';
+            overlay.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; background: #ffffff !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'property-gallery-close';
+            closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            closeBtn.style.cssText = 'position: absolute !important; top: 20px !important; right: 20px !important; width: 44px !important; height: 44px !important; background: transparent !important; border: none !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+            closeBtn.onclick = function() {
+                overlay.remove();
+                document.body.style.overflow = '';
+            };
+            
+            const img = document.createElement('img');
+            const images = cardData.gallery && cardData.gallery.length > 0 ? cardData.gallery : [cardData.image];
+            img.src = images[0];
+            img.style.cssText = 'max-width: 90% !important; max-height: 90% !important; object-fit: contain !important;';
+            
+            overlay.appendChild(closeBtn);
+            overlay.appendChild(img);
+            overlay.onclick = function(e) {
+                if (e.target === overlay) {
+                    overlay.remove();
+                    document.body.style.overflow = '';
+                }
+            };
+            
+            document.body.appendChild(overlay);
+            document.body.style.overflow = 'hidden';
+        };
+        
+        // ============================================================================
+        // GLOBAL CLICK HANDLER FOR PROPERTY IMAGES (FALLBACK)
+        // ============================================================================
+        document.addEventListener('click', function(e) {
+            const img = e.target.closest('.property-card__img');
+            if (img && img.hasAttribute('data-card-image')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const cardData = {
+                    id: img.getAttribute('data-property-id'),
+                    image: img.getAttribute('data-card-image'),
+                    gallery: JSON.parse(img.getAttribute('data-gallery-images') || '[]')
+                };
+                
+                const existing = document.getElementById('property-gallery-overlay');
+                if (existing) existing.remove();
+                
+                const overlay = document.createElement('div');
+                overlay.id = 'property-gallery-overlay';
+                overlay.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; background: #ffffff !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+                
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'property-gallery-close';
+                closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+                closeBtn.style.cssText = 'position: absolute !important; top: 20px !important; right: 20px !important; width: 44px !important; height: 44px !important; background: transparent !important; border: none !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+                closeBtn.onclick = function() {
+                    overlay.remove();
+                    document.body.style.overflow = '';
+                };
+                
+                const galleryImg = document.createElement('img');
+                const images = cardData.gallery && cardData.gallery.length > 0 ? cardData.gallery : [cardData.image];
+                galleryImg.src = images[0];
+                galleryImg.style.cssText = 'max-width: 90% !important; max-height: 90% !important; object-fit: contain !important;';
+                galleryImg.loading = 'eager';
+                galleryImg.onerror = function() {
+                    this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop';
+                    this.onerror = null;
+                };
+                
+                overlay.appendChild(closeBtn);
+                overlay.appendChild(galleryImg);
+                overlay.onclick = function(e) {
+                    if (e.target === overlay) {
+                        overlay.remove();
+                        document.body.style.overflow = '';
+                    }
+                };
+                
+                document.body.appendChild(overlay);
+                document.body.style.overflow = 'hidden';
+            }
+        }, true); // Capture phase
         
         // ============================================================================
         // End of chat reset - ready to build from scratch
