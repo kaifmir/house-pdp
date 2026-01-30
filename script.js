@@ -1580,10 +1580,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Show typing indicator (loader-5 animation)
+        // Haptic feedback utility for mobile devices
+        function triggerHapticFeedback(intensity = 'medium') {
+            // Check if Vibration API is supported (mobile devices)
+            if ('vibrate' in navigator) {
+                try {
+                    if (intensity === 'subtle') {
+                        // Subtle vibration for typing indicator (5ms)
+                        navigator.vibrate(5);
+                    } else if (intensity === 'medium') {
+                        // Medium vibration for bot message (15ms)
+                        navigator.vibrate(15);
+                    } else if (intensity === 'strong') {
+                        // Strong vibration (25ms)
+                        navigator.vibrate(25);
+                    }
+                } catch (e) {
+                    // Silently fail if vibration is not allowed or fails
+                    console.debug('Haptic feedback not available');
+                }
+            }
+        }
+        
         function showTypingIndicator() {
             // Remove any existing typing indicator
             const existing = document.getElementById('typing-indicator');
             if (existing) existing.remove();
+            
+            // Subtle haptic feedback when bot starts thinking
+            triggerHapticFeedback('subtle');
             
             // Create typing indicator message
             const msgDiv = document.createElement('div');
@@ -1676,6 +1701,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const stack = domCache.chatStack;
             if (stack) {
                 stack.appendChild(msgDiv);
+                
+                // Haptic feedback when bot message appears
+                triggerHapticFeedback('medium');
                 
                 // Bot messages appear below user message - no auto-scroll
                 // User can see it in context without page jumping
@@ -3599,6 +3627,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 };
                 messages.push(message);
                 
+                // Haptic feedback when brochure appears
+                triggerHapticFeedback('medium');
+                
                 // Create message element
                 const msgDiv = document.createElement('div');
                 msgDiv.id = msgId;
@@ -4002,6 +4033,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     hasCards: true
                 };
                 messages.push(message);
+                
+                // Haptic feedback when property cards appear
+                triggerHapticFeedback('medium');
                 
                 // Create message element
                 const msgDiv = document.createElement('div');
