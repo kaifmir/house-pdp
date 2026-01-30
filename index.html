@@ -15,10 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Preload critical homepage icons for faster loading -->
-    <link rel="preload" href="assets/chevron-down.png" as="image">
     <link rel="preload" href="buy-icon.png" as="image">
-    <link rel="preload" href="assets/rupee-icon.png" as="image">
-    <link rel="preload" href="assets/arrow-right.png" as="image">
 </head>
 <body class="wireframe-mode">
     <div class="desktop-blocker">
@@ -33,17 +30,7 @@
         <div class="header-section">
             <div class="header-top">
                 <div class="user-greeting">
-                    <div class="avatar-container">
-                        <img src="avatar.png" alt="Avatar" class="avatar-img" loading="lazy" onerror="if(!this.dataset.failed){this.dataset.failed='1';this.style.display='none';if(this.nextElementSibling){this.nextElementSibling.style.display='block';}}">
-                        <div class="avatar-fallback">
-                            <div class="avatar-gradient"></div>
-                            <div class="avatar-silhouette"></div>
-                        </div>
-                    </div>
                     <span class="greeting-text">Hi Shashwat</span>
-                    <div class="chevron-down">
-                        <img src="assets/chevron-down.png" alt="Chevron" class="chevron-icon" loading="eager" decoding="async">
-                    </div>
                 </div>
                 <button class="post-property-btn">
                     <span class="btn-text">Post Property</span>
@@ -99,9 +86,6 @@
                     <div class="location-selector">
                         <span class="location-label">Searching in</span>
                         <span class="location-value">Delhi</span>
-                        <div class="chevron-down small">
-                            <img src="assets/chevron-down.png" alt="Chevron" class="chevron-icon" loading="eager" decoding="async">
-                        </div>
                     </div>
                     <div class="search-input-container">
                         <input type="text" class="search-input" placeholder="" autocomplete="off" inputmode="search" id="search-input">
@@ -130,13 +114,10 @@
                             <div class="recent-card-info">
                                 <div class="recent-card-top">
                                     <span class="bhk-info">2, 3, 4 BHK</span>
-                                    <img src="assets/rupee-icon.png" alt="Rupee" class="rupee-icon" loading="eager" decoding="async">
-                                    <span class="price-info">₹2.3 - ₹4.8 Cr</span>
+                                    <span class="price-separator">•</span>
+                                    <span class="price-info">₹2.3<span class="price-separator">•</span>₹4.8 Cr</span>
                                 </div>
                                 <p class="recent-card-location">Noida Sector 129, Extension - II</p>
-                            </div>
-                            <div class="arrow-right">
-                                <img src="assets/arrow-right.png" alt="Arrow" loading="eager" decoding="async">
                             </div>
                         </div>
                     </div>
@@ -145,13 +126,10 @@
                             <div class="recent-card-info">
                                 <div class="recent-card-top">
                                     <span class="bhk-info">2, 3, 4 BHK</span>
-                                    <img src="assets/rupee-icon.png" alt="Rupee" class="rupee-icon" loading="eager" decoding="async">
-                                    <span class="price-info">₹2.3 - ₹4.8 Cr</span>
+                                    <span class="price-separator">•</span>
+                                    <span class="price-info">₹2.3<span class="price-separator">•</span>₹4.8 Cr</span>
                                 </div>
                                 <p class="recent-card-location">Noida Sector 129, Extension - II</p>
-                            </div>
-                            <div class="arrow-right">
-                                <img src="assets/arrow-right.png" alt="Arrow" loading="eager" decoding="async">
                             </div>
                         </div>
                     </div>
@@ -163,7 +141,6 @@
                 <span class="explore-question">Not sure about locality?</span>
                 <button class="explore-link">
                     <span>Explore options</span>
-                    <img src="assets/chevron-right.png" alt="Chevron" class="chevron-right-icon" loading="eager" decoding="async">
                 </button>
             </div>
         </div>

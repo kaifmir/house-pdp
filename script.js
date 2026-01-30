@@ -1571,7 +1571,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // KEY BEHAVIOR: Scroll message to top of viewport (below header)
                 // This keeps new messages visible at top instead of scrolling down
-                requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
                     scrollMessageIntoView(msgDiv);
                 });
             }
@@ -1832,7 +1832,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 for (let j = 1; j <= len1; j++) {
                     if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
                         matrix[i][j] = matrix[i - 1][j - 1];
-            } else {
+                    } else {
                         matrix[i][j] = Math.min(
                             matrix[i - 1][j - 1] + 1,
                             matrix[i][j - 1] + 1,
@@ -2045,6 +2045,25 @@ document.addEventListener('DOMContentLoaded', function() {
         ];
         
         // Property praise texts for brochures
+        // Indian Developer Names
+        const INDIAN_DEVELOPER_NAMES = [
+            'DLF Limited',
+            'Godrej Properties',
+            'Prestige Group',
+            'Sobha Limited',
+            'Brigade Group',
+            'Mahindra Lifespaces',
+            'Shapoorji Pallonji',
+            'Lodha Group',
+            'Tata Housing',
+            'Raheja Developers',
+            'M3M India',
+            'Emaar India',
+            'Adani Realty',
+            'Signature Global',
+            'Ansal API'
+        ];
+
         const PROPERTY_PRAISE_TEXTS = [
             "Luxury living redefined with world-class amenities and premium finishes throughout.",
             "Experience the epitome of modern architecture with spacious layouts and elegant design.",
@@ -2501,19 +2520,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Generate follow-up question based on what's missing
         function getFollowUpQuestion() {
+            // Double-check state to ensure we have the latest values
+            const hasIntent = !!conversationState.intent;
+            const hasBHK = !!conversationState.bhk && conversationState.bhk >= 1 && conversationState.bhk <= 10;
+            const hasPrice = !!(conversationState.price || conversationState.priceMin);
+            const hasLocality = !!conversationState.locality && conversationState.locality.length >= 3;
+            const hasLocation = !!conversationState.useLocation && userLocation.hasLocation;
+            
             const missing = [];
             
-            if (!conversationState.intent) {
+            // Only ask for what's actually missing
+            if (!hasIntent) {
                 missing.push('rent or buy');
             }
-            if (!conversationState.bhk) {
+            if (!hasBHK) {
                 missing.push('BHK');
             }
-            if (!conversationState.price && !conversationState.priceMin) {
+            if (!hasPrice) {
                 missing.push('budget');
             }
             // Only ask for locality if not using location
-            if (!conversationState.locality && !conversationState.useLocation) {
+            if (!hasLocality && !hasLocation && !conversationState.useLocation) {
                 missing.push('locality');
             }
             
@@ -2696,7 +2723,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Convert to thousands
                         priceValue = Math.round(basePrice * 100 * 1000);
                         priceUnit = 'k';
-                    } else {
+                } else {
                         // Default rent range: 15k - 90k (less than 1 lakh)
                         priceValue = Math.round(15000 + Math.random() * 75000);
                         priceUnit = 'k';
@@ -2716,7 +2743,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (useCrores) {
                             priceValue = adjustedPrice.toFixed(1);
                             priceUnit = 'Cr';
-                        } else {
+                } else {
                             // Use lakhs (90L - 1.5Cr in lakhs)
                             priceValue = (adjustedPrice * 100).toFixed(1);
                             priceUnit = 'L';
@@ -3183,7 +3210,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (favoriteBtn.classList.contains('active')) {
                         svg.setAttribute('fill', 'currentColor');
                         svg.setAttribute('stroke', 'none');
-                    } else {
+            } else {
                         svg.setAttribute('fill', 'none');
                         svg.setAttribute('stroke', 'currentColor');
                     }
@@ -3586,43 +3613,75 @@ document.addEventListener('DOMContentLoaded', function() {
                 botText.textContent = message.text;
                 
                 // Create brochure component
-                const brochureComponent = document.createElement('div');
-                brochureComponent.className = 'brochure-component';
-                
                 // Use a random property image as brochure cover
                 const randomCoverImage = getRandomItem(ALL_UNSPLASH_IMAGES);
                 
-                const brochureCover = document.createElement('div');
-                brochureCover.className = 'brochure-cover';
+                // Create brochure card component
+                const brochureComponent = document.createElement('div');
+                brochureComponent.className = 'brochure-card';
+                
+                // Image wrapper (full-width filled image)
+                const brochureImageWrapper = document.createElement('div');
+                brochureImageWrapper.className = 'brochure-card__image-wrapper';
                 const coverImg = document.createElement('img');
                 coverImg.src = randomCoverImage;
                 coverImg.alt = 'Project Brochure';
-                coverImg.className = 'brochure-cover-image';
+                coverImg.className = 'brochure-card__image';
                 coverImg.loading = 'lazy';
-                brochureCover.appendChild(coverImg);
+                coverImg.onerror = function() {
+                    this.style.display = 'none';
+                };
+                brochureImageWrapper.appendChild(coverImg);
                 
-                const brochureInfo = document.createElement('div');
-                brochureInfo.className = 'brochure-info';
+                // Card body
+                const brochureBody = document.createElement('div');
+                brochureBody.className = 'brochure-card__body';
+                
+                // Get random developer name
+                const developerName = getRandomItem(INDIAN_DEVELOPER_NAMES);
+                
+                // Title
                 const brochureTitle = document.createElement('div');
-                brochureTitle.className = 'brochure-title';
+                brochureTitle.className = 'brochure-card__title';
                 brochureTitle.textContent = 'Project Brochure';
+                
+                // Developer name
+                const brochureDeveloper = document.createElement('div');
+                brochureDeveloper.className = 'brochure-card__developer';
+                brochureDeveloper.textContent = developerName;
+                
+                // Subtitle
                 const brochureSubtitle = document.createElement('div');
-                brochureSubtitle.className = 'brochure-subtitle';
-                brochureSubtitle.textContent = 'View detailed project information';
+                brochureSubtitle.className = 'brochure-card__subtitle';
+                brochureSubtitle.textContent = 'View detailed project information and specifications';
                 
-                brochureInfo.appendChild(brochureTitle);
-                brochureInfo.appendChild(brochureSubtitle);
-                
+                // CTA button
                 const brochureCta = document.createElement('button');
-                brochureCta.className = 'brochure-cta property-card__view-btn';
-                brochureCta.textContent = 'View';
-                brochureCta.onclick = function() {
-                    openBrochurePDF(randomCoverImage);
+                brochureCta.className = 'brochure-card__cta';
+                brochureCta.textContent = 'View Brochure';
+                
+                // Assemble body
+                brochureBody.appendChild(brochureTitle);
+                brochureBody.appendChild(brochureDeveloper);
+                brochureBody.appendChild(brochureSubtitle);
+                brochureBody.appendChild(brochureCta);
+                
+                // Assemble card
+                brochureComponent.appendChild(brochureImageWrapper);
+                brochureComponent.appendChild(brochureBody);
+                
+                // Make entire card clickable
+                brochureComponent.onclick = function(e) {
+                    // Don't trigger if clicking the button (handled separately)
+                    if (e.target !== brochureCta && !brochureCta.contains(e.target)) {
+                        openBrochurePDF(randomCoverImage, developerName);
+                    }
                 };
                 
-                brochureComponent.appendChild(brochureCover);
-                brochureComponent.appendChild(brochureInfo);
-                brochureComponent.appendChild(brochureCta);
+                brochureCta.onclick = function(e) {
+                    e.stopPropagation();
+                    openBrochurePDF(randomCoverImage, developerName);
+                };
                 
                 botContent.appendChild(botText);
                 botContent.appendChild(brochureComponent);
@@ -3642,12 +3701,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Open fullscreen PDF brochure viewer
-        function openBrochurePDF(coverImage) {
+        function openBrochurePDF(coverImage, developerName) {
             // Remove existing brochure viewer
             removeElementById('brochure-pdf-overlay');
-            
-            // Get random property praise text
-            const randomPraise = getRandomItem(PROPERTY_PRAISE_TEXTS);
             
             // Create overlay
             const overlay = document.createElement('div');
@@ -3667,31 +3723,113 @@ document.addEventListener('DOMContentLoaded', function() {
             const pdfContainer = document.createElement('div');
             pdfContainer.className = 'brochure-pdf-container';
             
-            // Create brochure content (image + text overlay)
+            // Create scrollable brochure content
             const brochureContent = document.createElement('div');
             brochureContent.className = 'brochure-pdf-content';
             
-            // Brochure image
-            const brochureImage = document.createElement('img');
-            brochureImage.src = coverImage;
-            brochureImage.alt = 'Project Brochure';
-            brochureImage.className = 'brochure-pdf-image';
+            // Get random images for brochure pages
+            const brochureImages = selectUniqueItems(ALL_UNSPLASH_IMAGES, 6);
             
-            // Text overlay
-            const textOverlay = document.createElement('div');
-            textOverlay.className = 'brochure-pdf-text';
-            const textTitle = document.createElement('div');
-            textTitle.className = 'brochure-pdf-title';
-            textTitle.textContent = 'Project Brochure';
-            const textDescription = document.createElement('div');
-            textDescription.className = 'brochure-pdf-description';
-            textDescription.textContent = randomPraise;
+            // Page 1: Cover Page
+            const coverPage = createBrochurePage('cover', {
+                image: coverImage,
+                developerName: developerName,
+                title: 'Luxury Living Redefined',
+                subtitle: 'Premium Residential Project'
+            });
+            brochureContent.appendChild(coverPage);
             
-            textOverlay.appendChild(textTitle);
-            textOverlay.appendChild(textDescription);
+            // Page 2: About the Project
+            const aboutPage = createBrochurePage('about', {
+                image: brochureImages[0],
+                title: 'About the Project',
+                content: [
+                    'Experience luxury living at its finest with our meticulously designed residential project.',
+                    'Spread across 25 acres of prime land, this development offers world-class amenities and modern architecture.',
+                    'With over 15 years of expertise in real estate, we bring you homes that combine comfort, style, and functionality.',
+                    'Each unit is designed to maximize natural light and ventilation, ensuring a healthy living environment.'
+                ],
+                features: ['25 Acres', '500+ Units', 'RERA Approved', 'Ready to Move']
+            });
+            brochureContent.appendChild(aboutPage);
             
-            brochureContent.appendChild(brochureImage);
-            brochureContent.appendChild(textOverlay);
+            // Page 3: Amenities
+            const amenitiesPage = createBrochurePage('amenities', {
+                image: brochureImages[1],
+                title: 'World-Class Amenities',
+                content: [
+                    'Our project offers an extensive range of amenities designed to enhance your lifestyle.',
+                    'From recreational facilities to essential services, everything is thoughtfully planned.'
+                ],
+                amenities: [
+                    { icon: '🏊', text: 'Swimming Pool' },
+                    { icon: '🏋️', text: 'Gym & Fitness Center' },
+                    { icon: '🌳', text: 'Landscaped Gardens' },
+                    { icon: '🚗', text: 'Covered Parking' },
+                    { icon: '🎮', text: 'Kids Play Area' },
+                    { icon: '🏛️', text: 'Clubhouse' },
+                    { icon: '🔒', text: '24/7 Security' },
+                    { icon: '🏥', text: 'Medical Center' }
+                ]
+            });
+            brochureContent.appendChild(amenitiesPage);
+            
+            // Page 4: Location & Connectivity
+            const locationPage = createBrochurePage('location', {
+                image: brochureImages[2],
+                title: 'Prime Location',
+                content: [
+                    'Strategically located in the heart of the city with excellent connectivity.',
+                    'Close to major business hubs, educational institutions, and healthcare facilities.',
+                    'Well-connected to metro stations, airports, and shopping malls.'
+                ],
+                highlights: [
+                    '5 mins from Metro Station',
+                    '10 mins from International Airport',
+                    '15 mins from Business District',
+                    '2 mins from Shopping Mall'
+                ]
+            });
+            brochureContent.appendChild(locationPage);
+            
+            // Page 5: Specifications
+            const specsPage = createBrochurePage('specifications', {
+                image: brochureImages[3],
+                title: 'Specifications',
+                content: [
+                    'Built with premium materials and modern construction techniques.',
+                    'Every detail is carefully planned to ensure durability and aesthetics.'
+                ],
+                specs: [
+                    { label: 'Structure', value: 'RCC Framed' },
+                    { label: 'Walls', value: 'Premium Paints' },
+                    { label: 'Flooring', value: 'Vitrified Tiles' },
+                    { label: 'Doors', value: 'Teak Wood' },
+                    { label: 'Windows', value: 'UPVC with Grills' },
+                    { label: 'Kitchen', value: 'Modular with Hobs' },
+                    { label: 'Bathrooms', value: 'Premium Fittings' },
+                    { label: 'Power Backup', value: '100% Coverage' }
+                ]
+            });
+            brochureContent.appendChild(specsPage);
+            
+            // Page 6: Contact & Pricing
+            const contactPage = createBrochurePage('contact', {
+                image: brochureImages[4],
+                title: 'Get in Touch',
+                content: [
+                    'Ready to make this your home? Contact us today for site visits and exclusive offers.',
+                    'Our sales team is available to assist you with all your queries.'
+                ],
+                contact: [
+                    { label: 'Sales Office', value: '+91 98765 43210' },
+                    { label: 'Email', value: 'sales@developer.com' },
+                    { label: 'Website', value: 'www.developer.com' },
+                    { label: 'Office Hours', value: 'Mon-Sat: 10 AM - 7 PM' }
+                ],
+                pricing: 'Starting from ₹1.2 Cr*'
+            });
+            brochureContent.appendChild(contactPage);
             
             pdfContainer.appendChild(brochureContent);
             overlay.appendChild(closeBtn);
@@ -3699,6 +3837,142 @@ document.addEventListener('DOMContentLoaded', function() {
             
             document.body.appendChild(overlay);
             document.body.style.overflow = 'hidden';
+            
+            // Scroll to top
+            pdfContainer.scrollTop = 0;
+        }
+        
+        // Helper function to create brochure pages
+        function createBrochurePage(type, data) {
+            const page = document.createElement('div');
+            page.className = 'brochure-page';
+            
+            // Page header with image
+            const pageHeader = document.createElement('div');
+            pageHeader.className = 'brochure-page__header';
+            const headerImage = document.createElement('img');
+            headerImage.src = data.image;
+            headerImage.alt = data.title;
+            headerImage.className = 'brochure-page__image';
+            headerImage.loading = 'lazy';
+            headerImage.onerror = function() {
+                this.style.display = 'none';
+            };
+            pageHeader.appendChild(headerImage);
+            
+            // Page body
+            const pageBody = document.createElement('div');
+            pageBody.className = 'brochure-page__body';
+            
+            // Title
+            const pageTitle = document.createElement('h2');
+            pageTitle.className = 'brochure-page__title';
+            pageTitle.textContent = data.title;
+            pageBody.appendChild(pageTitle);
+            
+            // Developer name (for cover page)
+            if (type === 'cover' && data.developerName) {
+                const developerDiv = document.createElement('div');
+                developerDiv.className = 'brochure-page__developer';
+                developerDiv.textContent = data.developerName;
+                pageBody.appendChild(developerDiv);
+            }
+            
+            // Subtitle (for cover page)
+            if (type === 'cover' && data.subtitle) {
+                const subtitle = document.createElement('div');
+                subtitle.className = 'brochure-page__subtitle';
+                subtitle.textContent = data.subtitle;
+                pageBody.appendChild(subtitle);
+            }
+            
+            // Content paragraphs
+            if (data.content && Array.isArray(data.content)) {
+                data.content.forEach(text => {
+                    const para = document.createElement('p');
+                    para.className = 'brochure-page__text';
+                    para.textContent = text;
+                    pageBody.appendChild(para);
+                });
+            }
+            
+            // Features (for about page)
+            if (data.features && Array.isArray(data.features)) {
+                const featuresGrid = document.createElement('div');
+                featuresGrid.className = 'brochure-page__features';
+                data.features.forEach(feature => {
+                    const featureItem = document.createElement('div');
+                    featureItem.className = 'brochure-page__feature-item';
+                    featureItem.textContent = feature;
+                    featuresGrid.appendChild(featureItem);
+                });
+                pageBody.appendChild(featuresGrid);
+            }
+            
+            // Amenities (for amenities page)
+            if (data.amenities && Array.isArray(data.amenities)) {
+                const amenitiesGrid = document.createElement('div');
+                amenitiesGrid.className = 'brochure-page__amenities';
+                data.amenities.forEach(amenity => {
+                    const amenityItem = document.createElement('div');
+                    amenityItem.className = 'brochure-page__amenity-item';
+                    amenityItem.innerHTML = `<span class="amenity-icon">${amenity.icon}</span><span class="amenity-text">${amenity.text}</span>`;
+                    amenitiesGrid.appendChild(amenityItem);
+                });
+                pageBody.appendChild(amenitiesGrid);
+            }
+            
+            // Highlights (for location page)
+            if (data.highlights && Array.isArray(data.highlights)) {
+                const highlightsList = document.createElement('div');
+                highlightsList.className = 'brochure-page__highlights';
+                data.highlights.forEach(highlight => {
+                    const highlightItem = document.createElement('div');
+                    highlightItem.className = 'brochure-page__highlight-item';
+                    highlightItem.innerHTML = `<span class="highlight-icon">📍</span><span>${highlight}</span>`;
+                    highlightsList.appendChild(highlightItem);
+                });
+                pageBody.appendChild(highlightsList);
+            }
+            
+            // Specifications (for specs page)
+            if (data.specs && Array.isArray(data.specs)) {
+                const specsList = document.createElement('div');
+                specsList.className = 'brochure-page__specs';
+                data.specs.forEach(spec => {
+                    const specItem = document.createElement('div');
+                    specItem.className = 'brochure-page__spec-item';
+                    specItem.innerHTML = `<span class="spec-label">${spec.label}:</span><span class="spec-value">${spec.value}</span>`;
+                    specsList.appendChild(specItem);
+                });
+                pageBody.appendChild(specsList);
+            }
+            
+            // Contact info (for contact page)
+            if (data.contact && Array.isArray(data.contact)) {
+                const contactList = document.createElement('div');
+                contactList.className = 'brochure-page__contact';
+                data.contact.forEach(contact => {
+                    const contactItem = document.createElement('div');
+                    contactItem.className = 'brochure-page__contact-item';
+                    contactItem.innerHTML = `<span class="contact-label">${contact.label}:</span><span class="contact-value">${contact.value}</span>`;
+                    contactList.appendChild(contactItem);
+                });
+                pageBody.appendChild(contactList);
+            }
+            
+            // Pricing (for contact page)
+            if (data.pricing) {
+                const pricingDiv = document.createElement('div');
+                pricingDiv.className = 'brochure-page__pricing';
+                pricingDiv.textContent = data.pricing;
+                pageBody.appendChild(pricingDiv);
+            }
+            
+            page.appendChild(pageHeader);
+            page.appendChild(pageBody);
+            
+            return page;
         }
         
         // Show property cards with loading indicator
@@ -3789,8 +4063,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Extract information from user message (with smart extraction for typos)
                     const updates = smartExtract(text);
                     
-                    // Update conversation state
-                    Object.assign(conversationState, updates);
+                    // Update conversation state - preserve existing values, only update new ones
+                    // This ensures we don't lose context from previous messages
+                    for (const key in updates) {
+                        if (updates[key] !== null && updates[key] !== undefined) {
+                            // Special handling for price fields
+                            if (key === 'price' || key === 'priceMin' || key === 'priceMax') {
+                                // Only update if we don't already have price info
+                                if (!conversationState.price && !conversationState.priceMin) {
+                                    conversationState[key] = updates[key];
+                                }
+                            } else {
+                                // For other fields, only update if not already set (preserve context)
+                                if (!conversationState[key]) {
+                                    conversationState[key] = updates[key];
+                                }
+                            }
+                        }
+                    }
                     
                     // If location is requested but not yet granted, show dialog
                     if (updates.useLocation && !userLocation.hasLocation) {
@@ -3805,9 +4095,21 @@ document.addEventListener('DOMContentLoaded', function() {
                         showPropertyCards();
                     } else {
                         // Ask follow-up question only if we're really missing something
+                        // Double-check state before asking to avoid repeating questions
                         const followUp = getFollowUpQuestion();
                         if (followUp) {
                             addBotMessage(followUp);
+                        } else {
+                            // If no follow-up needed but not complete, something might be wrong
+                            // Show properties anyway if we have most info
+                            const hasIntent = !!conversationState.intent;
+                            const hasBHK = !!conversationState.bhk;
+                            const hasPrice = !!(conversationState.price || conversationState.priceMin);
+                            if (hasIntent && hasBHK && hasPrice) {
+                                // We have enough info, show properties
+                                conversationState.isComplete = true;
+                                showPropertyCards();
+                            }
                         }
                     }
                 }
