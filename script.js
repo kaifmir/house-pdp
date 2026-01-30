@@ -1373,10 +1373,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================================================
-    // CHAT v1: User messages + bot replies + intro hide
+    // CHAT: Reset - UI only, no conversation logic
     // ============================================================================
-    // Only handles message rendering and intro visibility
-    // Does NOT touch header/keyboard/pills logic
+    // Chat functionality will be built from scratch
+    // Keeping only UI structure and basic setup
     // ============================================================================
     (function chatV1() {
         const chatInput = document.getElementById('chat-input');
@@ -1419,61 +1419,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Initialize chat stack on load
         ensureChatStack();
 
-        // Helper to get chat messages element
-        function getChatMessagesEl() {
-            return document.getElementById("chat-messages");
-        }
+        // ============================================================================
+        // CHAT RESET: All conversation logic removed
+        // UI structure kept, functionality will be built from scratch
+        // ============================================================================
         
-        // Check if user is near bottom (threshold ~120px)
-        function isNearBottom(thresholdPx = 120) {
-            const messages = document.getElementById("chat-messages");
-            if (!messages) return false;
-            return (messages.scrollHeight - (messages.scrollTop + messages.clientHeight)) < thresholdPx;
-        }
-        
-        // Scroll to bottom using sentinel (ChatGPT-style)
-        // Uses #chat-end sentinel with scrollIntoView for iOS stability
-        function scrollToBottom(options = {}) {
-            // If we're keeping user message at top, don't scroll during typing
-            if (keepUserMessageAtTop && !options.forceKeepUserAtTop) {
-                return;
-            }
-            
-            const messages = document.getElementById("chat-messages");
-            const end = document.getElementById("chat-end");
-            if (!messages || !end) return;
-            
-            const force = options.force !== false; // Default to true
-            
-            // Only auto-scroll if user is near bottom OR force is true
-            if (!force && !isNearBottom()) {
-                return;
-            }
-            
-            // Use double requestAnimationFrame for iOS stability
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    end.scrollIntoView({ block: "end", behavior: "auto" });
-                });
-            });
-        }
-        
-        // Legacy scroll functions (kept for compatibility)
-        function scrollChatToBottom(options = {}) {
-            scrollToBottom(options);
-        }
-        
-        function scrollToBottomIfNeeded({ force = false, immediate = false } = {}) {
-            scrollToBottom({ force });
-        }
-        
-        function scrollToBottomTyping(msgElement = null) {
-            scrollToBottom({ force: true });
-        }
-        
-        // Set chat offsets dynamically (header + composer heights)
-        // Sets padding-top and padding-bottom on #chat-messages
-        // Makes first message appear 16px under header (always)
+        // Basic placeholder functions to keep UI working
         function setChatOffsets() {
             const header = document.querySelector(".chat-top-bar");
             const composer = document.querySelector(".chat-input-bar");
@@ -1528,628 +1479,506 @@ document.addEventListener('DOMContentLoaded', function() {
             return result;
         };
 
-        // Messages state
+        // ============================================================================
+        // CHAT RESET: All conversation logic removed
+        // Keeping only minimal state and UI structure
+        // ============================================================================
+        
+        // Messages state (empty - will be built from scratch)
         const messages = [];
         let messageIdCounter = 0;
-        let typewriterTimer = null;
-        
-        // Bot responding state for Send ↔ Stop toggle
-        let isBotResponding = false;
 
         // Generate unique message ID
         function generateMessageId() {
             return `msg-${Date.now()}-${++messageIdCounter}`;
         }
 
-        // Auto-scroll state tracking - stick to bottom unless user scrolled up
-        let isAtBottom = true;
-        let scrollTimeout = null;
-        let typingScrollRaf = null;
-
-        // Check if user is near bottom (within 120px threshold for auto-scroll)
-        function checkIfAtBottom() {
-            if (!chatMessages) return false;
-            const threshold = 120; // Increased threshold for better UX
-            const distanceFromBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight;
-            return distanceFromBottom <= threshold;
+        // Scroll helper functions
+        function scrollToBottom(options = {}) {
+            const end = document.getElementById("chat-end");
+            const messages = document.getElementById("chat-messages");
+            if (!end || !messages) return;
+            
+            const force = options.force !== false;
+            
+            // Only auto-scroll if user is near bottom OR force is true
+            if (!force) {
+                const threshold = 120;
+                const distanceFromBottom = messages.scrollHeight - messages.scrollTop - messages.clientHeight;
+                if (distanceFromBottom > threshold) {
+                    return; // User has scrolled up, don't auto-scroll
+                }
+            }
+            
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    end.scrollIntoView({ block: "end", behavior: "auto" });
+                });
+            });
         }
-
-        // Update isAtBottom on scroll
-        function handleScroll() {
-            isAtBottom = checkIfAtBottom();
-        }
-
-        // Add scroll listener to track if user is at bottom (after functions are defined)
-        // Initialize at bottom state
-        if (chatMessages) {
-            isAtBottom = checkIfAtBottom();
-            chatMessages.addEventListener('scroll', handleScroll, { passive: true });
-        }
-
-        // Legacy function - kept for compatibility but not used
-        // Chat layout now uses stick-to-bottom auto-scroll
-        function scrollMessageIntoView(msgElement, options = {}) {
-            // This function is deprecated - use scrollToBottom instead
-            scrollToBottom(options);
-        }
-
-        // Note: scrollToBottom is defined above (line 1432) using sentinel-based scrolling
-
-        // Track if we should keep user message at top (don't auto-scroll during typing)
-        let keepUserMessageAtTop = false;
-        let lastUserMessageId = null;
         
-        // Add user message
+        // Scroll message to top of viewport (below header) - the key behavior!
+        function scrollMessageIntoView(msgElement, options = {}) {
+            if (!msgElement) return;
+            
+            const messages = document.getElementById("chat-messages");
+            if (!messages) return;
+            
+            const header = document.querySelector(".chat-top-bar");
+            const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 68;
+            
+            // Get message position relative to messages container
+            const msgRect = msgElement.getBoundingClientRect();
+            const messagesRect = messages.getBoundingClientRect();
+            
+            // Calculate where message should be (just below header with some padding)
+            const targetTop = headerH + 16; // 16px padding below header
+            const currentTop = msgRect.top - messagesRect.top;
+            
+            // Calculate scroll offset needed
+            const scrollOffset = currentTop - targetTop;
+            
+            // Scroll to position message at top
+            messages.scrollTop = messages.scrollTop + scrollOffset;
+        }
+        
+        // Render user message - positions at top of viewport
         function addUserMessage(text) {
             const msgId = generateMessageId();
             const message = {
                 id: msgId,
                 role: 'user',
                 text: text.trim(),
-                status: 'sent'
+                timestamp: Date.now()
             };
             messages.push(message);
-            const msgElement = renderMessage(message);
             
-            // Set flag to keep user message at top
-            keepUserMessageAtTop = true;
-            lastUserMessageId = msgId;
+            // Create message element
+            const msgDiv = document.createElement('div');
+            msgDiv.id = msgId;
+            msgDiv.className = 'msg msg-user';
+
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+            bubble.textContent = text.trim();
             
-            // Scroll user's message to top of viewport with space below
-            if (msgElement) {
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        // Get header height for offset
-                        const header = document.querySelector(".chat-top-bar");
-                        const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 68;
-                        
-                        // Scroll the user message to the top (accounting for header)
-                        const messagesContainer = document.getElementById("chat-messages");
-                        if (messagesContainer && msgElement) {
-                            const elementTop = msgElement.offsetTop;
-                            messagesContainer.scrollTop = elementTop - headerH - 16;
-                        }
-                    });
+                msgDiv.appendChild(bubble);
+            
+            // Add to chat stack
+            const stack = document.getElementById('chat-stack');
+            if (stack) {
+                stack.appendChild(msgDiv);
+                
+                // KEY BEHAVIOR: Scroll message to top of viewport (below header)
+                // This keeps new messages visible at top instead of scrolling down
+            requestAnimationFrame(() => {
+                    scrollMessageIntoView(msgDiv);
                 });
             }
             
             return msgId;
         }
-
-        // Add bot message (empty initially for typewriter)
-        function addBotMessage(text = '') {
-            const msgId = generateMessageId();
-            const message = {
-                id: msgId,
-                role: 'bot',
-                text: text,
-                status: 'typing'
-            };
-            messages.push(message);
-            const msgElement = renderMessage(message);
-            // Don't scroll if we're keeping user message at top
-            // Bot message will appear below user message naturally
-            if (!keepUserMessageAtTop) {
-                scrollToBottom({ force: true });
-            }
-            return msgId;
-        }
-
-        // Update message text (for typewriter)
-        function updateMessageText(msgId, text) {
-            const message = messages.find(m => m.id === msgId);
-            if (!message) return;
-            message.text = text;
-            const msgEl = document.getElementById(msgId);
-            if (msgEl) {
-                const textEl = msgEl.querySelector('.bot-text');
-                if (textEl) {
-                    textEl.textContent = text;
-                }
-                // Don't scroll during typing if we're keeping user message at top
-                // The user message should stay at top with space below
-                // Only scroll if explicitly requested
-                if (!keepUserMessageAtTop) {
-                    const currentLength = text.length;
-                    if (currentLength % 6 === 0 || currentLength === 1) {
-                        scrollToBottom({ force: true });
-                    }
-                }
-            }
-        }
-
-        // Render message to DOM (legacy - for user messages and simple bot messages)
-        function renderMessage(message) {
+        
+        // Show typing indicator (loader-5 animation)
+        function showTypingIndicator() {
+            // Remove any existing typing indicator
+            const existing = document.getElementById('typing-indicator');
+            if (existing) existing.remove();
+            
+            // Create typing indicator message
             const msgDiv = document.createElement('div');
-            msgDiv.id = message.id;
-            msgDiv.className = `msg msg-${message.role} msg-enter`;
-
-            if (message.role === 'user') {
-                const bubble = document.createElement('div');
-                bubble.className = 'bubble';
-                bubble.textContent = message.text;
-                msgDiv.appendChild(bubble);
-            } else {
-                // For bot messages: only create bot-message-content if text is not empty
-                // If text is empty, renderBotTurn() will create it later
-                if (message.text && message.text.trim() !== '') {
-                    const botMessage = document.createElement('div');
-                    botMessage.className = 'bot-message-content';
-                    const textDiv = document.createElement('div');
-                    textDiv.className = 'bot-text';
-                    textDiv.textContent = message.text;
-                    botMessage.appendChild(textDiv);
-                    msgDiv.appendChild(botMessage);
-                }
-                // If text is empty, don't create bot-message-content here
-                // renderBotTurn() will create it when called
-            }
-
-            // Remove spacer if it exists (it breaks layout)
-            removeChatSpacer();
+            msgDiv.id = 'typing-indicator';
+            msgDiv.className = 'msg msg-bot typing-indicator-msg';
             
-            // Ensure chat-stack exists
-            ensureChatStack();
+            const botContent = document.createElement('div');
+            botContent.className = 'bot-message-content';
             
-            // Insert message into chat-stack (not directly into chat-messages)
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'typing-indicator';
+            
+            // Create loader-5 structure
+            const loader = document.createElement('div');
+            loader.className = 'loader-5';
+            
+            const span = document.createElement('span');
+            loader.appendChild(span);
+            
+            typingIndicator.appendChild(loader);
+            botContent.appendChild(typingIndicator);
+            msgDiv.appendChild(botContent);
+            
+            // Add to chat stack
             const stack = document.getElementById('chat-stack');
-            if (!stack) {
-                // Fallback: ensure stack exists and retry
-                ensureChatStack();
-                const stackRetry = document.getElementById('chat-stack');
-                if (!stackRetry) {
-                    // Last resort: append to messages directly
-                    chatMessages.appendChild(msgDiv);
-                    return msgDiv;
-                }
+            if (stack) {
+                stack.appendChild(msgDiv);
             }
             
-            const finalStack = document.getElementById('chat-stack');
-            const anchor = document.getElementById('chat-end');
-            
-            if (finalStack && anchor && finalStack.contains(anchor)) {
-                // Insert before anchor if anchor is a child of stack
-                finalStack.insertBefore(msgDiv, anchor);
-            } else if (finalStack) {
-                // Append to stack and ensure anchor exists at end
-                finalStack.appendChild(msgDiv);
-                // Ensure anchor exists
-                if (!document.getElementById('chat-end')) {
-                    const end = document.createElement('div');
-                    end.id = 'chat-end';
-                    finalStack.appendChild(end);
-                }
-            } else {
-                // Last resort fallback
-                chatMessages.appendChild(msgDiv);
-            }
-
-            // Trigger animation
-            requestAnimationFrame(() => {
-                msgDiv.classList.add('msg-enter-active');
-            });
-
             return msgDiv;
         }
-
-        // Typewriter effect for bot reply (TEXT ONLY - for non-core conversations)
-        // This function NEVER renders chips, cards, or any UI components
-        // Use this for: greetings, redirects, gibberish, platform comparisons, broker requests
-        function typeBotReply(fullText = 'Hi') {
-            const msgId = addBotMessage('');
-            const msgEl = document.getElementById(msgId);
-            if (!msgEl) return;
-            
-            // Set bot responding state and update button
-            isBotResponding = true;
-            updateSendButtonState();
-            
-            // Use strict structure even for simple replies
-            const botMessage = document.createElement('div');
-            botMessage.className = 'bot-message-content';
-            const textEl = document.createElement('div');
-            textEl.className = 'bot-text';
-            botMessage.appendChild(textEl);
-            msgEl.appendChild(botMessage);
-            
-            let i = 0;
-
-            if (typewriterTimer) {
-                clearInterval(typewriterTimer);
+        
+        // Hide typing indicator
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
             }
-
-            let lastWordCount = 0;
-            
-            typewriterTimer = setInterval(() => {
-                // Check if user stopped the response
-                if (!isBotResponding) {
-                    clearInterval(typewriterTimer);
-                    typewriterTimer = null;
-                    return;
-                }
-                
-                i++;
-                const currentText = fullText.slice(0, i);
-                textEl.textContent = currentText;
-                
-                // Detect new word: count words in current text
-                const currentWordCount = currentText.trim().split(/\s+/).filter(w => w.length > 0).length;
-                
-                // Subtle haptic feedback when a new word appears
-                if (currentWordCount > lastWordCount && navigator.vibrate) {
-                    navigator.vibrate(5); // Very subtle 5ms vibration
-                    lastWordCount = currentWordCount;
-                }
-                
-                // Don't scroll during typing if we're keeping user message at top
-                // The user message should stay at top with space below
-                if (!keepUserMessageAtTop) {
-                    if (i % 6 === 0 || i === 1) {
-                        scrollToBottom({ force: true });
-                    }
-                }
-                if (i >= fullText.length) {
-                    clearInterval(typewriterTimer);
-                    typewriterTimer = null;
-                    isBotResponding = false;
-                    updateSendButtonState();
-                    const message = messages.find(m => m.id === msgId);
-                    if (message) {
-                        message.status = 'complete';
-                    }
-                    // After typing completes, reset the flag so future messages can scroll normally
-                    // But don't scroll now if we were keeping user message at top
-                    if (!keepUserMessageAtTop) {
-                        scrollToBottom({ force: true });
-                    } else {
-                        // Reset flag after bot response completes
-                        keepUserMessageAtTop = false;
-                    }
-                }
-            }, 55);
-        }
-
-        // Stop bot response - cancels typing animation
-        function stopBotResponse() {
-            if (!isBotResponding) return;
-            
-            // Clear typing timer
-            if (typewriterTimer) {
-                clearInterval(typewriterTimer);
-                typewriterTimer = null;
-            }
-            
-            // Reset state
-            isBotResponding = false;
-            updateSendButtonState();
         }
         
-        // Update send button state (Send ↔ Stop toggle)
-        function updateSendButtonState() {
-            if (!chatSendBtn) return;
-            
-            const svg = chatSendBtn.querySelector('svg');
-            if (!svg) return;
-            
-            if (isBotResponding) {
-                // Show Stop icon (square)
-                svg.innerHTML = `
-                    <rect x="6" y="6" width="12" height="12" fill="currentColor" stroke="none"/>
-                `;
-                svg.setAttribute('viewBox', '0 0 24 24');
-                svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-                chatSendBtn.setAttribute('aria-label', 'Stop');
-            } else {
-                // Show Send icon (paper plane) - restore original
-                svg.innerHTML = `
-                    <rect width="256" height="256" fill="none"/>
-                    <path d="M223.69,42.18a8,8,0,0,0-9.87-9.87l-192,58.22a8,8,0,0,0-1.25,14.93L108,148l42.54,87.42a8,8,0,0,0,14.93-1.25Z" opacity="0.2" fill="currentColor"/>
-                    <line x1="108" y1="148" x2="160" y2="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-                    <path d="M223.69,42.18a8,8,0,0,0-9.87-9.87l-192,58.22a8,8,0,0,0-1.25,14.93L108,148l42.54,87.42a8,8,0,0,0,14.93-1.25Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-                `;
-                svg.setAttribute('viewBox', '0 0 256 256');
-                svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-                chatSendBtn.setAttribute('aria-label', 'Send');
-            }
-        }
-
-        // Handle send message
-        function handleSend() {
-            // If bot is responding, stop it instead
-            if (isBotResponding) {
-                stopBotResponse();
-                return;
+        // Render bot message - appears below user message, no auto-scroll
+        function addBotMessage(text, showTyping = true) {
+            // Show typing indicator first
+            if (showTyping) {
+                showTypingIndicator();
             }
             
-            // Step 1: Read input value BEFORE any mutation
-            const rawInput = chatInput.value;
-            const text = rawInput.trim();
+            // Add longer delay before showing message (realistic thinking time)
+            const delay = showTyping ? 1800 + Math.random() * 1000 : 0; // 1800-2800ms delay
             
-            // Debug: verify input is being read
-            console.log('Input read:', { raw: rawInput, trimmed: text, inputElement: chatInput });
-            
-            if (!text) return;
-
-            // Haptic feedback
-            if (navigator.vibrate) {
-                navigator.vibrate(10);
-            }
-
-            // Step 2: Clear input AFTER reading
-            chatInput.value = '';
-
-            // Check if this is first message
-            const isFirstMessage = messages.length === 0;
-
-            // Add user message
-            addUserMessage(text);
-
-            // Hide intro on first message
-            if (isFirstMessage && chatScreen) {
-                chatScreen.classList.add('chat-started');
-            }
-
-            // Step 3: Trigger bot reply after 200ms (text is already captured)
-            // ✅ Trend FIRST. If matched, DO NOT run housing search.
             setTimeout(() => {
-                // Debug logging
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    console.log('[Intent Routing]', { text: text, trend: isTrendQuery(text) });
-                }
+                // Hide typing indicator
+                hideTypingIndicator();
                 
-                if (isTrendQuery(text)) {
-                    handleTrendIntent(text);
-                } else {
-                    handleHousingIntent(text);
+                const msgId = generateMessageId();
+                const message = {
+                    id: msgId,
+                    role: 'bot',
+                    text: text.trim(),
+                    timestamp: Date.now()
+                };
+                messages.push(message);
+                
+                // Create message element
+                const msgDiv = document.createElement('div');
+                msgDiv.id = msgId;
+                msgDiv.className = 'msg msg-bot';
+                
+                const botContent = document.createElement('div');
+                botContent.className = 'bot-message-content';
+                
+                const botText = document.createElement('div');
+                botText.className = 'bot-text';
+                botText.textContent = text.trim();
+                
+                botContent.appendChild(botText);
+                msgDiv.appendChild(botContent);
+                
+                // Add to chat stack
+                const stack = document.getElementById('chat-stack');
+                if (stack) {
+                    stack.appendChild(msgDiv);
+                    
+                    // Bot messages appear below user message - no auto-scroll
+                    // User can see it in context without page jumping
                 }
-            }, 200);
+            }, delay);
+            
+            return 'typing'; // Return placeholder ID while typing
         }
-
-        // Send button click
-        chatSendBtn.addEventListener('click', handleSend);
         
-        // Initialize button state
-        updateSendButtonState();
-
-        // Enter key press
-        chatInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
+        // Detect if message is a greeting
+        function isGreeting(text) {
+            const normalized = text.trim().toLowerCase();
+            const greetingWords = ['hi', 'hey', 'hello', 'hola', 'namaste', 'hey there', 'hi there', 'hello there'];
+            return greetingWords.some(word => normalized === word || normalized.startsWith(word + ' '));
+        }
+        
+        // Generate varied greeting responses
+        function getGreetingResponse() {
+            const greetings = [
+                {
+                    text: "Hi! 👋 How can I help you find your perfect home today?",
+                    withExamples: "Hi! 👋 How can I help you find your perfect home today?\n\nTry: '3 BHK in Delhi' or '2 BHK near metro'"
+                },
+                {
+                    text: "Hey there! What are you looking for in your home search?",
+                    withExamples: "Hey there! What are you looking for in your home search?\n\nTry: 'Apartments in Noida' or 'Villa with pool'"
+                },
+                {
+                    text: "Hello! I'm here to help you find your dream home. What can I assist you with?",
+                    withExamples: "Hello! I'm here to help you find your dream home. What can I assist you with?\n\nTry: '2 BHK in Gurgaon' or 'Studio apartment'"
+                },
+                {
+                    text: "Hi! Ready to explore some amazing properties? How can I help?",
+                    withExamples: "Hi! Ready to explore some amazing properties? How can I help?\n\nTry: '4 BHK in Bangalore' or 'Penthouse near nature'"
+                },
+                {
+                    text: "Hey! What kind of home are you searching for today?",
+                    withExamples: "Hey! What kind of home are you searching for today?\n\nTry: '3 BHK in Mumbai' or '2 BHK furnished'"
+                },
+                {
+                    text: "Hello there! Let's find you the perfect place. What are you looking for?",
+                    withExamples: "Hello there! Let's find you the perfect place. What are you looking for?\n\nTry: 'Buy property in Delhi' or 'Rent 2 BHK'"
+                },
+                {
+                    text: "Hi! I'm here to make your home search easier. What can I help with?",
+                    withExamples: "Hi! I'm here to make your home search easier. What can I help with?\n\nTry: '3 BHK in Pune' or 'Apartment near school'"
+                },
+                {
+                    text: "Hey! What brings you here today? Looking for a new home?",
+                    withExamples: "Hey! What brings you here today? Looking for a new home?\n\nTry: '2 BHK in Hyderabad' or 'Villa in gated community'"
+                },
+                {
+                    text: "Hi there! How can I help you with your home search today?",
+                    withExamples: "Hi there! How can I help you with your home search today?\n\nTry: '3 BHK sea view' or '2 BHK gated community'"
+                },
+                {
+                    text: "Hello! What are you looking for in your next home?",
+                    withExamples: "Hello! What are you looking for in your next home?\n\nTry: 'Luxury apartment' or 'Penthouse terrace'"
+                }
+            ];
+            
+            // Pick a random greeting
+            const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+            
+            // Sometimes add examples (35% chance) - makes it feel more helpful
+            if (Math.random() < 0.35) {
+                return greeting.withExamples;
             }
-        });
-
-        // ============================================================================
-        // CORE HOUSING CONVERSATIONS
-        // ============================================================================
-        // Intent detection, slot filling, and conversation flow
-        // ============================================================================
-
-        // Mock property data
-        const mockProperties = [
-            { id: 1, city: 'Gurgaon', locality: 'Sector 43', price: 25000, priceUnit: 'rent', bhk: 2, type: 'Apartment', furnished: 'Semi', amenities: ['Parking', 'Lift', 'Power Backup'], tags: ['Near Metro'], images: [] },
-            { id: 2, city: 'Gurgaon', locality: 'DLF Phase 1', price: 35000, priceUnit: 'rent', bhk: 3, type: 'Apartment', furnished: 'Fully', amenities: ['Gym', 'Pool', 'Parking'], tags: ['Gated'], images: [] },
-            { id: 3, city: 'Mumbai', locality: 'Andheri', price: 18000, priceUnit: 'rent', bhk: 1, type: 'Apartment', furnished: 'Unfurnished', amenities: ['Lift'], tags: [], images: [] },
-            { id: 4, city: 'Bangalore', locality: 'Indiranagar', price: 45000, priceUnit: 'rent', bhk: 3, type: 'Apartment', furnished: 'Fully', amenities: ['Gym', 'Pool', 'Parking', 'Clubhouse'], tags: ['Near Metro', 'Quiet'], images: [] },
-            { id: 5, city: 'Noida', locality: 'Sector 62', price: 7000000, priceUnit: 'buy', bhk: 2, type: 'Apartment', furnished: 'Semi', amenities: ['Parking', 'Lift'], tags: [], images: [] },
-            { id: 6, city: 'Pune', locality: 'Koregaon Park', price: 55000, priceUnit: 'rent', bhk: 3, type: 'Villa', furnished: 'Fully', amenities: ['Gym', 'Pool', 'Parking', 'Garden'], tags: ['Quiet', 'Green'], images: [] },
-            { id: 7, city: 'Mumbai', locality: 'Powai', price: 50000, priceUnit: 'rent', bhk: 2, type: 'Apartment', furnished: 'Fully', amenities: ['Gym', 'Pool', 'Parking'], tags: ['Near Metro'], images: [] },
-            { id: 8, city: 'Bangalore', locality: 'Whitefield', price: 30000, priceUnit: 'rent', bhk: 2, type: 'Apartment', furnished: 'Semi', amenities: ['Parking', 'Lift'], tags: [], images: [] },
-            { id: 9, city: 'Gurgaon', locality: 'Sector 29', price: 8500000, priceUnit: 'buy', bhk: 3, type: 'Apartment', furnished: 'Semi', amenities: ['Gym', 'Pool', 'Parking'], tags: ['Gated'], images: [] },
-            { id: 10, city: 'Delhi', locality: 'Dwarka', price: 22000, priceUnit: 'rent', bhk: 2, type: 'Apartment', furnished: 'Unfurnished', amenities: ['Parking', 'Lift'], tags: ['Near Metro'], images: [] }
-        ];
-
-        // Conversation state - SINGLE SOURCE OF TRUTH (NON-NEGOTIABLE)
-        // NEVER reset unless user explicitly says "start over"
-        // This is the persistent chatState object that tracks all conversation state
-        const chatState = {
-            intent: null,              // 'property_search' | null
-            category: null,            // 'rent'|'buy'|'pg'|'commercial'|'plot'|'projects'
-            city: null,
-            locality: null,
-            bhk: null,                 // number (1,2,3,4,5) or null
-            budgetMin: null,           // number in INR
-            budgetMax: null,           // number in INR
-            budgetUnit: null,          // 'monthly'|'total'|null
-            propertyType: null,        // 'apartment'|'villa'|'studio'|'row house' etc
-            amenities: [],             // strings
-            furnished: null,           // 'full'|'semi'|'unfurnished'|null
-            moveIn: null,              // 'immediate'|'this_week' etc
-            readyToShowResults: false  // CRITICAL: Only show cards when this is true
+            
+            return greeting.text;
+        }
+        
+        // Popular localities mapping for major Indian cities (with common misspellings)
+        const localityMap = {
+                'delhi': [
+                'vasant kunj', 'vasantkunj', 'vasant kunj', 'saket', 'saketh', 'dwarka', 'dwarka sector',
+                'rohini', 'rohini sector', 'lajpat nagar', 'lajpatnagar', 'lajpat', 'connaught place', 'cp', 'connaught',
+                'karol bagh', 'karolbagh', 'rajouri garden', 'rajouri', 'janakpuri', 'pitampura', 'paschim vihar',
+                'patel nagar', 'patelnagar', 'greater kailash', 'gk', 'g kailash', 'defence colony', 'defense colony',
+                'south extension', 'south ext', 'hauz khas', 'hauzkhas', 'green park', 'munirka', 'vasant vihar',
+                'chanakyapuri', 'lodhi road', 'new friends colony', 'nfc', 'friends colony'
+            ],
+            'gurgaon': [
+                'dlf cyber city', 'cyber city', 'cybercity', 'sector 44', 'sector 45', 'sector 46', 'sector 47',
+                'sector 48', 'sector 49', 'sector 50', 'sector 51', 'sector 52', 'sector 53', 'sector 54',
+                'sector 55', 'sector 56', 'sector 57', 'golf course road', 'golf course', 'golfcourse',
+                'golf course extension', 'sushant lok', 'sushantlok', 'dlf phase 1', 'dlf phase 2', 'dlf phase 3',
+                'dlf phase 4', 'dlf phase 5', 'dlf phase1', 'dlf phase2', 'sector 29', 'sector 30', 'sector 31',
+                'gurugram', 'gurgaon sector'
+                ],
+                'mumbai': [
+                'bandra', 'bandra west', 'bandra east', 'worli', 'worlee', 'andheri', 'andheri west', 'andheri east',
+                'powai', 'juhu', 'juhu beach', 'versova', 'versova beach', 'malad', 'malad west', 'kandivali',
+                'kandivali west', 'kandivali east', 'borivali', 'borivali west', 'goregaon', 'goregaon west',
+                'dadar', 'parel', 'lower parel', 'kurla', 'chembur', 'vikhroli', 'bhandup', 'mulund', 'thane',
+                'navi mumbai', 'navi mumbai', 'vashi', 'nerul', 'panvel', 'kharghar', 'kalyan'
+            ],
+            'chennai': [
+                't nagar', 'tnagar', 't nagar', 'thyagaraya nagar', 'anna nagar', 'anna nagar west', 'anna nagar east',
+                'velachery', 'omr', 'old mahabalipuram road', 'mahabalipuram road', 'porur', 'adyar', 'besant nagar',
+                'nunganambakkam', 'guindy', 'chrompet', 'tambaram', 'pallavaram', 'medavakkam', 'sholinganallur',
+                'perungudi', 'thiruvanmiyur', 'mylapore', 'alwarpet', 'ra puram', 'raja annamalai puram', 'egmore',
+                'mount road', 'nandanam'
+            ],
+            'goa': [
+                'panaji', 'panjim', 'panjim', 'calangute', 'calangute beach', 'baga', 'baga beach', 'anjuna', 'anjuna beach',
+                'vagator', 'vagator beach', 'mapusa', 'margao', 'vasco da gama', 'vasco', 'porvorim', 'candolim',
+                'candolim beach', 'sinquerim', 'arambol', 'morjim', 'ashvem', 'mandrem', 'siolim', 'nerul', 'dona paula',
+                'miramar', 'caranzalem', 'ribandar', 'old goa', 'pomburpa', 'saligao'
+            ],
+            'kolkata': [
+                'salt lake', 'saltlake', 'salt lake city', 'sector 1', 'sector 2', 'sector 3', 'sector 4', 'sector 5',
+                'new town', 'newtown', 'rajarhat', 'park street', 'parkstreet', 'camac street', 'elgin road',
+                'ballygunge', 'alipore', 'south city', 'south kolkata', 'north kolkata', 'howrah', 'bidhannagar',
+                'behala', 'jodhpur park', 'golf green', 'garia', 'naktala', 'baghajatin'
+            ]
         };
         
-        // Backward compatibility: map old searchContext properties
-        // For now, keep both until all code is migrated
-        const searchContext = chatState;
-
-        // Pending question state - tracks what question is currently being asked
-        let pendingQuestion = null; // null or one of: 'category', 'cityOrLocality', 'bhkOrType', 'budget'
+        // Popular states and their major cities
+        const stateCityMap = {
+            'delhi': ['delhi', 'new delhi', 'ncr'],
+            'haryana': ['gurgaon', 'gurugram', 'faridabad', 'noida', 'greater noida'],
+            'maharashtra': ['mumbai', 'pune', 'nagpur', 'nashik'],
+            'tamil nadu': ['chennai', 'coimbatore', 'madurai', 'salem'],
+            'goa': ['goa', 'panaji', 'panjim', 'margao'],
+            'west bengal': ['kolkata', 'howrah', 'durgapur', 'asansol'],
+            'karnataka': ['bangalore', 'bengaluru', 'mysore', 'mangalore'],
+            'telangana': ['hyderabad', 'secunderabad'],
+            'gujarat': ['ahmedabad', 'surat', 'vadodara', 'rajkot'],
+            'rajasthan': ['jaipur', 'udaipur', 'jodhpur', 'kota'],
+            'punjab': ['chandigarh', 'ludhiana', 'amritsar', 'jalandhar'],
+            'uttar pradesh': ['lucknow', 'kanpur', 'agra', 'varanasi', 'noida', 'greater noida'],
+            'andhra pradesh': ['visakhapatnam', 'vijayawada', 'guntur', 'nellore']
+        };
         
-        // Track last question to avoid repeats
-        let lastQuestionKey = null;
-        let lastQuestionValueSnapshot = null;
-        
-        // Backward compatibility: map mode to intentType
-        Object.defineProperty(searchContext, 'mode', {
-            get: function() { return this.intentType; },
-            set: function(val) { this.intentType = val; }
-        });
-
-        // Greeting detection - high recall
-        function detectGreeting(text) {
-            if (!text || typeof text !== 'string') {
-                return false;
-            }
-
-            const normalized = text.trim().toLowerCase();
+        // Calculate Levenshtein distance for fuzzy matching
+        function levenshteinDistance(str1, str2) {
+            const matrix = [];
+            const len1 = str1.length;
+            const len2 = str2.length;
             
-            // Check for emoji-only greetings
-            const emojiOnly = /^[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]+$/u;
-            if (emojiOnly.test(text.trim())) {
-                // Check if it's a greeting emoji
-                if (text.includes('👋') || text.includes('🙂') || text.includes('🙏') || text.includes('😊')) {
-                    return true;
+            if (len1 === 0) return len2;
+            if (len2 === 0) return len1;
+            
+            for (let i = 0; i <= len2; i++) {
+                matrix[i] = [i];
+            }
+            
+            for (let j = 0; j <= len1; j++) {
+                matrix[0][j] = j;
+            }
+            
+            for (let i = 1; i <= len2; i++) {
+                for (let j = 1; j <= len1; j++) {
+                    if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
                 }
             }
             
-            // Standalone greeting words
-            const standaloneGreetings = /^(hi|hello|hey|yo|sup|wassup|whats\s*up)$/i;
-            if (standaloneGreetings.test(normalized)) {
+            return matrix[len2][len1];
+        }
+        
+        // Calculate similarity ratio (0 to 1)
+        function similarity(str1, str2) {
+            const maxLen = Math.max(str1.length, str2.length);
+            if (maxLen === 0) return 1;
+            const distance = levenshteinDistance(str1, str2);
+            return 1 - (distance / maxLen);
+        }
+        
+        // Capitalize first letter of each word
+        function capitalizeWords(str) {
+            if (!str) return str;
+            return str.split(' ').map(word => {
+                if (word.length === 0) return word;
+                return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+            }).join(' ');
+        }
+        
+        // Normalize locality name for matching (handles common typos)
+        function normalizeLocality(text) {
+            return text.toLowerCase()
+                .replace(/[^\w\s]/g, ' ')           // Remove special characters
+                .replace(/\s+/g, ' ')              // Normalize whitespace
+                .replace(/\b(sec|sector)\s*(\d+)/gi, 'sector $2') // Normalize "sec 44" to "sector 44"
+                .replace(/\b(ph|phase)\s*(\d+)/gi, 'phase $2')     // Normalize "ph 1" to "phase 1"
+                .replace(/\b(rd|road)\b/gi, 'road')                // Normalize "rd" to "road"
+                .replace(/\b(st|street)\b/gi, 'street')            // Normalize "st" to "street"
+                .replace(/\b(nagr|nagar)\b/gi, 'nagar')            // Handle "nagr" typo
+                .replace(/\b(kunj|kunz)\b/gi, 'kunj')               // Handle "kunz" typo
+                .replace(/\b(delhi|dilli|delhi)\b/gi, 'delhi')     // Handle "dilli" variation
+                .trim();
+        }
+        
+        // Fuzzy match locality with tolerance for typos
+        function fuzzyMatchLocality(input, locality, threshold = 0.75) {
+            const normalizedInput = normalizeLocality(input);
+            const normalizedLocality = normalizeLocality(locality);
+            
+            // Exact match
+            if (normalizedInput.includes(normalizedLocality) || normalizedLocality.includes(normalizedInput)) {
                 return true;
             }
             
-            // Greeting phrases (must be at start or standalone)
-            const greetingPhrases = [
-                /^(hi|hello|hey|yo)[\s,]/i,
-                /^(whats\s*up|sup|wassup)[\s,?!]*$/i,
-                /^(how\s+are\s+you|how\s+r\s+u|hru)[\s,?!]*$/i,
-                /^(good\s+(morning|afternoon|evening))[\s,?!]*$/i,
-                /^(thanks|thank\s+you)[\s,?!]*$/i
-            ];
+            // Check similarity
+            const sim = similarity(normalizedInput, normalizedLocality);
+            if (sim >= threshold) {
+                return true;
+            }
             
-            for (const pattern of greetingPhrases) {
-                if (pattern.test(normalized)) {
-                    // For "thanks/thank you", only treat as greeting if it's short and not followed by housing query
-                    if (normalized.match(/^(thanks|thank\s+you)/i)) {
-                        // If it's just "thanks" or "thank you" (short), treat as greeting
-                        if (normalized.length < 20) {
-                            return true;
-                        }
-                    } else {
-                        return true;
+            // Check if words match (handles "vasant kunj" vs "vasantkunj")
+            const inputWords = normalizedInput.split(/\s+/);
+            const localityWords = normalizedLocality.split(/\s+/);
+            
+            if (inputWords.length === localityWords.length) {
+                let matches = 0;
+                for (let i = 0; i < inputWords.length; i++) {
+                    if (similarity(inputWords[i], localityWords[i]) >= 0.8) {
+                        matches++;
                     }
+                }
+                if (matches / inputWords.length >= 0.7) {
+                    return true;
                 }
             }
             
             return false;
         }
-
-        // Intent detection - tolerant and comprehensive
-        function detectIntent(text) {
-            if (!text || typeof text !== 'string') {
-                return null;
-            }
-
-            const raw = text;
-            const normalized = text.trim().toLowerCase();
+        
+        // Detect and validate locality from user input (with fuzzy matching for typos)
+        function detectLocality(text) {
+            const normalized = normalizeLocality(text);
             
-            // A) Service-only messages - MUST be recognized as CORE housing
-            if (normalized === 'rent' || normalized === 'buy' || 
-                normalized.match(/^(rent|buy)$/i)) {
-                return 'rent_buy_search';
+            // First, check if user mentioned a major city (with fuzzy matching)
+            for (const [city, localities] of Object.entries(localityMap)) {
+                // Check if city name is mentioned (fuzzy match)
+                if (normalized.includes(city) || fuzzyMatchLocality(text, city, 0.7)) {
+                    // Check if specific locality is mentioned (fuzzy match)
+                    for (const locality of localities) {
+                        if (fuzzyMatchLocality(text, locality, 0.75)) {
+                            return {
+                                city: capitalizeWords(city),
+                                locality: capitalizeWords(locality),
+                                fullName: `${capitalizeWords(locality)}, ${capitalizeWords(city)}`
+                            };
+                        }
+                    }
+                    // City mentioned but no specific locality - return city
+                    return {
+                        city: capitalizeWords(city),
+                        locality: null,
+                        fullName: capitalizeWords(city)
+                    };
+                }
             }
-
-            // B) BHK + location messages - recognize all variants
-            const bhkPattern = /\d+\s*[-]?\s*(bhk|b\s*h\s*k|bedroom|bed|rk)/i;
-            const hasBHK = bhkPattern.test(normalized);
             
-            // Location patterns
-            const cities = ['delhi', 'gurgaon', 'mumbai', 'bangalore', 'pune', 'noida', 'chennai', 'hyderabad', 'kolkata', 'indiranagar', 'koramangala', 'andheri', 'whitefield', 'cyber city', 'dwarka', 'powai', 'koregaon park'];
-            const hasLocation = cities.some(city => normalized.includes(city)) || 
-                               normalized.match(/\bin\s+(delhi|gurgaon|mumbai|bangalore|pune|noida|chennai|hyderabad|kolkata)/i);
+            // Check for specific localities (without city context) with fuzzy matching
+            for (const [city, localities] of Object.entries(localityMap)) {
+                for (const locality of localities) {
+                    if (fuzzyMatchLocality(text, locality, 0.75)) {
+                        return {
+                            city: capitalizeWords(city),
+                            locality: capitalizeWords(locality),
+                            fullName: `${capitalizeWords(locality)}, ${capitalizeWords(city)}`
+                        };
+                    }
+                }
+            }
             
-            if (hasBHK || (hasBHK && hasLocation)) {
-                return 'rent_buy_search';
+            // Check for major cities from state map
+            for (const [state, cities] of Object.entries(stateCityMap)) {
+                for (const city of cities) {
+                    if (normalized.includes(city)) {
+                        return {
+                            city: capitalizeWords(city),
+                            locality: null,
+                            fullName: capitalizeWords(city)
+                        };
+                    }
+                }
             }
-
-            // C) Location-only messages - treat as CORE intent
-            if (hasLocation && !hasBHK) {
-                return 'rent_buy_search';
-            }
-
-            // Check for any housing-related keywords (comprehensive)
-            const housingKeywords = [
-                'bhk', 'rent', 'buy', 'apartment', 'house', 'villa', 'flat', 'property', 
-                'home', 'pg', 'commercial', 'office', 'plot', 'studio', 'rk', 'furnished', 
-                'budget', 'price', 'locality', 'area', 'near', 'metro', 'school', 'hospital', 
-                'park', 'sea', 'view', 'hills', 'quiet', 'safe', 'pet', 'senior', 'wheelchair', 
-                'vastu', 'invest', 'appreciation', 'project', 'projects', 'under construction', 
-                'ready to move', 'new project', 'gurgaon', 'mumbai', 'bangalore', 'delhi', 
-                'pune', 'noida', 'chennai', 'hyderabad', 'kolkata', 'koramangala', 'indiranagar',
-                'andheri', 'whitefield', 'dwarka', 'powai', 'rohini', 'sector'
+            
+            // If no match found, try to extract any capitalized location words
+            // (fallback to previous pattern matching)
+            const locationPatterns = [
+                /\b(in|at|near|around|from)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
+                /\b([A-Z][a-z]+\s+(?:Sector|Road|Street|Avenue|Nagar|Colony|Extension|Phase))\s*(\d+)?/gi,
+                /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:Sector|Road|Street|Avenue|Nagar|Colony|Extension|Phase)/gi,
+                /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g
             ];
             
-            const hasHousingKeyword = housingKeywords.some(keyword => normalized.includes(keyword));
-            
-            if (!hasHousingKeyword) {
-                return null; // Not a housing intent
-            }
-
-            // Detect specific intents (order matters - more specific first)
-            if (normalized.match(/(villa|plot|office|pg|commercial|studio|row\s+house)/i)) {
-                return 'type_search';
-            }
-            if (normalized.match(/(hills|sea\s+view|quiet|green|parks|cafes|no\s+traffic|vibe|lifestyle)/i)) {
-                return 'lifestyle_search';
-            }
-            if (normalized.match(/(near|commute|office|metro|airport|landmark|minutes?|min)/i)) {
-                return 'commute_search';
-            }
-            if (normalized.match(/(cheapest|budget|under|price|₹|rs|rupees?|lakh|lac|cr|crore)/i)) {
-                return 'budget_search';
-            }
-            if (normalized.match(/(furnished|move\s*in|possession|ready)/i)) {
-                return 'furnished_search';
-            }
-            if (normalized.match(/(pool|gym|clubhouse|parking|backup|lift|gated|amenit)/i)) {
-                return 'amenities_search';
-            }
-            if (normalized.match(/(pet|senior|wheelchair|accessible|vastu)/i)) {
-                return 'special_needs';
-            }
-            if (normalized.match(/(school|kids|safe|hospital|family)/i)) {
-                return 'family_search';
-            }
-            // Price trend intent - check BEFORE investment_search
-            // Keep it tight: only triggers on pricing-related intent
-            if (normalized.match(/(price\s+trend|pricing\s+trend|trend\s+in|price\s+in|rates\s+in|^rates\s+|property\s+prices|avg\s+price|average\s+price)/i)) {
-                return 'price_trend';
-            }
-            
-            if (normalized.match(/(invest|appreciation|upcoming|roi)/i)) {
-                return 'investment_search';
-            }
-
-            // Default to rent/buy search if housing keywords present
-            return 'rent_buy_search';
-        }
-        
-        // Extract locality from price trend queries
-        function extractTrendLocality(text) {
-            if (!text || typeof text !== 'string') return null;
-            
-            const normalized = normalizeText(text);
-            
-            // Pattern 1: "price trend in [locality]"
-            const inPattern = /(?:price\s+trend|trend|rates|pricing|avg\s+price|property\s+prices|price)\s+in\s+([a-z\s]+?)(?:\?|$|\.)/i;
-            const inMatch = normalized.match(inPattern);
-            if (inMatch && inMatch[1]) {
-                const locality = inMatch[1].trim();
-                if (locality.length > 0 && locality.length < 50) {
-                    return locality;
-                }
-            }
-            
-            // Pattern 2: "[locality] price trend" or "rates [locality]"
-            const afterPattern = /(?:price\s+trend|trend|rates|pricing)\s+([a-z\s]+?)(?:\?|$|\.)/i;
-            const afterMatch = normalized.match(afterPattern);
-            if (afterMatch && afterMatch[1]) {
-                const locality = afterMatch[1].trim();
-                if (locality.length > 0 && locality.length < 50) {
-                    return locality;
-                }
-            }
-            
-            // Pattern 3: Take last 1-3 words if query contains trend/rates/price
-            if (normalized.match(/(trend|rates|pricing|price)/i)) {
-                const words = normalized.split(/\s+/);
-                // Remove trend-related words
-                const filtered = words.filter(w => !w.match(/^(price|trend|rates|pricing|in|the|a|an|are|how)$/i));
-                if (filtered.length > 0) {
-                    // Take last 1-3 words as locality
-                    const locality = filtered.slice(-3).join(' ').trim();
-                    if (locality.length > 0 && locality.length < 50) {
-                        return locality;
+            for (const pattern of locationPatterns) {
+                const matches = [...text.matchAll(pattern)];
+                if (matches.length > 0) {
+                    const match = matches[matches.length - 1];
+                    let locality = match[2] || match[1] || match[0];
+                    locality = locality.replace(/^(in|at|near|around|from)\s+/i, '').trim();
+                    
+                    const commonWords = ['the', 'and', 'for', 'with', 'this', 'that', 'what', 'where', 'when', 'how', 'can', 'will', 'want', 'looking', 'search', 'find', 'show', 'need', 'bhk', 'bedroom', 'bed', 'rent', 'buy', 'price', 'budget', 'cr', 'crore', 'lakh', 'lakhs'];
+                    if (locality.length >= 3 && !commonWords.includes(locality.toLowerCase())) {
+                        const capitalizedLocality = capitalizeWords(locality);
+            return {
+                            city: null,
+                            locality: capitalizedLocality,
+                            fullName: capitalizedLocality
+                        };
                     }
                 }
             }
@@ -2157,1978 +1986,798 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
         }
         
-        // Generate mock trend data (deterministic based on locality)
-        function generateTrendData(locality, city) {
-            // Allow generating even if locality is "Unknown" - will show trend card anyway
-            if (!locality) locality = 'Unknown';
-            
-            // Deterministic hash from locality string
-            let hash = 0;
-            const locStr = (locality + (city || '')).toLowerCase();
-            for (let i = 0; i < locStr.length; i++) {
-                hash = ((hash << 5) - hash) + locStr.charCodeAt(i);
-                hash = hash & hash; // Convert to 32bit integer
-            }
-            
-            // Use hash to generate consistent values
-            const seed = Math.abs(hash);
-            
-            // Trend direction: Up (60%), Down (25%), Flat (15%)
-            const directionRand = (seed % 100);
-            let direction, yoyPct, sixMPct;
-            if (directionRand < 60) {
-                direction = 'Up';
-                yoyPct = 3 + (seed % 9); // 3-12%
-                sixMPct = 1 + (seed % 5); // 1-6%
-            } else if (directionRand < 85) {
-                direction = 'Down';
-                yoyPct = -(2 + (seed % 4)); // -2 to -5%
-                sixMPct = -(1 + (seed % 2)); // -1 to -2%
-            } else {
-                direction = 'Flat';
-                yoyPct = (seed % 3) - 1; // -1 to 1%
-                sixMPct = (seed % 3) - 1; // -1 to 1%
-            }
-            
-            // Current price per sq.ft (based on city)
-            const cityPrices = {
-                'delhi': { min: 8500, max: 18000 },
-                'mumbai': { min: 12000, max: 28000 },
-                'bangalore': { min: 6000, max: 15000 },
-                'pune': { min: 5500, max: 12000 },
-                'gurgaon': { min: 7000, max: 16000 },
-                'noida': { min: 6000, max: 14000 }
-            };
-            
-            const cityKey = (city || 'delhi').toLowerCase();
-            const priceRange = cityPrices[cityKey] || cityPrices['delhi'];
-            const currentPsf = priceRange.min + (seed % (priceRange.max - priceRange.min));
-            
-            // Format locality name (capitalize words)
-            const formattedLocality = locality.split(' ').map(word => 
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-            ).join(' ');
-            
-            const formattedCity = city ? city.split(' ').map(word => 
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-            ).join(' ') : '(city not confirmed)';
-            
-            return {
-                locality: formattedLocality,
-                city: formattedCity,
-                direction,
-                yoyPct,
-                sixMPct,
-                currentPsf,
-                updatedText: 'Last updated: Today (demo)'
+        // Conversation state - tracks what we know about user's search
+        let conversationState = {
+            intent: null, // 'rent' or 'buy'
+            bhk: null, // number of bedrooms
+            price: null, // price range
+            priceMin: null,
+            priceMax: null,
+            locality: null, // locality/city name
+            city: null, // major city
+            isComplete: false
+        };
+        
+        // Reset conversation state
+        function resetConversationState() {
+            conversationState = {
+                intent: null,
+                bhk: null,
+                price: null,
+                priceMin: null,
+                priceMax: null,
+                locality: null,
+                city: null,
+                isComplete: false
             };
         }
         
-        // Get Unsplash image for locality/city
-        function getTrendImage(city) {
-            const cityImages = {
-                'delhi': [
-                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?w=300&h=300&fit=crop&q=80'
-                ],
-                'mumbai': [
-                    'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560448204-61dc36dc5d4a?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80'
-                ],
-                'bangalore': [
-                    'https://images.unsplash.com/photo-1560448204-61dc36dc5d4b?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=300&fit=crop&q=80'
-                ],
-                'pune': [
-                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80'
-                ],
-                'gurgaon': [
-                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560448204-61dc36dc5d4a?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=300&fit=crop&q=80'
-                ],
-                'noida': [
-                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560185008-5bf9cf11f2b7?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1560449752-915c5c0b0b4a?w=300&h=300&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=300&fit=crop&q=80'
-                ]
-            };
-            
-            const cityKey = (city || 'delhi').toLowerCase();
-            const images = cityImages[cityKey] || cityImages['delhi'];
-            // Use deterministic selection based on city
-            const index = Math.abs(cityKey.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % images.length;
-            return images[index];
-        }
-        
-        // Render trend card HTML
-        function renderTrendCard(trend) {
-            if (!trend) return '';
-            
-            const imageUrl = getTrendImage(trend.city);
-            
-            // Generate simple sparkline SVG path
-            const sparklinePoints = [];
-            const width = 120;
-            const height = 40;
-            const pointCount = 8;
-            
-            // Generate points based on trend direction
-            for (let i = 0; i < pointCount; i++) {
-                const x = (i / (pointCount - 1)) * width;
-                let y;
-                if (trend.direction === 'Up') {
-                    y = height - (i / (pointCount - 1)) * (height * 0.4) - (height * 0.2);
-                } else if (trend.direction === 'Down') {
-                    y = (height * 0.2) + (i / (pointCount - 1)) * (height * 0.4);
-                } else {
-                    y = height * 0.4 + (Math.sin(i * 0.5) * height * 0.1);
-                }
-                sparklinePoints.push(`${x},${y}`);
-            }
-            const sparklinePath = `M ${sparklinePoints.join(' L ')}`;
-            
-            const directionClass = trend.direction.toLowerCase();
-            const yoySign = trend.yoyPct >= 0 ? '+' : '';
-            const sixMSign = trend.sixMPct >= 0 ? '+' : '';
-            
-            return `
-                <div class="trend-card">
-                    <div class="trend-header">
-                        <img src="${imageUrl}" alt="${trend.locality}" class="trend-thumb" loading="lazy">
-                        <div class="trend-meta">
-                            <div class="trend-title">${trend.locality}</div>
-                            <div class="trend-subtitle">${trend.city || 'Delhi'}</div>
-                        </div>
-                    </div>
-                    <div class="trend-body">
-                        <div class="trend-pill trend-pill-${directionClass}">${trend.direction}</div>
-                        <div class="trend-yoy">YoY ${yoySign}${trend.yoyPct}%</div>
-                    </div>
-                    <div class="trend-spark">
-                        <svg width="120" height="40" viewBox="0 0 120 40" preserveAspectRatio="none">
-                            <path d="${sparklinePath}" fill="none" stroke="${trend.direction === 'Up' ? '#4CAF50' : trend.direction === 'Down' ? '#F44336' : '#9E9E9E'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <div class="trend-stats">
-                        <div class="trend-stat">
-                            <div class="trend-stat-label">Current</div>
-                            <div class="trend-stat-value">₹${trend.currentPsf.toLocaleString()}/sq.ft</div>
-                        </div>
-                        <div class="trend-stat">
-                            <div class="trend-stat-label">6M</div>
-                            <div class="trend-stat-value">${sixMSign}${trend.sixMPct}%</div>
-                        </div>
-                        <div class="trend-stat">
-                            <div class="trend-stat-label">YoY</div>
-                            <div class="trend-stat-value">${yoySign}${trend.yoyPct}%</div>
-                        </div>
-                    </div>
-                    <div class="trend-note">Indicative estimates.</div>
-                </div>
-            `;
-        }
-
-        // Normalize text: lowercase, trim, collapse spaces, remove spaces around single letters
-        function normalizeText(raw) {
-            if (!raw || typeof raw !== 'string') return '';
-            
-            let normalized = raw
-                .toLowerCase()
-                .trim()
-                .replace(/\s+/g, ' ') // Collapse multiple spaces
-                .replace(/\s+([a-z])\s+/g, '$1') // Remove spaces around single letters: "R ohini" -> "rohini"
-                .replace(/[^\w\s₹,]/g, ' ') // Remove punctuation except numbers, currency, commas
-                .replace(/[,]/g, ' ') // Convert commas to spaces
-                .replace(/\s+/g, ' ') // Collapse spaces again
+        // Normalize text - handle spacing, typos, and common variations
+        function normalizeText(text) {
+            return text.toLowerCase()
+                .replace(/\s+/g, ' ')           // Normalize multiple spaces to single space
+                .replace(/[^\w\s]/g, ' ')       // Replace special chars with space
+                .replace(/\s+/g, ' ')           // Normalize spaces again
                 .trim();
-            
-            return normalized;
         }
-
-        // Typo correction dictionary - fixes common misspellings
-        function correctTypos(normalized) {
-            if (!normalized) return normalized;
+        
+        // Fuzzy match common words with typos
+        function fuzzyMatchWord(input, target, threshold = 0.7) {
+            const inputNorm = normalizeText(input);
+            const targetNorm = target.toLowerCase();
             
-            let corrected = normalized;
+            // Exact match
+            if (inputNorm.includes(targetNorm)) return true;
             
-            // BHK variants
-            corrected = corrected.replace(/\b(\d+)\s*(bhl|bkh|bk|bh)\b/g, '$1bhk');
-            corrected = corrected.replace(/\b(\d+)\s*b\s*h\s*k\b/g, '$1bhk');
-            corrected = corrected.replace(/\b(\d+)\s*b\s*h\s*l\b/g, '$1bhk');
-            corrected = corrected.replace(/\b1\s*r\s*k\b/g, '1rk');
-            corrected = corrected.replace(/\br\s*k\b/g, 'rk');
-            corrected = corrected.replace(/\bstudio\b/g, 'studio');
-            corrected = corrected.replace(/\bstudeo\b/g, 'studio');
+            // Check similarity
+            const sim = similarity(inputNorm, targetNorm);
+            if (sim >= threshold) return true;
             
-            // Mode variants
-            corrected = corrected.replace(/\brnt\b/g, 'rent');
-            corrected = corrected.replace(/\bren\b/g, 'rent');
-            corrected = corrected.replace(/\bbiy\b/g, 'buy');
-            corrected = corrected.replace(/\bbyu\b/g, 'buy');
-            corrected = corrected.replace(/\bpurchse\b/g, 'purchase');
-            corrected = corrected.replace(/\bp\s*g\b/g, 'pg');
-            corrected = corrected.replace(/\bpaying\s+guest\b/g, 'pg');
-            
-            // Budget variants
-            corrected = corrected.replace(/\b(\d+)\s*k\b/g, '$1k');
-            corrected = corrected.replace(/\b(\d+)\s*,\s*(\d{3})\b/g, '$1$2'); // 30,000 -> 30000
-            corrected = corrected.replace(/\b(\d+)\s*l\b/g, '$1l');
-            corrected = corrected.replace(/\b(\d+)\s*lac\b/g, '$1l');
-            corrected = corrected.replace(/\b(\d+)\s*lakh\b/g, '$1l');
-            corrected = corrected.replace(/\b(\d+)\s*cr\b/g, '$1cr');
-            corrected = corrected.replace(/\b(\d+)\s*crore\b/g, '$1cr');
-            
-            // Locality spacing fixes
-            corrected = corrected.replace(/\bvasantkunj\b/g, 'vasant kunj');
-            corrected = corrected.replace(/\bgolfcourseroad\b/g, 'golf course road');
-            corrected = corrected.replace(/\bdlfphase\s*(\d+)\b/g, 'dlf phase $1');
-            corrected = corrected.replace(/\bsector\s*(\d+)\b/g, 'sector $1');
-            
-            return corrected;
-        }
-
-        // Extract parameters from text - supports all modes with typo tolerance
-        function extractParams(text) {
-            // Defensive guard - never throw if input is invalid
-            if (!text || typeof text !== 'string') {
-                return {};
+            // Check if target is contained in input (handles spacing issues)
+            const words = inputNorm.split(/\s+/);
+            for (const word of words) {
+                if (similarity(word, targetNorm) >= threshold) return true;
             }
-
-            // CRITICAL: Define lower FIRST before any usage
-            const raw = String(text).trim();
-            const lower = raw.toLowerCase();
             
-            // Normalize and correct typos
+            return false;
+        }
+        
+        // Common misspellings map (expanded for better typo tolerance)
+        const misspellings = {
+            'rent': ['rent', 'renting', 'rental', 'rentel', 'rentt', 'rennt', 'rnt', 'rents', 'ren', 'renta'],
+            'buy': ['buy', 'buying', 'purchase', 'purchse', 'purchas', 'by', 'bui', 'buyy', 'purchaze', 'purchaze'],
+            'bhk': ['bhk', 'bhks', 'bedroom', 'bedrooms', 'bed room', 'bed rooms', 'br', 'brs', 'bed', 'beds', 'bh', 'bk'],
+            'thousand': ['thousand', 'thousands', 'thou', 'thousnd', 'thousnad', 'thousan', 'thous', 'k', 'kilo', 'thousnad', 'thousnad'],
+            'lakh': ['lakh', 'lakhs', 'lac', 'lacs', 'lak', 'lakhh', 'lakhss', 'laksh', 'lakhsh', 'lakhshs'],
+            'crore': ['crore', 'crores', 'cr', 'cror', 'croree', 'crs', 'core', 'cores', 'crorre', 'crore']
+        };
+        
+        // Check if text contains any variation of a word (very lenient)
+        function containsVariation(text, word) {
             const normalized = normalizeText(text);
-            const corrected = correctTypos(normalized);
+            const variations = misspellings[word] || [word];
             
-            // Use corrected for matching, but keep lower for fallback
-            const searchText = corrected || normalized || lower;
-            
-            const params = {};
-
-            // Category (Rent/Buy/PG/Commercial/Plot/Projects) - priority order (use searchText)
-            // Return as both category and intentType for backward compatibility
-            if (searchText.match(/\bpg\b/)) {
-                params.category = 'pg';
-                params.intentType = 'pg'; // Backward compat
-            } else if (searchText.match(/\b(commercial|office|shop|retail|warehouse)\b/)) {
-                params.category = 'commercial';
-                params.intentType = 'commercial'; // Backward compat
-            } else if (searchText.match(/\b(plot|land)\b/)) {
-                params.category = 'plot';
-                params.intentType = 'plot'; // Backward compat
-            } else if (searchText.match(/\b(project|projects|new project|under construction|ready to move|r2m|new launch)\b/)) {
-                params.category = 'projects';
-                params.intentType = 'projects'; // Backward compat
-            } else if (searchText.match(/\b(rent|renting|for rent|to rent)\b/)) {
-                params.category = 'rent';
-                params.intentType = 'rent'; // Backward compat
-            } else if (searchText.match(/\b(buy|buying|purchase|for sale|to buy)\b/)) {
-                params.category = 'buy';
-                params.intentType = 'buy'; // Backward compat
-            }
-
-            // BHK - handle all variants with typo tolerance (use searchText)
-            // Handle: "3bhl", "3 bkh", "3bhk", "3 bhk", "3 b h k"
-            const bhkMatch = searchText.match(/(\d+)\s*(?:b\s*h\s*k|b\s*h\s*l|b\s*k\s*h|bhk|bhl|bkh|rk|bedroom|bed)/);
-            if (bhkMatch) {
-                params.bhk = parseInt(bhkMatch[1]);
-            }
-
-            // Budget - more flexible matching (use searchText)
-            // Match: "under 30k", "30k", "30,000", "50l", "1cr", "20-30k", etc.
-            // Determine budget unit: if "rent" present or "/mo" → monthly, if "cr/lakh/l" → total
-            const isRent = searchText.match(/\b(rent|renting|for rent|to rent|pg)\b/);
-            const hasMonthlyIndicator = searchText.match(/\b\/mo\b/);
-            const hasTotalIndicator = searchText.match(/\b(cr|crore|l|lakh|lac)\b/);
-            
-            // Budget range matching: "20-30k", "20 to 30k"
-            const rangeMatch = searchText.match(/(\d+)\s*[-to]\s*(\d+)\s*(k|l|cr|crore|lakh|lac)/);
-            if (rangeMatch) {
-                let minAmount = parseInt(rangeMatch[1]);
-                let maxAmount = parseInt(rangeMatch[2]);
-                const unit = rangeMatch[3].toLowerCase();
-                if (unit === 'k') {
-                    minAmount = minAmount * 1000;
-                    maxAmount = maxAmount * 1000;
-                } else if (unit === 'l' || unit === 'lakh' || unit === 'lac') {
-                    minAmount = minAmount * 100000;
-                    maxAmount = maxAmount * 100000;
-                } else if (unit === 'cr' || unit === 'crore') {
-                    minAmount = minAmount * 10000000;
-                    maxAmount = maxAmount * 10000000;
-                }
-                params.budgetMin = minAmount;
-                params.budgetMax = maxAmount;
-                params.budgetUnit = (isRent || hasMonthlyIndicator) ? 'monthly' : (hasTotalIndicator ? 'total' : null);
-                params.budget = maxAmount; // Backward compat: use max as single budget value
-            } else {
-                // Single budget value
-                const budgetMatch = searchText.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)?\s*(\d+)\s*(k|l|cr|crore|lakh|lac)/);
-                if (budgetMatch) {
-                    let amount = parseInt(budgetMatch[1]);
-                    const unit = budgetMatch[2].toLowerCase();
-                    if (unit === 'k') {
-                        amount = amount * 1000;
-                    } else if (unit === 'l' || unit === 'lakh' || unit === 'lac') {
-                        amount = amount * 100000;
-                    } else if (unit === 'cr' || unit === 'crore') {
-                        amount = amount * 10000000;
-                    }
-                    params.budgetMin = amount;
-                    params.budgetMax = amount;
-                    params.budgetUnit = (isRent || hasMonthlyIndicator) ? 'monthly' : (hasTotalIndicator ? 'total' : null);
-                    params.budget = amount; // Backward compat
-                } else {
-                    // Also try matching raw numbers with context
-                    const rawBudgetMatch = searchText.match(/(?:under|upto|max|budget|₹|rs|rupees?|less than)\s*(\d{4,})/);
-                    if (rawBudgetMatch) {
-                        const num = parseInt(rawBudgetMatch[1]);
-                        // If it's 4-5 digits, assume thousands (rent)
-                        if (num >= 1000 && num < 100000) {
-                            params.budgetMin = num;
-                            params.budgetMax = num;
-                            params.budgetUnit = (isRent || hasMonthlyIndicator) ? 'monthly' : null;
-                            params.budget = num; // Backward compat
-                        }
-                        // If it's 6-7 digits, assume lakhs (buy)
-                        else if (num >= 100000 && num < 10000000) {
-                            params.budgetMin = num;
-                            params.budgetMax = num;
-                            params.budgetUnit = hasTotalIndicator ? 'total' : null;
-                            params.budget = num; // Backward compat
-                        }
-                        // If it's 8+ digits, assume crores (buy)
-                        else if (num >= 10000000) {
-                            params.budgetMin = num;
-                            params.budgetMax = num;
-                            params.budgetUnit = 'total';
-                            params.budget = num; // Backward compat
-                        }
-                    }
-                }
-            }
-
-            // Locality → City mapping (AUTO-INFERENCE - MANDATORY)
-            // COMPREHENSIVE DATASET: Top 30+ localities per city
-            // If user mentions ANY locality from this list → city is auto-resolved
-            // The bot MUST NEVER ask "Which city?" if a locality is present
-            // Use corrected text for matching
-            let matchedLocality = null;
-            const localityToCityMap = {
-                // Delhi localities (30)
-                'vasant kunj': 'delhi',
-                'vasant vihar': 'delhi',
-                'saket': 'delhi',
-                'malviya nagar': 'delhi',
-                'greater kailash i': 'delhi',
-                'greater kailash ii': 'delhi',
-                'greater kailash': 'delhi', // Fallback for GK
-                'hauz khas': 'delhi',
-                'green park': 'delhi',
-                'defence colony': 'delhi',
-                'lajpat nagar': 'delhi',
-                'kalkaji': 'delhi',
-                'south extension': 'delhi',
-                'rohini': 'delhi',
-                'pitampura': 'delhi',
-                'shalimar bagh': 'delhi',
-                'ashok vihar': 'delhi',
-                'model town': 'delhi',
-                'dwarka': 'delhi',
-                'janakpuri': 'delhi',
-                'uttam nagar': 'delhi',
-                'rajouri garden': 'delhi',
-                'punjabi bagh': 'delhi',
-                'karol bagh': 'delhi',
-                'patel nagar': 'delhi',
-                'connaught place': 'delhi',
-                'mayur vihar': 'delhi',
-                'preet vihar': 'delhi',
-                'dilshad garden': 'delhi',
-                'shahdara': 'delhi',
-                'okhla': 'delhi',
+            for (const variation of variations) {
+                // Exact match
+                if (normalized.includes(variation)) return true;
                 
-                // Gurgaon (Gurugram) localities (25)
-                'dlf phase 1': 'gurgaon',
-                'dlf phase 2': 'gurgaon',
-                'dlf phase 3': 'gurgaon',
-                'dlf phase 4': 'gurgaon',
-                'dlf phase 5': 'gurgaon',
-                'golf course road': 'gurgaon',
-                'golf course extension': 'gurgaon',
-                'cyber city': 'gurgaon',
-                'sector 14': 'gurgaon',
-                'sector 22': 'gurgaon',
-                'sector 23': 'gurgaon',
-                'sector 27': 'gurgaon',
-                'sector 31': 'gurgaon',
-                'sector 43': 'gurgaon',
-                'sector 45': 'gurgaon',
-                'sector 46': 'gurgaon',
-                'sector 49': 'gurgaon',
-                'sector 50': 'gurgaon',
-                'sector 52': 'gurgaon',
-                'sector 56': 'gurgaon',
-                'sector 57': 'gurgaon',
-                'sushant lok phase 1': 'gurgaon',
-                'sushant lok phase 2': 'gurgaon',
-                'nirvana country': 'gurgaon',
-                'south city 1': 'gurgaon',
-                'gurugram': 'gurgaon',
-                'gurgaon': 'gurgaon',
-                
-                // Noida localities (29)
-                'sector 15': 'noida',
-                'sector 16': 'noida',
-                'sector 18': 'noida',
-                'sector 22': 'noida',
-                'sector 25': 'noida',
-                'sector 37': 'noida',
-                'sector 41': 'noida',
-                'sector 44': 'noida',
-                'sector 50': 'noida',
-                'sector 51': 'noida',
-                'sector 52': 'noida',
-                'sector 61': 'noida',
-                'sector 62': 'noida',
-                'sector 63': 'noida',
-                'sector 74': 'noida',
-                'sector 75': 'noida',
-                'sector 76': 'noida',
-                'sector 77': 'noida',
-                'sector 78': 'noida',
-                'sector 79': 'noida',
-                'sector 93': 'noida',
-                'sector 104': 'noida',
-                'sector 107': 'noida',
-                'sector 110': 'noida',
-                'sector 120': 'noida',
-                'sector 121': 'noida',
-                'sector 137': 'noida',
-                'sector 143': 'noida',
-                'sector 150': 'noida',
-                'noida': 'noida',
-                
-                // Mumbai localities (29)
-                'andheri east': 'mumbai',
-                'andheri west': 'mumbai',
-                'andheri': 'mumbai', // Fallback
-                'bandra east': 'mumbai',
-                'bandra west': 'mumbai',
-                'bandra': 'mumbai', // Fallback
-                'khar west': 'mumbai',
-                'santacruz east': 'mumbai',
-                'santacruz west': 'mumbai',
-                'santacruz': 'mumbai', // Fallback
-                'juhu': 'mumbai',
-                'powai': 'mumbai',
-                'vikhroli': 'mumbai',
-                'ghatkopar': 'mumbai',
-                'chembur': 'mumbai',
-                'kurla': 'mumbai',
-                'lower parel': 'mumbai',
-                'worli': 'mumbai',
-                'dadar': 'mumbai',
-                'prabhadevi': 'mumbai',
-                'malad east': 'mumbai',
-                'malad west': 'mumbai',
-                'malad': 'mumbai', // Fallback
-                'goregaon east': 'mumbai',
-                'goregaon west': 'mumbai',
-                'goregaon': 'mumbai', // Fallback
-                'kandivali east': 'mumbai',
-                'kandivali west': 'mumbai',
-                'kandivali': 'mumbai', // Fallback
-                'borivali east': 'mumbai',
-                'borivali west': 'mumbai',
-                'borivali': 'mumbai', // Fallback
-                'mira road': 'mumbai',
-                'thane west': 'mumbai',
-                'thane east': 'mumbai',
-                'thane': 'mumbai', // Fallback
-                'navi mumbai': 'mumbai',
-                'mumbai': 'mumbai',
-                'bombay': 'mumbai',
-                
-                // Bangalore localities (25)
-                'indiranagar': 'bangalore',
-                'whitefield': 'bangalore',
-                'hsr layout': 'bangalore',
-                'koramangala': 'bangalore',
-                'bellandur': 'bangalore',
-                'sarjapur road': 'bangalore',
-                'marathahalli': 'bangalore',
-                'electronic city': 'bangalore',
-                'btm layout': 'bangalore',
-                'jp nagar': 'bangalore',
-                'jayanagar': 'bangalore',
-                'banashankari': 'bangalore',
-                'yelahanka': 'bangalore',
-                'hebbal': 'bangalore',
-                'hennur': 'bangalore',
-                'kalyan nagar': 'bangalore',
-                'kr puram': 'bangalore',
-                'brookefield': 'bangalore',
-                'hoodi': 'bangalore',
-                'ulsoor': 'bangalore',
-                'malleshwaram': 'bangalore',
-                'rajajinagar': 'bangalore',
-                'vijayanagar': 'bangalore',
-                'basavanagudi': 'bangalore',
-                'nagarbhavi': 'bangalore',
-                'bangalore': 'bangalore',
-                'bengaluru': 'bangalore',
-                
-                // Pune localities (24)
-                'baner': 'pune',
-                'balewadi': 'pune',
-                'wakad': 'pune',
-                'hinjewadi phase 1': 'pune',
-                'hinjewadi phase 2': 'pune',
-                'hinjewadi phase 3': 'pune',
-                'hinjewadi': 'pune', // Fallback
-                'aundh': 'pune',
-                'pashan': 'pune',
-                'bavdhan': 'pune',
-                'kothrud': 'pune',
-                'karve nagar': 'pune',
-                'hadapsar': 'pune',
-                'magarpatta': 'pune',
-                'kharadi': 'pune',
-                'viman nagar': 'pune',
-                'yerwada': 'pune',
-                'koregaon park': 'pune',
-                'kalyani nagar': 'pune',
-                'mundhwa': 'pune',
-                'wagholi': 'pune',
-                'pimpri': 'pune',
-                'chinchwad': 'pune',
-                'nigdi': 'pune',
-                'talegaon': 'pune',
-                'pune': 'pune'
-            };
-            
-            // Direct city names (explicit mentions)
-            const cityNames = [
-                { name: 'gurgaon', aliases: ['gurgaon', 'gurugram'] },
-                { name: 'mumbai', aliases: ['mumbai', 'bombay'] },
-                { name: 'bangalore', aliases: ['bangalore', 'bengaluru'] },
-                { name: 'delhi', aliases: ['delhi', 'new delhi'] },
-                { name: 'pune', aliases: ['pune'] },
-                { name: 'noida', aliases: ['noida'] },
-                { name: 'chennai', aliases: ['chennai', 'madras'] },
-                { name: 'hyderabad', aliases: ['hyderabad'] },
-                { name: 'kolkata', aliases: ['kolkata', 'calcutta'] }
-            ];
-            
-            // First, check for explicit city mentions (use searchText)
-            for (const city of cityNames) {
-                if (city.aliases.some(alias => searchText.includes(alias))) {
-                    params.city = city.name;
-                    break;
+                // Check if variation is part of any word (handles spacing issues)
+                    const words = normalized.split(/\s+/);
+                for (const w of words) {
+                    if (w.includes(variation) || variation.includes(w)) return true;
+                    // Very lenient fuzzy match for typos (lower threshold)
+                    if (similarity(w, variation) >= 0.65) return true;
                 }
             }
             
-            // If no explicit city, infer from locality (AUTO-INFERENCE - STRICT ENFORCEMENT)
-            // Match longest locality first to avoid partial matches
-            if (!params.city) {
-                const sortedLocalities = Object.keys(localityToCityMap).sort((a, b) => b.length - a.length);
-                for (const locality of sortedLocalities) {
-                    // Check if locality appears in the text (word boundary aware)
-                    const localityPattern = new RegExp(`\\b${locality.replace(/\s+/g, '\\s+')}\\b`, 'i');
-                    if (localityPattern.test(searchText)) {
-                        params.city = localityToCityMap[locality];
-                        // Also store locality for reference
-                        params.locality = locality;
+            // Also check if any word is similar to the base word
+            const words = normalized.split(/\s+/);
+            for (const w of words) {
+                if (similarity(w, word) >= 0.7) return true;
+            }
+            
+            return false;
+        }
+        
+        // Extract numbers from text (handles grammatical mistakes)
+        function extractNumbers(text) {
+            const normalized = normalizeText(text);
+            // Match numbers with flexible spacing
+            const numberMatches = normalized.match(/\d+(?:\.\d+)?/g);
+            return numberMatches ? numberMatches.map(n => parseFloat(n)) : [];
+        }
+        
+        // Extract information from user message (with typo tolerance)
+        function extractInformation(text) {
+            const normalized = normalizeText(text);
+            const updates = {};
+            
+            // Detect rent/buy intent (with typo and grammatical tolerance)
+            if (!conversationState.intent) {
+                // Very lenient matching - check for any variation
+                if (containsVariation(text, 'rent') || 
+                    fuzzyMatchWord(text, 'rent', 0.65) ||
+                    /\b(ren|rent|renti|rentin|renta)\b/i.test(normalized)) {
+                    updates.intent = 'rent';
+                } else if (containsVariation(text, 'buy') || 
+                          fuzzyMatchWord(text, 'buy', 0.65) || 
+                          containsVariation(text, 'purchase') ||
+                          /\b(bu|buy|buyi|buyin|purch|purcha|purchas)\b/i.test(normalized)) {
+                    updates.intent = 'buy';
+                }
+            }
+            
+            // Detect BHK (bedrooms) - with typo and grammatical tolerance
+            if (!conversationState.bhk) {
+                // Try multiple patterns to catch variations (very flexible)
+                const patterns = [
+                    /\b(\d+)\s*(bhk|bhks|bedroom|bedrooms|bed room|bed rooms|br|brs|bed|beds|bh|bk|bedr|bedrm)\b/i,
+                    /\b(bhk|bhks|bedroom|bedrooms|bed room|bed rooms|br|brs|bed|beds|bh|bk)\s*(\d+)\b/i,
+                    /\b(\d+)\s*(bh|bk|bhks|bedr|bedrm|bedroo|bedrom)\b/i, // Common typos
+                    /\b(\d+)\s*(room|rooms|rm|rms)\b/i, // Just "room"
+                    /\b(\d+)\s*(bed|beds)\b/i // Just "bed"
+                ];
+                
+                for (const pattern of patterns) {
+                    const match = normalized.match(pattern);
+                    if (match) {
+                        const num = parseInt(match[1] || match[2]);
+                        if (num >= 1 && num <= 10) { // Reasonable range
+                            updates.bhk = num;
                         break;
                     }
                 }
             }
             
-            // Handle city/locality conflicts (if user mentions both and they conflict)
-            if (params.city && params.locality) {
-                const inferredCity = localityToCityMap[params.locality.toLowerCase()];
-                if (inferredCity && inferredCity !== params.city.toLowerCase()) {
-                    // Conflict detected - city explicitly mentioned conflicts with locality
-                    // For now, trust explicit city mention over locality inference
-                    // But log for debugging
-                    if (DEBUG || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                        console.warn('City/locality conflict:', {
-                            explicitCity: params.city,
-                            locality: params.locality,
-                            inferredCity: inferredCity,
-                            action: 'Using explicit city'
-                        });
-                    }
-                }
-            }
-            
-            // Handle ambiguous cases (e.g., "sector 15" could be Noida/Gurgaon/Faridabad)
-            // If we see just "sector" without a city, store locality for clarification
-            if (!params.city && searchText.match(/\bsector\s+\d+/) && !searchText.match(/\b(noida|gurgaon|faridabad|delhi)\b/)) {
-                const sectorMatch = searchText.match(/\bsector\s+\d+/);
-                if (sectorMatch) {
-                    params.locality = sectorMatch[0];
-                }
-            }
-
-            // Type (for additional filtering)
-            if (searchText.match(/\bvilla\b/i)) params.propertyType = 'villa';
-            else if (searchText.match(/\b(studio|1rk)\b/i)) params.propertyType = 'studio';
-            else if (searchText.match(/\bapartment\b/i)) params.propertyType = 'apartment';
-            else if (searchText.match(/\brow\s+house\b/i)) params.propertyType = 'row house';
-            else if (searchText.match(/\boffice\b/i)) params.propertyType = 'office';
-
-            return params;
-        }
-
-        // Check what's missing - priority order: mode → location → budget → bhk
-        function getMissingParams() {
-            const missing = [];
-            if (!chatState.category && !chatState.intentType) missing.push('mode');
-            if (!chatState.city && !chatState.locality) missing.push('location');
-            if (!chatState.budget && !chatState.budgetMin && !chatState.budgetMax) missing.push('budget');
-            if (!chatState.bhk) missing.push('bhk');
-            return missing;
-        }
-
-        // Get next missing param (only one at a time)
-        function getNextMissingParam() {
-            const missing = getMissingParams();
-            return missing.length > 0 ? missing[0] : null;
-        }
-
-        // Get pending question based on missing required slots
-        // CRITICAL: Never ask for city if it can be inferred from locality
-        // Priority order: category → cityOrLocality → bhkOrType → budget
-        function getPendingQuestion() {
-            // Priority 1: Check category (rent/buy/pg/commercial/plot/projects)
-            if (!chatState.category && !chatState.intentType) {
-                return 'category';
-            }
-            
-            // AUTO-INFERENCE CHECK: If locality exists but city doesn't, try to infer
-            if (!chatState.city && chatState.locality) {
-                // Try to infer city from locality (should have been done in extractParams, but double-check)
-                const inferredCity = inferCityFromLocality(chatState.locality);
-                if (inferredCity) {
-                    chatState.city = inferredCity;
-                    // City is now set, continue to next check
-                } else {
-                    // Locality exists but can't be inferred - ask for clarification
-                    return 'cityOrLocality';
-                }
-            }
-            
-            // Priority 2: Only ask for city/locality if both are missing
-            if (!chatState.city && !chatState.locality) {
-                return 'cityOrLocality';
-            }
-            
-            // Priority 3: Ask for BHK/type if missing (but only if we don't have enough to show results)
-            // For demo, we can show results even without BHK if we have category + location
-            // So only ask BHK if we have category + location but nothing else
-            if (!chatState.bhk && !chatState.propertyType) {
-                // Only ask BHK if we don't have budget either (to avoid asking too many questions)
-                // If we have category + location, we can show results without BHK
-                const hasEnough = hasEnoughToShowResults(chatState);
-                if (!hasEnough) {
-                    return 'bhkOrType';
-                }
-            }
-            
-            // Priority 4: Budget is optional for demo, but ask if nothing else is present
-            // Only ask budget if we have category + location but no BHK and no budget
-            if (!chatState.budgetMin && !chatState.budgetMax && !chatState.budget) {
-                const hasEnough = hasEnoughToShowResults(chatState);
-                if (!hasEnough) {
-                    return 'budget';
-                }
-            }
-            
-            return null; // All required slots filled OR we have enough to show results
-        }
-        
-        // Infer city from locality (helper function)
-        // COMPREHENSIVE DATASET: Must match extractParams localityToCityMap
-        // STRICT RULE: If locality exists in this map, city is auto-resolved
-        function inferCityFromLocality(locality) {
-            if (!locality) return null;
-            
-            const localityToCityMap = {
-                // Delhi (30)
-                'vasant kunj': 'delhi', 'vasant vihar': 'delhi', 'saket': 'delhi', 'malviya nagar': 'delhi',
-                'greater kailash i': 'delhi', 'greater kailash ii': 'delhi', 'greater kailash': 'delhi',
-                'hauz khas': 'delhi', 'green park': 'delhi', 'defence colony': 'delhi', 'lajpat nagar': 'delhi',
-                'kalkaji': 'delhi', 'south extension': 'delhi', 'rohini': 'delhi', 'pitampura': 'delhi',
-                'shalimar bagh': 'delhi', 'ashok vihar': 'delhi', 'model town': 'delhi', 'dwarka': 'delhi',
-                'janakpuri': 'delhi', 'uttam nagar': 'delhi', 'rajouri garden': 'delhi', 'punjabi bagh': 'delhi',
-                'karol bagh': 'delhi', 'patel nagar': 'delhi', 'connaught place': 'delhi', 'mayur vihar': 'delhi',
-                'preet vihar': 'delhi', 'dilshad garden': 'delhi', 'shahdara': 'delhi', 'okhla': 'delhi',
-                
-                // Gurgaon (27)
-                'dlf phase 1': 'gurgaon', 'dlf phase 2': 'gurgaon', 'dlf phase 3': 'gurgaon',
-                'dlf phase 4': 'gurgaon', 'dlf phase 5': 'gurgaon', 'golf course road': 'gurgaon',
-                'golf course extension': 'gurgaon', 'cyber city': 'gurgaon', 'sector 14': 'gurgaon',
-                'sector 22': 'gurgaon', 'sector 23': 'gurgaon', 'sector 27': 'gurgaon', 'sector 31': 'gurgaon',
-                'sector 43': 'gurgaon', 'sector 45': 'gurgaon', 'sector 46': 'gurgaon', 'sector 49': 'gurgaon',
-                'sector 50': 'gurgaon', 'sector 52': 'gurgaon', 'sector 56': 'gurgaon', 'sector 57': 'gurgaon',
-                'sushant lok phase 1': 'gurgaon', 'sushant lok phase 2': 'gurgaon', 'nirvana country': 'gurgaon',
-                'south city 1': 'gurgaon', 'gurugram': 'gurgaon', 'gurgaon': 'gurgaon',
-                
-                // Noida (30)
-                'sector 15': 'noida', 'sector 16': 'noida', 'sector 18': 'noida', 'sector 22': 'noida',
-                'sector 25': 'noida', 'sector 37': 'noida', 'sector 41': 'noida', 'sector 44': 'noida',
-                'sector 50': 'noida', 'sector 51': 'noida', 'sector 52': 'noida', 'sector 61': 'noida',
-                'sector 62': 'noida', 'sector 63': 'noida', 'sector 74': 'noida', 'sector 75': 'noida',
-                'sector 76': 'noida', 'sector 77': 'noida', 'sector 78': 'noida', 'sector 79': 'noida',
-                'sector 93': 'noida', 'sector 104': 'noida', 'sector 107': 'noida', 'sector 110': 'noida',
-                'sector 120': 'noida', 'sector 121': 'noida', 'sector 137': 'noida', 'sector 143': 'noida',
-                'sector 150': 'noida', 'noida': 'noida',
-                
-                // Mumbai (38)
-                'andheri east': 'mumbai', 'andheri west': 'mumbai', 'andheri': 'mumbai',
-                'bandra east': 'mumbai', 'bandra west': 'mumbai', 'bandra': 'mumbai',
-                'khar west': 'mumbai', 'santacruz east': 'mumbai', 'santacruz west': 'mumbai', 'santacruz': 'mumbai',
-                'juhu': 'mumbai', 'powai': 'mumbai', 'vikhroli': 'mumbai', 'ghatkopar': 'mumbai',
-                'chembur': 'mumbai', 'kurla': 'mumbai', 'lower parel': 'mumbai', 'worli': 'mumbai',
-                'dadar': 'mumbai', 'prabhadevi': 'mumbai', 'malad east': 'mumbai', 'malad west': 'mumbai',
-                'malad': 'mumbai', 'goregaon east': 'mumbai', 'goregaon west': 'mumbai', 'goregaon': 'mumbai',
-                'kandivali east': 'mumbai', 'kandivali west': 'mumbai', 'kandivali': 'mumbai',
-                'borivali east': 'mumbai', 'borivali west': 'mumbai', 'borivali': 'mumbai',
-                'mira road': 'mumbai', 'thane west': 'mumbai', 'thane east': 'mumbai', 'thane': 'mumbai',
-                'navi mumbai': 'mumbai', 'mumbai': 'mumbai', 'bombay': 'mumbai',
-                
-                // Bangalore (27)
-                'indiranagar': 'bangalore', 'whitefield': 'bangalore', 'hsr layout': 'bangalore',
-                'koramangala': 'bangalore', 'bellandur': 'bangalore', 'sarjapur road': 'bangalore',
-                'marathahalli': 'bangalore', 'electronic city': 'bangalore', 'btm layout': 'bangalore',
-                'jp nagar': 'bangalore', 'jayanagar': 'bangalore', 'banashankari': 'bangalore',
-                'yelahanka': 'bangalore', 'hebbal': 'bangalore', 'hennur': 'bangalore',
-                'kalyan nagar': 'bangalore', 'kr puram': 'bangalore', 'brookefield': 'bangalore',
-                'hoodi': 'bangalore', 'ulsoor': 'bangalore', 'malleshwaram': 'bangalore',
-                'rajajinagar': 'bangalore', 'vijayanagar': 'bangalore', 'basavanagudi': 'bangalore',
-                'nagarbhavi': 'bangalore', 'bangalore': 'bangalore', 'bengaluru': 'bangalore',
-                
-                // Pune (26)
-                'baner': 'pune', 'balewadi': 'pune', 'wakad': 'pune',
-                'hinjewadi phase 1': 'pune', 'hinjewadi phase 2': 'pune', 'hinjewadi phase 3': 'pune',
-                'hinjewadi': 'pune', 'aundh': 'pune', 'pashan': 'pune', 'bavdhan': 'pune',
-                'kothrud': 'pune', 'karve nagar': 'pune', 'hadapsar': 'pune', 'magarpatta': 'pune',
-                'kharadi': 'pune', 'viman nagar': 'pune', 'yerwada': 'pune', 'koregaon park': 'pune',
-                'kalyani nagar': 'pune', 'mundhwa': 'pune', 'wagholi': 'pune', 'pimpri': 'pune',
-                'chinchwad': 'pune', 'nigdi': 'pune', 'talegaon': 'pune', 'pune': 'pune'
-            };
-            
-            const normalizedLocality = locality.toLowerCase().trim();
-            return localityToCityMap[normalizedLocality] || null;
-        }
-
-        // Check if we have enough info to show results (DEMO-FRIENDLY)
-        // For demo we should show properties even if some fields missing.
-        // Minimum requirement: category OR inferred category, plus at least ONE of: city/locality/budget/bhk/propertyType.
-        function hasEnoughToShowResults(state) {
-            // Must have category (rent/buy/pg/commercial/plot/projects)
-            const hasCategory = !!(state.category || state.intentType);
-            
-            // Must have at least one signal: city/locality/budget/bhk/propertyType
-            const hasAnySignal = !!(state.city || state.locality || state.bhk || 
-                                   state.budgetMin || state.budgetMax || state.budget || 
-                                   state.propertyType);
-            
-            // No pending question (don't show results while asking)
-            const noPendingQuestion = pendingQuestion === null;
-            
-            const ready = hasCategory && hasAnySignal && noPendingQuestion;
-            
-            // Update readyToShowResults flag
-            state.readyToShowResults = ready;
-            return ready;
-        }
-        
-        // Backward compatibility wrapper
-        function canShowResults() {
-            return hasEnoughToShowResults(chatState);
-        }
-
-        // Generate bot response - strict sequencing with pendingQuestion
-        // CRITICAL: This function NEVER asks for something the user already provided
-        // Params are extracted and context is updated BEFORE checking pending questions
-        function generateBotResponse(intent, userText) {
-            // Handle price trend intent FIRST (before normal housing flow)
-            if (intent === 'price_trend' || isTrendQuery(userText)) {
-                const locality = extractTrendLocality(userText);
-                let city = null;
-                
-                // Try to infer city from locality
-                if (locality) {
-                    city = inferCityFromLocality(locality);
-                }
-                
-                // NEVER ask follow-ups - show trend card even if city is unknown
-                // If city not found, label as "(city not confirmed)" and continue
-                if (!locality) {
-                    // If no locality extracted, try to extract from text directly
-                    const normalized = normalizeText(userText);
-                    const words = normalized.split(/\s+/);
-                    // Take last 1-3 words as potential locality
-                    const potentialLocality = words.slice(-3).join(' ').trim();
-                    if (potentialLocality.length > 0 && potentialLocality.length < 50) {
-                        const inferredCity = inferCityFromLocality(potentialLocality);
-                        if (inferredCity) {
-                            city = inferredCity;
-                            locality = potentialLocality;
+                // Fallback: if we see a number 1-10 and bedroom-related words nearby, assume it's BHK
+                if (!updates.bhk) {
+                    const numbers = extractNumbers(text);
+                    const hasBedroomWord = /\b(bed|room|bhk|br)\b/i.test(normalized);
+                    if (numbers.length > 0 && hasBedroomWord) {
+                        const num = numbers[0];
+                        if (num >= 1 && num <= 10) {
+                            updates.bhk = Math.floor(num);
                         }
                     }
                 }
+            }
+            
+            // Detect price/budget (with typo tolerance and all currency formats)
+            if (!conversationState.price && !conversationState.priceMin) {
+                const isRent = conversationState.intent === 'rent' || containsVariation(text, 'rent');
                 
-                // Generate trend data (even if city is null - will show "city not confirmed")
-                const trendData = generateTrendData(locality || 'Unknown', city);
+                // Build flexible currency unit patterns (handles typos and spacing)
+                const thousandPattern = '(k|thousand|thousands|thou|thousnd|thousnad|thousan|thous|kilo)';
+                const lakhPattern = '(lakh|lakhs|lac|lacs|lak|laksh|lakhh|lakhss)';
+                const crorePattern = '(cr|crore|crores|cror|croree|crs|core|cores)';
+                const rupeePattern = '(rs|rupees?|rupee|rupess|rupe)';
                 
-                // If city not found, update the data to show "city not confirmed"
-                if (!city && trendData) {
-                    trendData.city = '(city not confirmed)';
-                }
-                
-                // Generate response text
-                const directionText = trendData.direction === 'Up' ? 'slightly up' : 
-                                     trendData.direction === 'Down' ? 'slightly down' : 'relatively stable';
-                const yoyText = trendData.yoyPct >= 0 ? `+${trendData.yoyPct}%` : `${trendData.yoyPct}%`;
-                const localityName = trendData.locality || 'this area';
-                const responseText = `${localityName} prices look ${directionText} overall. YoY is around ${yoyText}, with ${trendData.direction === 'Up' ? 'steady' : trendData.direction === 'Down' ? 'moderate' : 'minimal'} movement in the last 6 months.`;
-                
-                return {
-                    text: responseText,
-                    chips: null,
-                    results: null,
-                    trendCard: trendData
-                };
-            }
-            
-            // Normalize and extract params
-            const raw = userText;
-            const normalized = normalizeText(raw);
-            const corrected = correctTypos(normalized);
-            const params = extractParams(userText);
-            
-            // Debug logging (dev mode) - log state transitions
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                console.log('🔍 State Transition:', {
-                    detectedIntent: intent,
-                    extractedParams: {
-                        category: params.category || params.intentType || params.mode,
-                        city: params.city,
-                        locality: params.locality,
-                        bhk: params.bhk,
-                        budget: params.budget || (params.budgetMin && params.budgetMax ? `${params.budgetMin}-${params.budgetMax}` : null),
-                        propertyType: params.propertyType
-                    },
-                    chatStateBefore: { ...chatState },
-                    missingSlots: getPendingQuestion() ? [getPendingQuestion()] : [],
-                    willShowResults: false // Will be set below
-                });
-            }
-            
-            // CRITICAL: Check if user answered the last question
-            // If they did, don't ask it again
-            if (lastQuestionKey === 'category' && (params.category || params.intentType || params.mode)) {
-                lastQuestionKey = null;
-                lastQuestionValueSnapshot = null;
-            } else if (lastQuestionKey === 'cityOrLocality' && (params.city || params.locality)) {
-                lastQuestionKey = null;
-                lastQuestionValueSnapshot = null;
-            } else if (lastQuestionKey === 'bhkOrType' && (params.bhk || params.propertyType)) {
-                lastQuestionKey = null;
-                lastQuestionValueSnapshot = null;
-            } else if (lastQuestionKey === 'budget' && (params.budget || params.budgetMin || params.budgetMax)) {
-                lastQuestionKey = null;
-                lastQuestionValueSnapshot = null;
-            }
-            
-            // CRITICAL: Merge params into chatState WITHOUT overwriting existing fields with null/undefined
-            // This ensures we remember what user said across turns
-            // Example: If user says "I want to rent 3bhk", category='rent' and bhk=3 are set here
-            // Then getPendingQuestion() will NOT return 'category' because category is already set
-            for (const key in params) {
-                if (params[key] !== null && params[key] !== undefined) {
-                    // Only update if new value is not null/undefined
-                    if (Array.isArray(params[key]) && params[key].length > 0) {
-                        chatState[key] = params[key];
-                    } else if (!Array.isArray(params[key])) {
-                        chatState[key] = params[key];
-                    }
-                }
-            }
-            
-            // Set intent to property_search if we have any housing-related params
-            if (params.category || params.intentType || params.city || params.locality || params.bhk || params.budget) {
-                chatState.intent = 'property_search';
-            }
-
-            // Determine pending question based on missing required slots
-            // This will NOT include anything the user just provided in params
-            pendingQuestion = getPendingQuestion();
-            
-            // Debug logging (behind DEBUG flag)
-            if (DEBUG || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-                const canShow = hasEnoughToShowResults(chatState);
-                console.log('🔍 State After User Action:', {
-                    chatState: {
-                        category: chatState.category || chatState.intentType,
-                        city: chatState.city,
-                        locality: chatState.locality,
-                        bhk: chatState.bhk,
-                        propertyType: chatState.propertyType,
-                        budget: chatState.budget || (chatState.budgetMin && chatState.budgetMax ? `${chatState.budgetMin}-${chatState.budgetMax}` : null),
-                        budgetUnit: chatState.budgetUnit
-                    },
-                    pendingQuestion,
-                    hasEnoughToShowResults: canShow,
-                    willShowResults: canShow && !pendingQuestion,
-                    readyToShowResults: chatState.readyToShowResults
-                });
-            }
-            
-            let responseText = '';
-            let chips = [];
-            let results = null; // Only show results when pendingQuestion is null
-
-            // STRICT RULE: If chips are shown, text must be minimal (no duplication)
-            // IMPORTANT: If showing chips, do NOT repeat the same question text again
-            // If there's a pending question, show only prompt + chips (NO cards)
-            if (pendingQuestion === 'category') {
-                // Chip only mode - minimal prompt (chips show options, no need to repeat)
-                responseText = 'Select a category.';
-                chips = ['Rent', 'Buy', 'PG', 'Commercial', 'Plot', 'Projects'].slice(0, 6);
-                lastQuestionKey = 'category';
-            } else if (pendingQuestion === 'cityOrLocality') {
-                // Check if we have a locality but need city clarification (ambiguous case)
-                if (chatState.locality && !chatState.city && lastQuestionKey !== 'cityOrLocality') {
-                    // Ambiguous locality (e.g., "sector 15" could be multiple cities)
-                    const localityDisplay = chatState.locality.charAt(0).toUpperCase() + chatState.locality.slice(1);
-                    responseText = `Which city is ${localityDisplay} in?`;
-                    chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
-                    lastQuestionKey = 'cityOrLocality';
-                } else if (!chatState.locality && !chatState.city && lastQuestionKey !== 'cityOrLocality') {
-                    // No locality or city - ask normally (minimal text since chips show options)
-                    responseText = 'Select a city.';
-                    chips = ['Gurgaon', 'Mumbai', 'Bangalore', 'Delhi', 'Pune', 'Noida'].slice(0, 6);
-                    lastQuestionKey = 'cityOrLocality';
-                } else {
-                    // Already asked, don't ask again
-                    pendingQuestion = null;
-                }
-            } else if (pendingQuestion === 'bhkOrType' && lastQuestionKey !== 'bhkOrType') {
-                // Chip only mode - minimal prompt (chips show options)
-                responseText = 'Select configuration.';
-                chips = ['1RK', '1BHK', '2BHK', '3BHK', '4BHK+'].slice(0, 6);
-                lastQuestionKey = 'bhkOrType';
-            } else if (pendingQuestion === 'budget' && lastQuestionKey !== 'budget') {
-                // Budget question - polite but minimal (chips show ranges)
-                const isRent = chatState.category === 'rent' || chatState.category === 'pg' || chatState.intentType === 'rent' || chatState.intentType === 'pg';
-                responseText = 'Select a budget range.';
-                chips = isRent
-                    ? ['Under ₹20k', '₹20-30k', '₹30-50k', '₹50k+'].slice(0, 6)
-                    : ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr', '₹2Cr+'].slice(0, 6);
-                lastQuestionKey = 'budget';
-            } else if (pendingQuestion && lastQuestionKey === pendingQuestion) {
-                // Already asked this question, don't ask again - show results if we can
-                pendingQuestion = null;
-            }
-            
-            // CRITICAL: Only show results if NO pending question AND we have enough info
-            // Never show cards in the same turn as a clarifying question
-            const canShow = hasEnoughToShowResults(chatState);
-            
-            if (!pendingQuestion && canShow) {
-                // All required slots filled OR we have enough - ready to show results
-                chatState.readyToShowResults = true; // CRITICAL FLAG
-                
-                // Natural response with inferred city (don't announce inference explicitly)
-                // Use locality if available, otherwise city, otherwise generic
-                const locationText = chatState.locality || chatState.city || '';
-                if (locationText) {
-                    const displayLocation = locationText.split(' ').map(word => 
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                    ).join(' ');
-                    responseText = `Here are a few options in ${displayLocation}.`;
-                } else {
-                    responseText = 'Here are a few options.';
-                }
-                
-                // Get filtered results (ONLY when readyToShowResults is true AND no pending question)
-                const filtered = filterProperties();
-                results = filtered.length > 0 ? filtered.slice(0, 3) : getFallbackResults();
-                
-                // Optional refinement chips (only if budget not set and we're showing results)
-                if (!chatState.budget && !chatState.budgetMin && !chatState.budgetMax && chatState.category) {
-                    const category = chatState.category || chatState.intentType;
-                    if (category === 'rent' || category === 'pg') {
-                        chips = ['Under ₹20k', '₹20-30k', '₹30-50k'].slice(0, 6);
-                    } else if (category === 'buy' || category === 'projects') {
-                        chips = ['Under ₹50L', '₹50L-1Cr', '₹1-2Cr'].slice(0, 6);
-                    }
-                }
-            } else if (pendingQuestion) {
-                // If there's a pending question, DO NOT show results
-                results = null;
-                chatState.readyToShowResults = false;
-            }
-
-            return {
-                text: responseText,
-                results: results, // null if pendingQuestion exists
-                chips: chips.length > 0 ? chips : null,
-                summary: null,
-                trendCard: null, // Only set for price_trend intent
-                followUp: null
-            };
-        }
-
-        // Get fallback results (always return at least 3)
-        function getFallbackResults() {
-            return mockProperties.slice(0, 3);
-        }
-
-        // Removed getFollowUpQuestion - now handled in generateBotResponse
-
-        // Generate mock listings that match resolved city/locality
-        function generateMockListings({ city, locality, bhk, mode, budgetBucket }) {
-            const cityKey = (city || 'delhi').toLowerCase();
-            const localityKey = (locality || '').toLowerCase();
-            
-            // Title case helper
-            const titleCase = (str) => {
-                if (!str) return '';
-                return str.split(' ').map(word => 
-                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-                ).join(' ');
-            };
-            
-            const areaLabel = localityKey 
-                ? `${titleCase(localityKey)}, ${titleCase(cityKey)}`
-                : titleCase(cityKey);
-            
-            const isRent = mode === 'rent' || mode === 'pg';
-            const priceRanges = isRent 
-                ? [
-                    { min: 18000, max: 25000, display: '₹20k/mo' },
-                    { min: 25000, max: 35000, display: '₹28k/mo' },
-                    { min: 35000, max: 50000, display: '₹42k/mo' }
-                ]
-                : [
-                    { min: 5000000, max: 7000000, display: '₹65L' },
-                    { min: 7000000, max: 10000000, display: '₹85L' },
-                    { min: 10000000, max: 15000000, display: '₹1.2Cr' }
-                ];
-            
-            const listings = [];
-            for (let i = 0; i < 3; i++) {
-                const priceRange = priceRanges[i % priceRanges.length];
-                const price = Math.floor(priceRange.min + (priceRange.max - priceRange.min) * 0.5);
-                
-                listings.push({
-                    id: `mock-${cityKey}-${i + 1}`,
-                    city: cityKey,
-                    locality: localityKey || areaLabel.split(',')[0].trim(),
-                    price: price,
-                    priceUnit: isRent ? 'rent' : 'buy',
-                    bhk: bhk || (i % 3) + 2, // Default to 2, 3, 4 BHK
-                    type: 'Apartment',
-                    furnished: i === 0 ? 'Fully' : i === 1 ? 'Semi' : 'Unfurnished',
-                    amenities: ['Parking', 'Lift', i === 0 ? 'Gym' : 'Power Backup'],
-                    tags: localityKey ? [`Near ${titleCase(localityKey)}`] : ['Gated'],
-                    images: []
-                });
-            }
-            
-            return listings;
-        }
-        
-        // Filter properties based on context - demo-friendly (loose matching)
-        // CRITICAL: Enforce city/locality matching - never show wrong-city cards
-        function filterProperties() {
-            let filtered = [...mockProperties];
-            
-            // Apply filters (loose matching for demo)
-            const category = chatState.category || chatState.intentType;
-            if (category) {
-                // Map category to priceUnit for filtering
-                if (category === 'rent' || category === 'pg') {
-                    filtered = filtered.filter(prop => prop.priceUnit === 'rent');
-                } else if (category === 'buy' || category === 'projects' || category === 'plot') {
-                    filtered = filtered.filter(prop => prop.priceUnit === 'buy');
-                } else if (category === 'commercial') {
-                    // Commercial properties might have different structure - for now, show all
-                    filtered = filtered;
-                }
-            }
-            
-            // CRITICAL: Enforce city matching - never show wrong-city cards
-            if (chatState.city) {
-                const cityKey = chatState.city.toLowerCase();
-                filtered = filtered.filter(prop => prop.city.toLowerCase() === cityKey);
-                
-                // If no matches, generate city-specific mock listings
-                if (filtered.length === 0) {
-                    const mockListings = generateMockListings({
-                        city: chatState.city,
-                        locality: chatState.locality,
-                        bhk: chatState.bhk,
-                        mode: category,
-                        budgetBucket: null
-                    });
-                    filtered = mockListings;
-                }
-            }
-            
-            // If locality is specified, prefer listings with matching locality
-            if (chatState.locality && filtered.length > 0) {
-                const localityKey = chatState.locality.toLowerCase();
-                const localityMatches = filtered.filter(prop => 
-                    prop.locality && prop.locality.toLowerCase().includes(localityKey)
-                );
-                if (localityMatches.length > 0) {
-                    filtered = localityMatches;
-                }
-            }
-            
-            if (chatState.bhk) {
-                filtered = filtered.filter(prop => prop.bhk === chatState.bhk);
-            }
-            if (chatState.propertyType || chatState.type) {
-                const propType = chatState.propertyType || chatState.type;
-                filtered = filtered.filter(prop => prop.type === propType);
-            }
-            // Filter by budget (support both single budget and budgetMin/Max)
-            const budget = chatState.budget || chatState.budgetMax || chatState.budgetMin;
-            if (budget) {
-                const isRent = category === 'rent' || category === 'pg';
+                // For rent: look for amounts in thousands (k), lakhs, or plain numbers
                 if (isRent) {
-                    filtered = filtered.filter(prop => prop.price <= budget * 1.2); // Allow 20% tolerance
-                } else {
-                    filtered = filtered.filter(prop => prop.price <= budget * 1.2);
-                }
-            }
-            
-            // CRITICAL SANITY CHECK: Assert every listing city matches session.city
-            if (chatState.city) {
-                const cityKey = chatState.city.toLowerCase();
-                const mismatches = filtered.filter(prop => prop.city.toLowerCase() !== cityKey);
-                if (mismatches.length > 0) {
-                    console.warn('City mismatch detected, regenerating listings:', mismatches);
-                    // Regenerate listings with correct city
-                    filtered = generateMockListings({
-                        city: chatState.city,
-                        locality: chatState.locality,
-                        bhk: chatState.bhk,
-                        mode: category,
-                        budgetBucket: null
-                    });
-                }
-            }
-            
-            // Always return at least 3 results (demo-friendly)
-            if (filtered.length === 0) {
-                // Generate fallback listings matching the resolved city
-                return generateMockListings({
-                    city: chatState.city || 'delhi',
-                    locality: chatState.locality,
-                    bhk: chatState.bhk,
-                    mode: category,
-                    budgetBucket: null
-                });
-            }
-            
-            return filtered;
-        }
-
-        // Generate search summary (removed - using cleaner UI)
-        function generateSummary() {
-            return null; // Not used anymore
-        }
-
-        // Strict renderBotTurn function - enforces layout contract (no duplicates)
-        function renderBotTurn(options, existingMsgId = null) {
-            const { text, chips, carousel, trendCard } = options;
-            
-            // Strict contract: only text, chips, carousel - no followUp (handled in generateBotResponse)
-            
-            // CRITICAL SAFETY GATE: Never render cards unless readyToShowResults is true AND no pending question
-            // This prevents premature card display and ensures cards only show after slot-filling
-            const safeCarousel = (chatState.readyToShowResults && 
-                                 pendingQuestion === null && 
-                                 carousel && 
-                                 carousel.length > 0) ? carousel : null;
-            
-            let msgEl;
-            if (existingMsgId) {
-                msgEl = document.getElementById(existingMsgId);
-            } else {
-                const msgId = addBotMessage('');
-                msgEl = document.getElementById(msgId);
-            }
-            
-            if (!msgEl) return null;
-
-            // Clear any existing content (except the message wrapper)
-            const existingContent = msgEl.querySelector('.bot-message-content');
-            if (existingContent) {
-                existingContent.remove();
-            }
-
-            // Create bot message container with strict structure
-            const botMessage = document.createElement('div');
-            botMessage.className = 'bot-message-content';
-            
-            // 1. BotText (optional) - but if chips are shown, text should be minimal
-            // STRICT RULE: Don't duplicate what chips already communicate
-            if (text) {
-                const textEl = document.createElement('div');
-                textEl.className = 'bot-text';
-                textEl.textContent = text;
-                botMessage.appendChild(textEl);
-            }
-            
-            // 2. ChipsRow (optional) - left-aligned
-            if (chips && chips.length > 0) {
-                const chipsContainer = document.createElement('div');
-                chipsContainer.className = 'chat-chips';
-                
-                chips.forEach(chipText => {
-                    const chip = document.createElement('button');
-                    chip.className = 'chat-chip';
-                    chip.textContent = chipText;
-                    chip.addEventListener('click', () => {
-                        handleChipClick(chipText);
-                    });
-                    chipsContainer.appendChild(chip);
-                });
-                
-                botMessage.appendChild(chipsContainer);
-                
-                // Guardrail: check chips height
-                requestAnimationFrame(() => {
-                    const height = chipsContainer.getBoundingClientRect().height;
-                    if (height > 96 && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-                        console.warn('Chips overflow - check wrapping:', height);
-                    }
-                });
-            }
-            
-            // 3. CarouselRow (optional, horizontal scroll) - below chips/text
-            // Safety gate: Never show cards if pendingQuestion exists OR if trend card is present
-            // Guard: Don't render property cards if this is a trend response
-            if (trendCard) {
-                // This is a trend response - skip property cards entirely
-            } else if (safeCarousel && safeCarousel.length > 0) {
-                // Create bot-results wrapper
-                const resultsWrapper = document.createElement('div');
-                resultsWrapper.className = 'bot-results';
-                
-                // Create property rail (proper carousel container)
-                const propertyRail = document.createElement('div');
-                propertyRail.className = 'property-rail';
-
-                // Reset image tracker for this new set of properties to avoid repeats
-                getListingImage(null, true);
-
-                safeCarousel.forEach(prop => {
-                    const card = createPropertyCard(prop);
-                    propertyRail.appendChild(card);
-                });
-
-                resultsWrapper.appendChild(propertyRail);
-                botMessage.appendChild(resultsWrapper);
-            }
-            
-            // 4. TrendCard (optional) - for price trend queries
-            if (trendCard) {
-                const trendWrapper = document.createElement('div');
-                trendWrapper.className = 'trend-wrapper';
-                trendWrapper.innerHTML = renderTrendCard(trendCard);
-                botMessage.appendChild(trendWrapper);
-            }
-            
-            // Append to message element
-            msgEl.appendChild(botMessage);
-            
-            // Guardrail: check for overflow
-            requestAnimationFrame(() => {
-                checkOverflow(msgEl);
-            });
-            
-            // Don't scroll if we're keeping user message at top
-            // Bot response will appear below user message naturally
-            if (!keepUserMessageAtTop) {
-                scrollToBottom({ force: true });
-            }
-            return existingMsgId || msgEl.id;
-        }
-
-        // Default fallback image URL (must always work)
-        // Local aesthetic interior images (saved locally for faster loading)
-        const LOCAL_IMAGES = [
-            'images/property/interior1.jpg',
-            'images/property/interior2.jpg',
-            'images/property/interior3.jpg',
-            'images/property/interior4.jpg',
-            'images/property/interior5.jpg',
-            'images/property/interior6.jpg',
-            'images/property/interior7.jpg',
-            'images/property/interior8.jpg'
-        ];
-        
-        const DEFAULT_FALLBACK_IMAGE = LOCAL_IMAGES[0];
-        
-        // City-based image mapping using local images (rotated for variety)
-        const CITY_IMAGE_MAP = {
-            'delhi': [
-                LOCAL_IMAGES[0],
-                LOCAL_IMAGES[1],
-                LOCAL_IMAGES[2]
-            ],
-            'mumbai': [
-                LOCAL_IMAGES[3],
-                LOCAL_IMAGES[4],
-                LOCAL_IMAGES[5]
-            ],
-            'bangalore': [
-                LOCAL_IMAGES[6],
-                LOCAL_IMAGES[7],
-                LOCAL_IMAGES[0]
-            ],
-            'pune': [
-                LOCAL_IMAGES[1],
-                LOCAL_IMAGES[2],
-                LOCAL_IMAGES[3]
-            ],
-            'gurgaon': [
-                LOCAL_IMAGES[4],
-                LOCAL_IMAGES[5],
-                LOCAL_IMAGES[6]
-            ],
-            'noida': [
-                LOCAL_IMAGES[7],
-                LOCAL_IMAGES[0],
-                LOCAL_IMAGES[1]
-            ]
-        };
-        
-        // Track used images to avoid repeats within a single property set
-        let usedImagesInCurrentSet = new Set();
-        
-        // Helper function to get listing image based on city (using local images, no repeats)
-        function getListingImage(city, resetTracker = false) {
-            if (resetTracker) {
-                usedImagesInCurrentSet.clear();
-            }
-            
-            const cityKey = (city || '').toLowerCase();
-            const images = CITY_IMAGE_MAP[cityKey] || LOCAL_IMAGES; // Default to all local images
-            
-            // Filter out already used images
-            const availableImages = images.filter(img => !usedImagesInCurrentSet.has(img));
-            
-            // If all images are used, reset and use all images again
-            const imagesToUse = availableImages.length > 0 ? availableImages : images;
-            
-            // Select random image from available set
-            const selectedImage = imagesToUse[Math.floor(Math.random() * imagesToUse.length)];
-            
-            // Mark as used
-            usedImagesInCurrentSet.add(selectedImage);
-            
-            return selectedImage;
-        }
-
-        // Create property card element with modern design and Unsplash images
-        function createPropertyCard(prop) {
-            const card = document.createElement('div');
-            card.className = 'property-card';
-            
-            const price = prop.priceUnit === 'rent' 
-                ? `₹${(prop.price / 1000).toFixed(0)}k/mo`
-                : prop.price >= 10000000
-                ? `₹${(prop.price / 10000000).toFixed(1)}Cr`
-                : `₹${(prop.price / 100000).toFixed(0)}L`;
-            
-            const title = `${prop.bhk}BHK ${prop.type} in ${prop.locality}`;
-            // Fix "near near" issue: check if tag already starts with "Near"
-            let localityLine = prop.locality;
-            if (prop.tags.length > 0) {
-                const tag = prop.tags[0];
-                localityLine = tag.toLowerCase().startsWith('near') ? tag : `Near ${tag}`;
-            }
-            const amenityChips = prop.amenities.slice(0, 3).map(a => `<span class="property-chip">${a}</span>`).join('');
-            
-            // Get city-specific image (local path)
-            const finalImageUrl = getListingImage(prop.city);
-            
-            // Heart icon SVGs - outline (default) and filled (clicked)
-            const heartIconOutline = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M128,224S24,168,24,102A54,54,0,0,1,78,48c22.59,0,41.94,12.31,50,32,8.06-19.69,27.41-32,50-32a54,54,0,0,1,54,54C232,168,128,224,128,224Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>`;
-            const heartIconFilled = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><rect width="256" height="256" fill="none"/><path d="M240,102c0,70-103.79,126.66-108.21,129a8,8,0,0,1-7.58,0C119.79,228.66,16,172,16,102A62.07,62.07,0,0,1,78,40c20.65,0,38.73,8.88,50,23.89C139.27,48.88,157.35,40,178,40A62.07,62.07,0,0,1,240,102Z"/></svg>`;
-            
-            // Track saved state for this card
-            let isSaved = false;
-            
-            card.innerHTML = `
-                <div class="property-card__imgwrap">
-                    <img class="property-card__img" src="${finalImageUrl}" alt="${title}" loading="eager" onerror="this.onerror=null; this.src='${DEFAULT_FALLBACK_IMAGE}';" />
-                </div>
-                <div class="property-card__body">
-                    <div class="property-card__title">${title}</div>
-                    <div class="property-card__price">${price}</div>
-                    <div class="property-card__meta">${localityLine}</div>
-                    <div class="property-card__chips">${amenityChips}</div>
-                    <div class="property-card__actions">
-                        <button class="property-cta">View details</button>
-                        <button class="property-like" aria-label="Shortlist">${heartIconOutline}</button>
-                    </div>
-                </div>
-            `;
-            
-            // Ensure image loads - add additional fallback after DOM insertion
-            const img = card.querySelector('.property-card__img');
-            if (img) {
-                img.addEventListener('error', function() {
-                    if (this.src !== DEFAULT_FALLBACK_IMAGE) {
-                        this.src = DEFAULT_FALLBACK_IMAGE;
-                    }
-                });
-                // Force load attempt by setting src again if not complete
-                if (!img.complete && img.src) {
-                    const currentSrc = img.src;
-                    img.src = '';
-                    img.src = currentSrc;
-                }
-            }
-            
-            // Add click handlers
-            card.querySelector('.property-cta').addEventListener('click', () => {
-                console.log('View details:', prop);
-            });
-            
-            const likeButton = card.querySelector('.property-like');
-            likeButton.addEventListener('click', () => {
-                isSaved = !isSaved;
-                likeButton.innerHTML = isSaved ? heartIconFilled : heartIconOutline;
-                likeButton.classList.toggle('property-like--saved', isSaved);
-                console.log(isSaved ? 'Saved:' : 'Unsaved:', prop);
-            });
-            
-            return card;
-        }
-
-        // Overflow detector (dev mode)
-        function checkOverflow(element) {
-            if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                return;
-            }
-            
-            const rect = element.getBoundingClientRect();
-            if (rect.right > window.innerWidth) {
-                console.warn('Element overflow detected:', {
-                    element: element.className,
-                    right: rect.right,
-                    viewportWidth: window.innerWidth,
-                    overflow: rect.right - window.innerWidth
-                });
-            }
-        }
-
-        // Legacy render functions (kept for compatibility, but will be replaced)
-        function renderChips(chips, msgId, isFollowUp = false) {
-            // Deprecated - use renderBotTurn instead
-            console.warn('renderChips is deprecated - use renderBotTurn');
-        }
-
-        function renderResults(results, msgId) {
-            // Deprecated - use renderBotTurn instead
-            console.warn('renderResults is deprecated - use renderBotTurn');
-        }
-
-        function renderSummary(summary, msgId) {
-            // Deprecated - use renderBotTurn instead
-            console.warn('renderSummary is deprecated - use renderBotTurn');
-        }
-
-        // Handle chip click - supports all modes
-        function handleChipClick(chipText) {
-            const lower = chipText.toLowerCase();
-            
-            // Category chips (rent/buy/pg/commercial/plot/projects)
-            if (lower === 'rent' || lower === 'buy' || lower === 'pg' || lower === 'commercial' || lower === 'plot' || lower === 'projects') {
-                chatState.category = lower;
-                chatState.intentType = lower; // Backward compat
-                addUserMessage(chipText);
-                setTimeout(() => {
-                    handleHousingIntent(chipText);
-                }, 200);
-            } else if (chipText.includes('₹') || chipText.includes('k') || chipText.includes('L') || chipText.includes('Cr')) {
-                // Budget chip
-                const match = chipText.match(/(\d+)(k|L|Cr)/i);
-                if (match) {
-                    let amount = parseInt(match[1]);
-                    if (match[2].toLowerCase() === 'k') amount *= 1000;
-                    else if (match[2].toLowerCase() === 'l') amount *= 100000;
-                    else if (match[2].toLowerCase() === 'cr') amount *= 10000000;
-                    chatState.budget = amount;
-                    chatState.budgetMin = amount;
-                    chatState.budgetMax = amount;
-                    // Infer unit from category
-                    const isRent = chatState.category === 'rent' || chatState.category === 'pg';
-                    chatState.budgetUnit = isRent ? 'monthly' : 'total';
-                }
-                addUserMessage(chipText);
-                setTimeout(() => {
-                    handleHousingIntent(chipText);
-                }, 200);
-            } else if (lower.match(/\d+\s*(bhk|rk)/i)) {
-                // BHK chip (e.g., "2BHK", "3BHK")
-                const bhkMatch = lower.match(/(\d+)\s*(bhk|rk)/i);
-                if (bhkMatch) {
-                    chatState.bhk = parseInt(bhkMatch[1]);
-                }
-                addUserMessage(chipText);
-                setTimeout(() => {
-                    handleHousingIntent(chipText);
-                }, 200);
-            } else {
-                // City or other
-                const cities = ['gurgaon', 'mumbai', 'bangalore', 'delhi', 'pune', 'noida'];
-                if (cities.some(c => chipText.toLowerCase().includes(c))) {
-                    chatState.city = chipText.toLowerCase();
-                }
-                addUserMessage(chipText);
-                setTimeout(() => {
-                    handleHousingIntent(chipText);
-                }, 200);
-            }
-        }
-
-        // Detect gibberish (random characters, no meaningful words)
-        function detectGibberish(text) {
-            if (!text || typeof text !== 'string') {
-                return false;
-            }
-            
-            const normalized = text.trim().toLowerCase();
-            
-            // Very short (1-2 chars) is not gibberish
-            if (normalized.length <= 2) {
-                return false;
-            }
-            
-            // Check if it's mostly random characters (no vowels, repeated chars, etc.)
-            const hasVowels = /[aeiou]/i.test(normalized);
-            const hasRepeatedChars = /(.)\1{3,}/.test(normalized); // Same char 4+ times
-            const hasMeaningfulWords = /\b(rent|buy|pg|commercial|plot|project|bhk|delhi|mumbai|bangalore|gurgaon|pune|noida|hi|hello|hey|thanks|thank|you|what|where|how|when|why|is|are|the|a|an|in|on|at|for|to|of|with|from)\b/i.test(normalized);
-            
-            // If no vowels, lots of repeated chars, and no meaningful words → likely gibberish
-            if (!hasVowels && hasRepeatedChars && !hasMeaningfulWords) {
-                return true;
-            }
-            
-            // If very short and no meaningful words
-            if (normalized.length < 5 && !hasMeaningfulWords) {
-                return true;
-            }
-            
-            return false;
-        }
-
-        // Detect platform comparisons (Airbnb, Magicbricks, etc.)
-        function detectPlatformComparison(text) {
-            if (!text || typeof text !== 'string') return false;
-            const normalized = text.trim().toLowerCase();
-            const platforms = ['airbnb', 'magicbricks', '99acres', 'makaan', 'housing.com', 'nobroker', 'zomato', 'swiggy', 'olx', 'quikr'];
-            return platforms.some(platform => normalized.includes(platform));
-        }
-
-        // Detect broker/phone/contact requests
-        function detectBrokerRequest(text) {
-            if (!text || typeof text !== 'string') return false;
-            const normalized = text.trim().toLowerCase();
-            const brokerKeywords = ['broker', 'agent', 'contact', 'phone', 'number', 'call', 'whatsapp', 'email', 'reach'];
-            return brokerKeywords.some(keyword => normalized.includes(keyword));
-        }
-
-        // Generate greeting response with housing redirect (STRICT FORMAT)
-        function generateGreetingResponse() {
-            // Exact format: Polite acknowledgement + Redirect to housing + Open housing question
-            // No emojis, semi-professional tone
-            return "Hello. How can I help with your home search today?";
-        }
-
-        // Generate response for single letter or gibberish
-        function generateSingleLetterResponse() {
-            return "I did not understand that. Please share what you are looking for. For example, 2BHK for Rent in Rohini with a budget.";
-        }
-
-        // Generate polite redirect for non-housing questions (context-aware)
-        function generateRedirectResponse(userText) {
-            if (!userText) {
-                return "I'm here to help with housing-related queries. Let me know what kind of home you're looking for.";
-            }
-
-            const normalized = userText.trim().toLowerCase();
-
-            // Weather-related
-            if (normalized.match(/\b(weather|temperature|rain|sunny|cloudy|forecast|aqi|air quality)\b/i)) {
-                return "I can't help with the weather, but I can help you find a bright, well-ventilated home. What kind of place are you looking for?";
-            }
-
-            // Platform comparison
-            if (detectPlatformComparison(userText)) {
-                return "I can't help with other platforms, but I can help you explore verified listings and local insights here. What kind of property are you looking for?";
-            }
-
-            // Broker/contact request
-            if (detectBrokerRequest(userText)) {
-                return "To contact a seller or broker, you can open the property details page and submit a lead. I can help you find the right property to start with.";
-            }
-
-            // Default redirect for random facts/off-topic
-            return "I focus on homes and localities. If you're exploring options to rent or buy, tell me your requirements.";
-        }
-
-        // Generate gibberish response
-        function generateGibberishResponse() {
-            return "I did not understand that. Please share what you are looking for. For example, 2BHK for Rent in Rohini with a budget.";
-        }
-        
-        // Trend query detector (top-level utility)
-        function isTrendQuery(text) {
-            if (!text || typeof text !== 'string') return false;
-            const t = text.toLowerCase().trim();
-            // Keep it tight: only triggers on pricing-related intent
-            return (
-                t.includes("price trend") ||
-                t.includes("pricing trend") ||
-                t.includes("trend in") ||
-                t.includes("price in") ||
-                t.includes("rates in") ||
-                t.startsWith("rates ") ||
-                t.includes("property prices") ||
-                t.includes("avg price") ||
-                t.includes("average price")
-            );
-        }
-        
-        // Handle trend intent (separate from housing flow)
-        function handleTrendIntent(userText) {
-            try {
-                const intent = detectIntent(userText);
-                
-                // Debug logging
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    console.log('[Trend Intent]', { text: userText, intent, isTrend: isTrendQuery(userText) });
-                }
-                
-                // Ensure we have trend intent
-                if (intent !== 'price_trend') {
-                    // Fallback: if detectIntent didn't catch it but isTrendQuery did, force it
-                    if (isTrendQuery(userText)) {
-                        // Re-route as trend
-                        const response = generateBotResponse('price_trend', userText);
-                        renderTrendResponse(response);
-                        return;
-                    }
-                    return;
-                }
-                
-                // Get trend response
-                const response = generateBotResponse('price_trend', userText);
-                
-                // Render trend response (NO property cards)
-                renderTrendResponse(response);
-                
-            } catch (error) {
-                console.error('Error in handleTrendIntent:', error);
-                // Fallback to simple text reply
-                typeBotReply("I encountered an error processing the price trend query. Please try again.");
-            }
-        }
-        
-        // Render trend response (text + trend card only, NO property cards)
-        function renderTrendResponse(response) {
-            // Set bot responding state
-            isBotResponding = true;
-            updateSendButtonState();
-            
-            // Create message container
-            const msgId = addBotMessage('');
-            const msgEl = document.getElementById(msgId);
-            if (!msgEl) return;
-            
-            // Type out the text first
-            let i = 0;
-            const fullText = response.text || '';
-            
-            if (typewriterTimer) {
-                clearInterval(typewriterTimer);
-            }
-            
-            typewriterTimer = setInterval(() => {
-                // Check if user stopped the response
-                if (!isBotResponding) {
-                    clearInterval(typewriterTimer);
-                    typewriterTimer = null;
-                    // Finalize message
-                    renderBotTurn({
-                        text: fullText.slice(0, i),
-                        chips: null,
-                        carousel: null, // NO property cards
-                        trendCard: response.trendCard || null
-                    }, msgId);
-                    return;
-                }
-                
-                i++;
-                const currentText = fullText.slice(0, i);
-                updateMessageText(msgId, currentText);
-                
-                // Render trend card once typing is complete
-                if (i >= fullText.length) {
-                    clearInterval(typewriterTimer);
-                    typewriterTimer = null;
-                    isBotResponding = false;
-                    updateSendButtonState();
+                    // Rent range: "40k-50k", "40-50k", "40000-50000", "40 thousand to 50 thousand"
+                    const rentRangePatterns = [
+                        new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(?:-|to|and)\\s*(\\d+(?:\\.\\d+)?)\\s*${thousandPattern}`, 'i'),
+                        new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(?:-|to|and)\\s*(\\d+(?:\\.\\d+)?)\\s*${rupeePattern}`, 'i'),
+                        new RegExp(`(\\d{4,6})\\s*(?:-|to|and)\\s*(\\d{4,6})`, 'i') // Plain numbers
+                    ];
                     
-                    // Final render with trend card
-                    renderBotTurn({
-                        text: fullText,
-                        chips: null,
-                        carousel: null, // NO property cards
-                        trendCard: response.trendCard || null
-                    }, msgId);
-                }
-            }, 50);
-        }
-
-        // Main housing intent handler with debug logging
-        // Wrapped in try/catch to prevent crashes from breaking the chat loop
-        function handleHousingIntent(userText) {
-            try {
-                // Step 1: Read input value (already done, but ensure we have it)
-                const raw = userText;
-                const normalized = userText ? userText.trim().toLowerCase() : '';
-                
-                // ✅ Trend FIRST. If matched, DO NOT run housing search.
-                if (isTrendQuery(userText)) {
-                    handleTrendIntent(userText);
-                    return; // <- critical (prevents property cards)
-                }
-                
-                // Step 2: Routing logic order (strict priority for NON-CORE conversations)
-                // NON-CORE HANDLERS (text-only, no UI, no cards, no chips)
-                
-                // 1. Detect single letter or very short non-meaningful input
-                if (normalized.length === 1 || (normalized.length <= 2 && !detectGreeting(userText) && !detectIntent(userText))) {
-                    const singleLetterText = generateSingleLetterResponse();
-                    typeBotReply(singleLetterText); // TEXT ONLY - no UI components
-                    return;
-                }
-                
-                // 2. Detect gibberish
-                if (detectGibberish(userText)) {
-                    const gibberishText = generateGibberishResponse();
-                    typeBotReply(gibberishText); // TEXT ONLY - no UI components
-                    return;
-                }
-                
-                // 3. Detect greeting (NON-CORE - text only)
-                const isGreeting = detectGreeting(userText);
-                
-                // 4. Detect housing intent (CORE) - STRICT ROUTING: GREETING → CORE → OTHER
-                const intent = detectIntent(userText);
-                const slots = extractParams(userText);
-                const isCore = intent !== null || !!(slots.category || slots.intentType || slots.city || slots.locality || slots.bhk || slots.budget);
-                
-                // 5. Detect platform comparisons (NON-CORE - text only)
-                if (detectPlatformComparison(userText) && !isCore) {
-                    const redirectText = generateRedirectResponse(userText);
-                    typeBotReply(redirectText); // TEXT ONLY - no UI components
-                    return;
-                }
-                
-                // 6. Detect broker requests (NON-CORE - text only)
-                if (detectBrokerRequest(userText) && !isCore) {
-                    const redirectText = generateRedirectResponse(userText);
-                    typeBotReply(redirectText); // TEXT ONLY - no UI components
-                    return;
-                }
-                
-                // Step 3: Priority routing - if both greeting and housing, prioritize housing (CORE)
-                if (isGreeting && isCore) {
-                    // Mixed: greeting + housing query (e.g., "Hi, 3bhk in Rohini")
-                    // Treat as CORE housing, skip greeting-only response
-                    console.log('Intent Detection: Mixed greeting + housing - prioritizing housing');
-                } else if (isGreeting && !isCore) {
-                    // Pure greeting - respond with greeting + redirect (TEXT ONLY)
-                    const greetingText = generateGreetingResponse();
-                    typeBotReply(greetingText); // TEXT ONLY - no UI components
-                    return;
-                } else if (!isGreeting && !isCore) {
-                    // Non-housing question - redirect (TEXT ONLY)
-                    const redirectText = generateRedirectResponse(userText);
-                    typeBotReply(redirectText); // TEXT ONLY - no UI components
-                    return;
-                }
-                
-                // Step 4: Debug logging for CORE housing intents
-                if (isCore) {
-                    const matchedSignals = [];
-                    if (slots.category || slots.intentType || slots.mode) matchedSignals.push('category');
-                    if (slots.bhk) matchedSignals.push('bhk');
-                    if (slots.city) matchedSignals.push('city');
-                    if (slots.locality) matchedSignals.push('locality');
-                    if (slots.budget || slots.budgetMin || slots.budgetMax) matchedSignals.push('budget');
-                    if (slots.propertyType || slots.type) matchedSignals.push('propertyType');
-                    
-                    // Debug logging
-                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                        console.log('🔍 Intent Detection:', {
-                            normalized: normalized,
-                            isCore: isCore,
-                            isGreeting: isGreeting,
-                            detectedIntent: intent,
-                            matchedSignals: matchedSignals,
-                            extractedSlots: slots
-                        });
-                    }
-                }
-                
-                // Step 5: Route based on intent
-                if (!intent && !isCore) {
-                    // Fallback for unmapped intents (NON-CORE - text only)
-                    const redirectText = generateRedirectResponse(userText);
-                    typeBotReply(redirectText); // TEXT ONLY - no UI components
-                    return;
-                }
-
-                // Step 6: Handle core housing intent
-                // Note: generateBotResponse will merge slots into chatState (without overwriting with null)
-                const response = generateBotResponse(intent, userText);
-                
-                // Set bot responding state and update button
-                isBotResponding = true;
-                updateSendButtonState();
-                
-                // Use strict renderBotTurn contract
-                const msgId = addBotMessage('');
-                const msgEl = document.getElementById(msgId);
-                if (!msgEl) return;
-                
-                // Type out the text first
-                let i = 0;
-                const fullText = response.text;
-                
-                if (typewriterTimer) {
-                    clearInterval(typewriterTimer);
-                }
-
-                let lastWordCount = 0;
-                
-                typewriterTimer = setInterval(() => {
-                    // Check if user stopped the response
-                    if (!isBotResponding) {
-                        clearInterval(typewriterTimer);
-                        typewriterTimer = null;
-                        // Finalize message in current state
-                        renderBotTurn({
-                            text: fullText.slice(0, i),
-                            chips: response.chips || null,
-                            carousel: response.results || null,
-                            trendCard: response.trendCard || null
-                        }, msgId);
-                        return;
+                    for (const pattern of rentRangePatterns) {
+                        const match = normalized.match(pattern);
+                        if (match) {
+                            let min = parseFloat(match[1]);
+                            let max = parseFloat(match[2]);
+                            const unit = (match[3] || '').toLowerCase();
+                            
+                            if (containsVariation(unit, 'thousand') || unit === 'k') {
+                                updates.priceMin = min / 100; // 50k = 0.5 lakh
+                                updates.priceMax = max / 100;
+                                break;
+                            } else if (min >= 10000 && min <= 200000) {
+                                // Assume it's in rupees, convert to lakhs
+                                updates.priceMin = min / 100000;
+                                updates.priceMax = max / 100000;
+                                break;
+                            }
+                        }
                     }
                     
-                    i++;
-                    const currentText = fullText.slice(0, i);
-                    updateMessageText(msgId, currentText);
-                    
-                    // Detect new word: count words in current text
-                    const currentWordCount = currentText.trim().split(/\s+/).filter(w => w.length > 0).length;
-                    
-                    // Subtle haptic feedback when a new word appears
-                    if (currentWordCount > lastWordCount && navigator.vibrate) {
-                        navigator.vibrate(5); // Very subtle 5ms vibration
-                        lastWordCount = currentWordCount;
-                    }
-                    
-                    if (i >= fullText.length) {
-                        clearInterval(typewriterTimer);
-                        typewriterTimer = null;
-                        isBotResponding = false;
-                        updateSendButtonState();
+                    // Single rent amount: "50k", "50000", "50 thousand", "50k rent", "fifty thousand"
+                    if (!updates.price && !updates.priceMin) {
+                        const rentSinglePatterns = [
+                            new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${thousandPattern}\\b`, 'i'),
+                            new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${rupeePattern}\\b`, 'i'),
+                            new RegExp(`\\b(\\d{4,6})\\b`, 'i') // Plain numbers in rent range
+                        ];
                         
-                        // Render using strict contract after typing completes
-                        setTimeout(() => {
-                            // Render using strict contract (reuse existing message)
-                            // No followUp - everything is in one response (text + chips + carousel)
-                            renderBotTurn({
-                                text: response.text,
-                                chips: response.chips || null,
-                                carousel: response.results || null,
-                                trendCard: response.trendCard || null
-                            }, msgId);
-                        }, 100);
+                        for (const pattern of rentSinglePatterns) {
+                            const match = normalized.match(pattern);
+                            if (match) {
+                                let price = parseFloat(match[1]);
+                                const unit = (match[2] || '').toLowerCase();
+                                
+                                if (containsVariation(unit, 'thousand') || unit === 'k') {
+                                    updates.price = price / 100; // 50k = 0.5 lakh
+                                    break;
+                                } else if (unit && (unit === 'rs' || unit === 'rupees' || unit === 'rupee')) {
+                                    if (price >= 10000) {
+                                        updates.price = price / 100000;
+                                    } else {
+                                        updates.price = price / 100;
+                                    }
+                                    break;
+                                } else if (!unit && price >= 5000 && price <= 200000) {
+                                    // Plain number in typical rent range
+                                    if (price >= 10000) {
+                                        updates.price = price / 100000; // 50000 = 0.5 lakh
+                                    } else {
+                                        updates.price = price / 100; // 5000 = 0.05 lakh
+                                    }
+                                    break;
+                                }
+                            }
+                        }
                     }
-                }, 55);
-            } catch (error) {
-                // Fallback: safe bot response if parsing fails
-                console.error('Error handling housing intent:', error);
-                const fallbackText = "I can help with property search and locality insights. What are you looking for?";
-                typeBotReply(fallbackText);
-            }
-        }
-
-        // Test harness for intent detection
-        function runIntentTests() {
-            const tests = [
-                { input: 'rent', expected: 'CORE' },
-                { input: 'buy', expected: 'CORE' },
-                { input: '3bhk in delhi', expected: 'CORE' },
-                { input: '3 bhk in delhi', expected: 'CORE' },
-                { input: 'delhi', expected: 'CORE' },
-                { input: 'villa in bangalore', expected: 'CORE' },
-                { input: 'aqi today', expected: 'OTHER' },
-                { input: 'dfsdfsdf', expected: 'OTHER' }
-            ];
-
-            console.log('=== Intent Detection Tests ===');
-            tests.forEach(test => {
-                const intent = detectIntent(test.input);
-                const result = intent ? 'CORE' : 'OTHER';
-                const passed = result === test.expected;
-                console.log(`${passed ? '✅' : '❌'} "${test.input}" → ${result} (expected: ${test.expected})`);
-                if (!passed) {
-                    console.log('  Details:', { intent, normalized: test.input.trim().toLowerCase() });
+                } else {
+                    // For buy: look for price ranges like "2-3 cr", "50-80 lakhs", "2 cr to 4 cr"
+                    const buyRangePatterns = [
+                        new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(?:-|to|and)\\s*(\\d+(?:\\.\\d+)?)\\s*${crorePattern}`, 'i'),
+                        new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(?:-|to|and)\\s*(\\d+(?:\\.\\d+)?)\\s*${lakhPattern}`, 'i')
+                    ];
+                    
+                    for (const pattern of buyRangePatterns) {
+                        const match = normalized.match(pattern);
+                        if (match) {
+                            let min = parseFloat(match[1]);
+                            let max = parseFloat(match[2]);
+                            const unit = (match[3] || '').toLowerCase();
+                            
+                            if (containsVariation(unit, 'crore') || unit === 'cr') {
+                                updates.priceMin = min;
+                                updates.priceMax = max;
+                                break;
+                            } else if (containsVariation(unit, 'lakh') || unit === 'lac') {
+                                updates.priceMin = min / 100;
+                                updates.priceMax = max / 100;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Single price like "2 cr", "50 lakhs", "2 crore", "50 lac"
+                    if (!updates.price && !updates.priceMin) {
+                        const buySinglePatterns = [
+                            new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${crorePattern}\\b`, 'i'),
+                            new RegExp(`(\\d+(?:\\.\\d+)?)\\s*${lakhPattern}\\b`, 'i')
+                        ];
+                        
+                        for (const pattern of buySinglePatterns) {
+                            const match = normalized.match(pattern);
+                            if (match) {
+                                let price = parseFloat(match[1]);
+                                const unit = (match[2] || '').toLowerCase();
+                                
+                                if (containsVariation(unit, 'crore') || unit === 'cr') {
+                                    updates.price = price;
+                                    break;
+                                } else if (containsVariation(unit, 'lakh') || unit === 'lac') {
+                                    updates.price = price / 100;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
+            }
+            
+            // Detect locality using smart mapping (with typo and grammatical tolerance)
+            if (!conversationState.locality) {
+                const detected = detectLocality(text);
+                if (detected) {
+                    updates.locality = detected.fullName;
+                    updates.city = detected.city;
+                } else {
+                    // Fallback: try to extract any location-like words (handles grammatical mistakes)
+                    // This handles cases where locality isn't in our map but user mentioned it
+                    const locationPatterns = [
+                        /\b(in|at|near|around|from|for)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g,
+                        /\b([A-Z][a-z]+\s+(?:Sector|Road|Street|Avenue|Nagar|Colony|Extension|Phase|Area|Place))\s*(\d+)?/gi,
+                        /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:Sector|Road|Street|Avenue|Nagar|Colony|Extension|Phase)/gi,
+                        /\b([A-Z][a-z]{3,})\b/g // Any capitalized word (could be locality)
+                    ];
+                    
+                    for (const pattern of locationPatterns) {
+                        const matches = [...text.matchAll(pattern)];
+                        if (matches.length > 0) {
+                            const match = matches[matches.length - 1];
+                            let locality = match[2] || match[1] || match[0];
+                            locality = locality.replace(/^(in|at|near|around|from|for)\s+/i, '').trim();
+                            
+                            // Basic validation - should be at least 3 characters and not common words
+                            const commonWords = ['the', 'and', 'for', 'with', 'this', 'that', 'what', 'where', 'when', 'how', 'can', 'will', 'want', 'looking', 'search', 'find', 'show', 'need', 'bhk', 'bedroom', 'bed', 'rent', 'buy', 'price', 'budget', 'cr', 'crore', 'lakh', 'lakhs', 'k', 'thousand', 'looking', 'searching', 'find', 'show', 'me', 'please', 'help'];
+                            if (locality.length >= 3 && !commonWords.includes(locality.toLowerCase())) {
+                                updates.locality = capitalizeWords(locality);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return updates;
+        }
+        
+        // Check if conversation state is complete (very lenient - shows properties if we have extracted info)
+        function isConversationComplete() {
+            // Be very lenient - if we have extracted values (even with typos/grammar mistakes), consider complete
+            const hasIntent = !!conversationState.intent;
+            const hasBHK = !!conversationState.bhk && conversationState.bhk >= 1 && conversationState.bhk <= 10;
+            const hasPrice = !!(conversationState.price || conversationState.priceMin);
+            const hasLocality = !!conversationState.locality && conversationState.locality.length >= 3;
+            
+            // If all required fields are present (even if extracted with typos), show properties
+            return hasIntent && hasBHK && hasPrice && hasLocality;
+        }
+        
+        // Smart extraction - tries multiple times with different patterns to catch typos
+        function smartExtract(text) {
+            const updates = extractInformation(text);
+            
+            // If we didn't get everything, try again with more lenient patterns
+            // This helps catch information that might have been missed due to typos
+            if (!updates.intent && !conversationState.intent) {
+                // Try very loose patterns for intent
+                const looseIntent = text.toLowerCase();
+                if (/\b(ren|rent|renti|rentin|renta|rentel)\b/.test(looseIntent)) {
+                    updates.intent = 'rent';
+                } else if (/\b(bu|buy|buyi|buyin|purch|purcha|purchas)\b/.test(looseIntent)) {
+                    updates.intent = 'buy';
+                }
+            }
+            
+            // Try to extract BHK if not found
+            if (!updates.bhk && !conversationState.bhk) {
+                const numbers = extractNumbers(text);
+                for (const num of numbers) {
+                    if (num >= 1 && num <= 10) {
+                        // Check if there's any bedroom-related word nearby
+                        const numIndex = text.indexOf(num.toString());
+                        const nearbyText = text.substring(Math.max(0, numIndex - 20), Math.min(text.length, numIndex + 20)).toLowerCase();
+                        if (/\b(bed|room|bhk|br|bh|bk)\b/.test(nearbyText)) {
+                            updates.bhk = Math.floor(num);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return updates;
+        }
+        
+        // Generate follow-up question based on what's missing
+        function getFollowUpQuestion() {
+            const missing = [];
+            
+            if (!conversationState.intent) {
+                missing.push('rent or buy');
+            }
+            if (!conversationState.bhk) {
+                missing.push('BHK');
+            }
+            if (!conversationState.price && !conversationState.priceMin) {
+                missing.push('budget');
+            }
+            if (!conversationState.locality) {
+                missing.push('locality');
+            }
+            
+            if (missing.length === 0) {
+                return null; // All info collected
+            }
+            
+            // Generate natural follow-up questions
+            const questions = [
+                `To help you better, I need to know: ${missing.join(', ')}. ${missing.length === 1 ? 'What' : 'What are'} your ${missing[0]} preference${missing.length === 1 ? '' : 's'}?`,
+                `I'd like to know your ${missing.join(' and ')} to show you the best properties. Can you share that?`,
+                `To find the perfect home, I need your ${missing.join(', ')}. What ${missing.length === 1 ? 'is' : 'are'} your ${missing.length === 1 ? 'preference' : 'preferences'}?`
+            ];
+            
+            return questions[Math.floor(Math.random() * questions.length)];
+        }
+        
+        // Shuffle array to randomize order
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+        
+        // Generate property cards with Unsplash images
+        function generatePropertyCards() {
+            // Generate 4-5 property cards based on search criteria
+            const numCards = 4 + Math.floor(Math.random() * 2); // 4 or 5 cards
+            const cards = [];
+            
+            // Unsplash house image URLs (curated modern houses - using reliable sources)
+            const allUnsplashImages = [
+                'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-156401379991-9e60461eb61e?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1568605117035-2bf5c19ec013?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600585154340-be0671e3e94d?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600566753194-8e4b8c4c5b5a?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600585154525-9e4b8c4c5b5a?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600566752354-8e4b8c4c5b5a?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600585154084-4d0d3e5b3b5a?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600585152915-d0ec10b55c56?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600047509358-9dc75507daeb?w=800&h=600&fit=crop',
+                'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800&h=600&fit=crop'
+            ];
+            
+            // Shuffle and take unique images for each card (ensure no duplicates)
+            const shuffledImages = shuffleArray([...allUnsplashImages]);
+            const unsplashImages = [];
+            const usedImageIndices = new Set();
+            
+            // Select unique images for each card
+            for (let i = 0; i < numCards; i++) {
+                let attempts = 0;
+                let imageIndex;
+                do {
+                    imageIndex = Math.floor(Math.random() * shuffledImages.length);
+                    attempts++;
+                } while (usedImageIndices.has(imageIndex) && attempts < 50); // Prevent infinite loop
+                
+                usedImageIndices.add(imageIndex);
+                unsplashImages.push(shuffledImages[imageIndex]);
+            }
+            
+            // Property names (will be customized based on locality)
+            const propertyNames = [
+                'Luxury Heights',
+                'Green Valley',
+                'Sunset Residency',
+                'Park View Apartments',
+                'Garden Estate',
+                'Modern Living',
+                'Elite Homes',
+                'Premium Residences'
+            ];
+            
+            // Property types and statuses
+            const propertyTypes = ['Flat', 'Apartment', 'Villa', 'House', 'Penthouse'];
+            const propertyStatuses = ['Ready to move', 'Under construction', 'New launch'];
+            
+            for (let i = 0; i < numCards; i++) {
+                const imageUrl = unsplashImages[i]; // Each card gets a unique image
+                const propertyName = propertyNames[i % propertyNames.length];
+                
+                // Generate price based on user's budget
+                let price;
+                if (conversationState.priceMin && conversationState.priceMax) {
+                    const range = conversationState.priceMax - conversationState.priceMin;
+                    price = (conversationState.priceMin + (range * (i / numCards))).toFixed(1);
+                } else if (conversationState.price) {
+                    const variation = (conversationState.price * 0.1) * (i - numCards / 2) / numCards;
+                    price = (conversationState.price + variation).toFixed(1);
+                } else {
+                    price = (2.5 + i * 0.3).toFixed(1); // Default range
+                }
+                
+                // Generate built-up area (realistic range: 1200-3500 sq.ft)
+                const builtUpArea = Math.floor(1200 + Math.random() * 2300);
+                
+                // Generate gallery images (3-5 images per property) - ensure unique images
+                const numGalleryImages = 3 + Math.floor(Math.random() * 3);
+                const galleryImages = [];
+                const usedGalleryIndices = new Set();
+                
+                // Track all images used in this card stack (to avoid duplicates across cards)
+                const allUsedInStack = new Set([...usedImageIndices]);
+                
+                // First image in gallery is the card's main image
+                const mainImageIndex = shuffledImages.indexOf(imageUrl);
+                if (mainImageIndex !== -1) {
+                    usedGalleryIndices.add(mainImageIndex);
+                    allUsedInStack.add(mainImageIndex);
+                }
+                
+                // Add other unique images for gallery (avoiding images used in other cards)
+                for (let j = 0; j < numGalleryImages - 1; j++) {
+                    let attempts = 0;
+                    let galleryIndex;
+                    do {
+                        galleryIndex = Math.floor(Math.random() * shuffledImages.length);
+                        attempts++;
+                    } while ((usedGalleryIndices.has(galleryIndex) || allUsedInStack.has(galleryIndex)) && attempts < 100);
+                    
+                    if (attempts < 100) {
+                        usedGalleryIndices.add(galleryIndex);
+                        allUsedInStack.add(galleryIndex);
+                        galleryImages.push(shuffledImages[galleryIndex]);
+                    }
+                }
+                
+                // Always include the main image as first in gallery
+                galleryImages.unshift(imageUrl);
+                
+                cards.push({
+                    id: `property-${i + 1}`,
+                    name: propertyName,
+                    image: imageUrl,
+                    gallery: galleryImages, // Array of gallery images
+                    price: price,
+                    bhk: conversationState.bhk || 3,
+                    locality: conversationState.locality || 'Location',
+                    type: conversationState.intent === 'rent' ? 'rent' : 'sale',
+                    propertyType: propertyTypes[i % propertyTypes.length],
+                    status: propertyStatuses[i % propertyStatuses.length],
+                    builtUpArea: builtUpArea
+                });
+            }
+            
+            return cards;
+        }
+        
+        // Render property cards in horizontal scroll
+        function renderPropertyCards(cards) {
+            const carousel = document.createElement('div');
+            carousel.className = 'property-carousel';
+            
+            cards.forEach(card => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'property-card';
+                cardElement.setAttribute('data-property-id', card.id);
+                
+                // Card image wrapper
+                const imageWrapper = document.createElement('div');
+                imageWrapper.className = 'property-card__imgwrap';
+                
+                const image = document.createElement('img');
+                image.src = card.image;
+                image.alt = card.name;
+                image.className = 'property-card__img';
+                image.loading = 'lazy';
+                image.style.cursor = 'pointer'; // Indicate it's clickable
+                
+                // Handle image loading errors with fallback
+                image.onerror = function() {
+                    // Fallback to a reliable Unsplash image if original fails
+                    this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop';
+                    this.onerror = null; // Prevent infinite loop
+                };
+                
+                // Click on image to open gallery
+                image.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent event bubbling
+                    openPropertyGallery(card);
+                });
+                
+                // Make image wrapper clickable too
+                imageWrapper.style.cursor = 'pointer';
+                imageWrapper.addEventListener('click', (e) => {
+                    // Only open gallery if clicking on wrapper, not favorite button
+                    if (e.target === imageWrapper || e.target === image) {
+                        openPropertyGallery(card);
+                    }
+                });
+                
+                // Favorite button (top right)
+                const favoriteBtn = document.createElement('button');
+                favoriteBtn.className = 'property-card-favorite';
+                favoriteBtn.setAttribute('aria-label', 'Save property');
+                favoriteBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
+                favoriteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent opening gallery when clicking favorite
+                    // Handle favorite toggle
+                    favoriteBtn.classList.toggle('active');
+                });
+                
+                imageWrapper.appendChild(image);
+                imageWrapper.appendChild(favoriteBtn);
+                
+                // Card body
+                const body = document.createElement('div');
+                body.className = 'property-card__body';
+                
+                // Property type and status
+                const typeStatus = document.createElement('div');
+                typeStatus.className = 'property-card__type-status';
+                typeStatus.textContent = `${card.propertyType} • ${card.status}`;
+                
+                // Built-up area
+                const builtUpArea = document.createElement('div');
+                builtUpArea.className = 'property-card__area';
+                builtUpArea.textContent = `Built up area: ${card.builtUpArea.toLocaleString()} sq.ft`;
+                
+                // Location with pin icon
+                const location = document.createElement('div');
+                location.className = 'property-card__location';
+                location.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                        <circle cx="12" cy="10" r="3"></circle>
+                    </svg>
+                    <span>${card.locality}</span>
+                `;
+                
+                // Price
+                const price = document.createElement('div');
+                price.className = 'property-card__price';
+                price.textContent = `₹${card.price} Cr`;
+                
+                // Property details (BHK)
+                const chips = document.createElement('div');
+                chips.className = 'property-card__chips';
+                const bhkChip = document.createElement('span');
+                bhkChip.className = 'property-chip';
+                bhkChip.textContent = `${card.bhk} BHK`;
+                chips.appendChild(bhkChip);
+                
+                // View CTA button
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'property-card__view-btn';
+                viewBtn.textContent = 'View';
+                viewBtn.addEventListener('click', () => {
+                    // Handle view button click (can open property details)
+                    console.log('View property:', card.id);
+                });
+                
+                body.appendChild(typeStatus);
+                body.appendChild(builtUpArea);
+                body.appendChild(location);
+                body.appendChild(price);
+                body.appendChild(chips);
+                body.appendChild(viewBtn);
+                
+                cardElement.appendChild(imageWrapper);
+                cardElement.appendChild(body);
+                carousel.appendChild(cardElement);
             });
-            console.log('=== End Tests ===');
+            
+            return carousel;
         }
-
-        // Run tests in dev mode
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            setTimeout(runIntentTests, 1000);
+        
+        // Show property cards with loading indicator
+        function showPropertyCards() {
+            // Show typing indicator first
+            showTypingIndicator();
+            
+            // Generate cards
+            const cards = generatePropertyCards();
+            
+            // Add delay before showing properties (realistic processing time)
+            const delay = 1800 + Math.random() * 1000; // 1800-2800ms delay
+            
+            setTimeout(() => {
+                // Hide typing indicator
+                hideTypingIndicator();
+                
+                const carousel = renderPropertyCards(cards);
+                
+                // Create bot message with cards
+                const msgId = generateMessageId();
+                const message = {
+                    id: msgId,
+                    role: 'bot',
+                    text: `Great! I found ${cards.length} properties matching your criteria.`,
+                    timestamp: Date.now(),
+                    hasCards: true
+                };
+                messages.push(message);
+                
+                // Create message element
+                const msgDiv = document.createElement('div');
+                msgDiv.id = msgId;
+                msgDiv.className = 'msg msg-bot';
+                
+                const botContent = document.createElement('div');
+                botContent.className = 'bot-message-content';
+                
+                // Add text
+                const botText = document.createElement('div');
+                botText.className = 'bot-text';
+                botText.textContent = message.text;
+                
+                botContent.appendChild(botText);
+                botContent.appendChild(carousel);
+                msgDiv.appendChild(botContent);
+                
+                // Add to chat stack
+                const stack = document.getElementById('chat-stack');
+                if (stack) {
+                    stack.appendChild(msgDiv);
+                }
+            }, delay);
+            
+            return 'loading';
         }
+        
+        // Handle user message with slot filling
+        function handleUserMessage(text) {
+            // Add user message
+            addUserMessage(text);
+            
+            // Small delay before bot response
+            setTimeout(() => {
+                if (isGreeting(text)) {
+                    // Reset state on new greeting
+                    resetConversationState();
+                    const response = getGreetingResponse();
+                    addBotMessage(response);
+                } else {
+                    // Extract information from user message (with smart extraction for typos)
+                    const updates = smartExtract(text);
+                    
+                    // Update conversation state
+                    Object.assign(conversationState, updates);
+                    
+                    // Check if we have all information (very lenient - shows properties if info is present)
+                    if (isConversationComplete()) {
+                        // Show property cards
+                        conversationState.isComplete = true;
+                        showPropertyCards();
+                    } else {
+                        // Ask follow-up question only if we're really missing something
+                        const followUp = getFollowUpQuestion();
+                        if (followUp) {
+                            addBotMessage(followUp);
+                        }
+                    }
+                }
+            }, 300);
+        }
+        
+        // Basic send button handler
+        chatSendBtn.addEventListener('click', () => {
+            const text = chatInput.value.trim();
+            if (!text) return;
+            
+            // Clear input
+            chatInput.value = '';
+            
+            // Hide intro on first message
+            if (messages.length === 0 && chatScreen) {
+                chatScreen.classList.add('chat-started');
+            }
+            
+            // Handle the message
+            handleUserMessage(text);
+        });
+        
+        // Enter key handler
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                chatSendBtn.click();
+            }
+        });
+        
+        // Pill click handlers
+        const pills = document.querySelectorAll('.chat-pill');
+        pills.forEach(pill => {
+            pill.addEventListener('click', () => {
+                const text = pill.textContent.trim();
+                
+                // Hide intro on first message
+                if (messages.length === 0 && chatScreen) {
+                    chatScreen.classList.add('chat-started');
+                }
+                
+                // Handle the message directly
+                handleUserMessage(text);
+            });
+        });
+        
+        // ============================================================================
+        // End of chat reset - ready to build from scratch
+        // ============================================================================
     })();
 });
