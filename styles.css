@@ -2643,6 +2643,7 @@ html, body {
     scroll-snap-type: x mandatory;
     padding: 8px 0 12px; /* Vertical padding only */
     padding-left: 16px; /* Left padding to align with heading */
+    padding-right: 20px; /* Right padding so last card doesn't stick to edge */
     margin: 0; /* No margin - extends to right edge */
     margin-right: -16px; /* Negative margin to extend to right edge of chat screen */
     scrollbar-width: none;
@@ -2674,6 +2675,7 @@ html, body {
     scroll-snap-type: x mandatory;
     padding: 8px 0 12px; /* Vertical padding only */
     padding-left: 16px; /* Left padding to align with heading */
+    padding-right: 20px; /* Right padding so last card doesn't stick to edge */
     margin: 0; /* No margin - extends to right edge */
     margin-right: -16px; /* Negative margin to extend to right edge of chat screen */
     scrollbar-width: none;

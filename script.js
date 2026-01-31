@@ -2168,93 +2168,58 @@ document.addEventListener('DOMContentLoaded', function() {
             hasLocation: false
         };
         
-        // Shared constants - Unsplash house image URLs (curated modern houses)
-        // High-quality real estate images from Unsplash (optimized for performance)
-        // Base pool of unique images - will be expanded dynamically if needed
-        const ALL_UNSPLASH_IMAGES = [
-            'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-156401379991-9e60461eb61e?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1568605117035-2bf5c19ec013?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600585154340-be0671e3e94d?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600566753194-8e4b8c4c5b5a?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600585154084-4d0d3e5b3b5a?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600585152915-d0ec10b55c56?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600047509358-9dc75507daeb?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600607688904-5730f1357d3e?w=1200&h=800&fit=crop&q=85',
-            'https://images.unsplash.com/photo-1600566753085-3b0b0b0b0b0b?w=1200&h=800&fit=crop&q=85'
+        // Local property images - using HOUSE 1-5 images from local folder
+        // Optimized for performance - same images used for cards, gallery, and brochures
+        const PROPERTY_IMAGE_POOL = [
+            'HOUSE 1.png',
+            'HOUSE 2.png',
+            'HOUSE 3.png',
+            'HOUSE 4.png',
+            'HOUSE 5.png'
         ];
         
         // Memoization cache for stable image selection across re-renders
-        // Key: carouselId, Value: Set of used image URLs for that carousel
-        const carouselImageCache = new Map();
+        // Key: carouselId, Value: Map<propertyId, imageUrl> - final mapping for that carousel
+        const carouselImageMappingCache = new Map();
         
-        // Generate a unique image URL using deterministic seed based on propertyId
-        // This ensures the same property always gets the same image (stable across re-renders)
-        // and guarantees uniqueness by using propertyId as seed
-        function generateUniqueImageUrl(propertyId, index = 0) {
-            // Create a deterministic seed from propertyId + index
-            const seed = `${propertyId}-${index}`;
-            // Use a simple hash to create a unique number
+        // Deterministic hash function for propertyId (optionally includes carouselId)
+        function hashPropertyId(propertyId, carouselId = '') {
+            const seed = `${propertyId}-${carouselId}`;
             let hash = 0;
             for (let i = 0; i < seed.length; i++) {
                 const char = seed.charCodeAt(i);
                 hash = ((hash << 5) - hash) + char;
                 hash = hash & hash; // Convert to 32-bit integer
             }
-            // Use hash to select from base pool or generate unique URL
-            const baseIndex = Math.abs(hash) % ALL_UNSPLASH_IMAGES.length;
-            const baseUrl = ALL_UNSPLASH_IMAGES[baseIndex];
-            
-            // Add unique sig parameter to ensure uniqueness even if same base image
-            // This guarantees different URLs for different properties
-            const uniqueSig = Math.abs(hash) + index * 1000;
-            const separator = baseUrl.includes('?') ? '&' : '?';
-            return `${baseUrl}${separator}sig=${uniqueSig}`;
+            return Math.abs(hash);
         }
         
-        // Get next available unique image URL for a carousel
-        // Expands pool dynamically if needed to guarantee uniqueness
-        function getNextUniqueImageUrl(carouselId, propertyId, usedImageUrls, imageIndex = 0) {
-            // First, try the property's deterministic image URL
-            const deterministicUrl = generateUniqueImageUrl(propertyId, imageIndex);
-            
-            // If not already used, return it
-            if (!usedImageUrls.has(deterministicUrl)) {
-                usedImageUrls.add(deterministicUrl);
-                return deterministicUrl;
-            }
-            
-            // If deterministic URL is used, try base pool images
-            const availableFromPool = ALL_UNSPLASH_IMAGES.filter(url => !usedImageUrls.has(url));
-            if (availableFromPool.length > 0) {
-                const selected = availableFromPool[Math.floor(Math.random() * availableFromPool.length)];
-                usedImageUrls.add(selected);
-                return selected;
-            }
-            
-            // Pool exhausted - generate unique URL using propertyId + increasing index
-            let attempt = 1;
-            let uniqueUrl;
-            do {
-                uniqueUrl = generateUniqueImageUrl(propertyId, imageIndex + attempt * 100);
-                attempt++;
-                // Safety limit to prevent infinite loop
-                if (attempt > 1000) {
-                    console.warn('[Image Selection] Too many attempts to find unique URL, using fallback');
-                    uniqueUrl = generateUniqueImageUrl(`fallback-${Date.now()}`, attempt);
-                    break;
+        // Get next available image from pool - ensures main property cards get unique images
+        // For main cards: assigns sequentially (no duplicates)
+        // For galleries: cycles through available images
+        function getNextAvailableImage(usedImageUrls, forGallery = false) {
+            // Find first available image that hasn't been used
+            for (let i = 0; i < PROPERTY_IMAGE_POOL.length; i++) {
+                const image = PROPERTY_IMAGE_POOL[i];
+                if (!usedImageUrls.has(image)) {
+                    if (!forGallery) {
+                        usedImageUrls.add(image); // Only track main card images in usedImageUrls
+                    }
+                    return image;
                 }
-            } while (usedImageUrls.has(uniqueUrl));
+            }
             
-            usedImageUrls.add(uniqueUrl);
-            return uniqueUrl;
+            // If all images used (for galleries), cycle through them
+            const cycleIndex = usedImageUrls.size % PROPERTY_IMAGE_POOL.length;
+            return PROPERTY_IMAGE_POOL[cycleIndex];
+        }
+        
+        // Clean up old cache entries (keep last 10 carousels)
+        function cleanupImageCache() {
+            if (carouselImageMappingCache.size > 10) {
+                const firstKey = carouselImageMappingCache.keys().next().value;
+                carouselImageMappingCache.delete(firstKey);
+            }
         }
         
         // Property praise texts for brochures
@@ -2886,28 +2851,23 @@ document.addEventListener('DOMContentLoaded', function() {
             return shuffled;
         }
         
-        // Generate property cards with Unsplash images
-        // Guarantees zero duplicate images within a single carousel
+        // Generate property cards with local images
+        // Guarantees zero duplicate images within a single carousel using deterministic hash + linear probing
         function generatePropertyCards() {
             // Generate 4-5 property cards based on search criteria
             const numCards = 4 + Math.floor(Math.random() * 2); // 4 or 5 cards
             const cards = [];
             
-            // Create unique carousel ID for this selection session
-            const carouselId = `carousel-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            // Create stable carousel ID based on search criteria for memoization
+            // This ensures same search = same carouselId = same images (stable across re-renders)
+            const searchKey = `${conversationState.intent || 'any'}-${conversationState.bhk || 'any'}-${conversationState.locality || 'any'}-${numCards}`;
+            const carouselId = `carousel-${hashPropertyId(searchKey, '').toString(36)}`;
             
-            // Get or create usedImageUrls Set for this carousel (memoized for stability)
-            let usedImageUrls = carouselImageCache.get(carouselId);
-            if (!usedImageUrls) {
-                usedImageUrls = new Set();
-                carouselImageCache.set(carouselId, usedImageUrls);
-            }
+            // Track used image URLs for this carousel (selection session)
+            const usedImageUrls = new Set();
             
-            // Clear cache if it gets too large (keep last 10 carousels)
-            if (carouselImageCache.size > 10) {
-                const firstKey = carouselImageCache.keys().next().value;
-                carouselImageCache.delete(firstKey);
-            }
+            // Clean up old cache entries
+            cleanupImageCache();
             
             // Property names (will be customized based on locality)
             const propertyNames = [
@@ -2928,8 +2888,9 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let i = 0; i < numCards; i++) {
                 const propertyId = `property-${i + 1}`;
                 
-                // Get unique image URL for this card (guaranteed no duplicates in this carousel)
-                const imageUrl = getNextUniqueImageUrl(carouselId, propertyId, usedImageUrls, 0);
+                // Get unique image URL for this card - assign sequentially from pool
+                // CRITICAL: Each main property card gets a unique image (no duplicates)
+                const imageUrl = getNextAvailableImage(usedImageUrls, false);
                 
                 const propertyName = propertyNames[i % propertyNames.length];
                 
@@ -3018,16 +2979,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Generate built-up area (realistic range: 1200-3500 sq.ft)
                 const builtUpArea = Math.floor(1200 + Math.random() * 2300);
                 
-                // Generate gallery images (3-5 images per property) - ensure unique images
+                // Generate gallery images (3-5 images per property) - ensure unique images within this gallery
                 const numGalleryImages = 3 + Math.floor(Math.random() * 3);
                 
-                // Generate unique gallery images (excluding main image and all previously used images)
+                // Generate unique gallery images - use all 5 images, ensuring no duplicates in this gallery
                 const galleryImages = [imageUrl]; // Always include main image as first
+                const galleryUsedImages = new Set([imageUrl]); // Track images used in THIS gallery only
                 
-                // Get additional unique images for gallery
+                // Get additional unique images for gallery - cycle through all 5 images
+                // Ensure no duplicate within this property's gallery
                 for (let galleryIndex = 1; galleryIndex < numGalleryImages; galleryIndex++) {
-                    const galleryImageUrl = getNextUniqueImageUrl(carouselId, propertyId, usedImageUrls, galleryIndex);
-                    galleryImages.push(galleryImageUrl);
+                    // Try each image in the pool until we find one not used in this gallery
+                    let found = false;
+                    for (let poolIdx = 0; poolIdx < PROPERTY_IMAGE_POOL.length; poolIdx++) {
+                        const candidateImage = PROPERTY_IMAGE_POOL[poolIdx];
+                        if (!galleryUsedImages.has(candidateImage)) {
+                            galleryImages.push(candidateImage);
+                            galleryUsedImages.add(candidateImage);
+                            found = true;
+                            break;
+                        }
+                    }
+                    // If all 5 images already used in this gallery (shouldn't happen with 3-5 gallery images)
+                    // Just skip adding more (we already have main image)
+                    if (!found && galleryImages.length < PROPERTY_IMAGE_POOL.length) {
+                        // This shouldn't happen, but safety check
+                        break;
+                    }
                 }
                 
                 // Generate random coordinates for property (if using location)
@@ -3062,34 +3040,45 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
             
-            // DEV ASSERTION: Verify no duplicate images in this carousel
-            // This assertion helps verify the fix is working correctly
-            const allImageUrls = [];
-            cards.forEach(card => {
-                allImageUrls.push(card.image);
-                if (card.gallery) {
-                    allImageUrls.push(...card.gallery);
-                }
-            });
-            const uniqueUrls = new Set(allImageUrls);
-            if (allImageUrls.length !== uniqueUrls.size) {
-                const duplicates = allImageUrls.filter((url, index) => allImageUrls.indexOf(url) !== index);
-                console.warn('[Image Selection] ⚠️ DUPLICATE IMAGES DETECTED in carousel:', {
-                    carouselId,
-                    totalImages: allImageUrls.length,
-                    uniqueImages: uniqueUrls.size,
-                    duplicates: [...new Set(duplicates)],
-                    allUrls: allImageUrls
+            // DEV ASSERTION: Verify no duplicate MAIN images in property cards
+            // Main property card images must all be unique (galleries can reuse images)
+            const mainImageUrls = cards.map(card => card.image);
+            const uniqueMainImages = new Set(mainImageUrls);
+            
+            if (mainImageUrls.length !== uniqueMainImages.size) {
+                // Find duplicate main images
+                const duplicateMainImages = [];
+                const seen = new Set();
+                mainImageUrls.forEach(url => {
+                    if (seen.has(url) && !duplicateMainImages.includes(url)) {
+                        duplicateMainImages.push(url);
+                    }
+                    seen.add(url);
                 });
+                
+                const duplicateDetails = duplicateMainImages.map(url => ({
+                    url,
+                    propertyIds: cards.filter(card => card.image === url).map(card => card.id)
+                }));
+                
+                console.error('[Image Selection] ❌ DUPLICATE MAIN IMAGES DETECTED in carousel:', {
+                    carouselId,
+                    totalMainImages: mainImageUrls.length,
+                    uniqueMainImages: uniqueMainImages.size,
+                    duplicateCount: mainImageUrls.length - uniqueMainImages.size,
+                    duplicates: duplicateDetails,
+                    mainImageUrls: mainImageUrls
+                });
+                
                 // Throw error in dev mode to catch issues early
                 if (window.__CHAT_DEBUG__) {
-                    throw new Error(`Duplicate images detected in carousel ${carouselId}`);
+                    throw new Error(`Duplicate main images detected in carousel ${carouselId}. Duplicates: ${JSON.stringify(duplicateDetails)}`);
                 }
             } else if (window.__CHAT_DEBUG__) {
-                console.log('[Image Selection] ✓ All images unique in carousel:', {
+                console.log('[Image Selection] ✓ All main property card images unique in carousel:', {
                     carouselId,
-                    totalImages: allImageUrls.length,
-                    uniqueImages: uniqueUrls.size
+                    totalMainImages: mainImageUrls.length,
+                    uniqueMainImages: uniqueMainImages.size
                 });
             }
             
@@ -3128,7 +3117,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!this.dataset.failed) {
                         this.dataset.failed = '1';
                         // Fallback to high-quality reliable image
-                        this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop&q=85';
+                        this.src = PROPERTY_IMAGE_POOL[0];
                         this.onerror = null; // Prevent infinite loop
                     }
                 };
@@ -3177,7 +3166,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         img.loading = 'eager';
                         img.onerror = function() {
                             // Fallback to a reliable image if gallery image fails
-                            this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop';
+                            this.src = PROPERTY_IMAGE_POOL[0];
                             this.onerror = null; // Prevent infinite loop
                         };
                         img.onload = function() {
@@ -3289,7 +3278,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         img.loading = 'eager';
                         img.onerror = function() {
                             // Fallback to a reliable image if gallery image fails
-                            this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop';
+                            this.src = PROPERTY_IMAGE_POOL[0];
                             this.onerror = null; // Prevent infinite loop
                         };
                         img.onload = function() {
@@ -3555,7 +3544,7 @@ document.addEventListener('DOMContentLoaded', function() {
             heroImg.onerror = function() {
                 if (!this.dataset.failed) {
                     this.dataset.failed = '1';
-                    this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop';
+                    this.src = PROPERTY_IMAGE_POOL[0];
                     this.onerror = null;
                 }
             };
@@ -3643,7 +3632,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 galleryImg.onerror = function() {
                     if (!this.dataset.failed) {
                         this.dataset.failed = '1';
-                        this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop';
+                        this.src = PROPERTY_IMAGE_POOL[0];
                         this.onerror = null;
                     }
                 };
@@ -3881,7 +3870,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Create brochure component
                 // Use a random property image as brochure cover
-                const randomCoverImage = getRandomItem(ALL_UNSPLASH_IMAGES);
+                const randomCoverImage = getRandomItem(PROPERTY_IMAGE_POOL);
                 
                 // Create brochure card component
                 const brochureComponent = document.createElement('div');
@@ -3897,10 +3886,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 coverImg.loading = 'eager';
                 coverImg.decoding = 'async';
                 coverImg.onerror = function() {
-                    // Fallback to a reliable Unsplash image if primary fails
+                    // Fallback to local image if primary fails
                     if (!this.dataset.failed) {
                         this.dataset.failed = '1';
-                        this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop&q=80';
+                        this.src = PROPERTY_IMAGE_POOL[0];
                     } else {
                         // If fallback also fails, show placeholder background
                         this.style.display = 'none';
@@ -4004,7 +3993,7 @@ document.addEventListener('DOMContentLoaded', function() {
             brochureContent.className = 'brochure-pdf-content';
             
             // Get random images for brochure pages
-            const brochureImages = selectUniqueItems(ALL_UNSPLASH_IMAGES, 6);
+            const brochureImages = selectUniqueItems(PROPERTY_IMAGE_POOL, 6);
             
             // Page 1: Cover Page
             const coverPage = createBrochurePage('cover', {
@@ -4136,7 +4125,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Fallback to a reliable Unsplash image if primary fails
                 if (!this.dataset.failed) {
                     this.dataset.failed = '1';
-                    this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop&q=80';
+                    this.src = PROPERTY_IMAGE_POOL[0];
                 } else {
                     // If fallback also fails, show placeholder background
                     this.style.display = 'none';
@@ -4811,7 +4800,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 galleryImg.style.cssText = 'max-width: 90% !important; max-height: 90% !important; object-fit: contain !important;';
                 galleryImg.loading = 'eager';
                 galleryImg.onerror = function() {
-                    this.src = 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop';
+                    this.src = PROPERTY_IMAGE_POOL[0];
                     this.onerror = null;
                 };
                 
