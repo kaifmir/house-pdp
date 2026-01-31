@@ -3474,11 +3474,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 ctaSection.appendChild(viewBtn);
                 ctaSection.appendChild(favoriteBtn);
                 
+                // Order: typeStatus -> builtUpArea -> location -> BHK (chips) -> price -> CTA
                 body.appendChild(typeStatus);
                 body.appendChild(builtUpArea);
                 body.appendChild(location);
-                body.appendChild(price);
-                body.appendChild(chips);
+                body.appendChild(chips); // BHK - last option before price
+                body.appendChild(price); // Price - selling point, comes before CTA
                 body.appendChild(ctaSection);
                 
                 // Make entire card clickable (except image) to open PDP
