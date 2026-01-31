@@ -2170,8 +2170,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Shared constants - Unsplash house image URLs (curated modern houses)
         // High-quality real estate images from Unsplash (optimized for performance)
-        // All images are unique, high-resolution (1200x800), and fast-loading (q=85 for quality)
-        // No duplicates - each image URL is unique to prevent repetition in property cards
+        // Base pool of unique images - will be expanded dynamically if needed
         const ALL_UNSPLASH_IMAGES = [
             'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&h=800&fit=crop&q=85',
             'https://images.unsplash.com/photo-156401379991-9e60461eb61e?w=1200&h=800&fit=crop&q=85',
@@ -2191,6 +2190,72 @@ document.addEventListener('DOMContentLoaded', function() {
             'https://images.unsplash.com/photo-1600607688904-5730f1357d3e?w=1200&h=800&fit=crop&q=85',
             'https://images.unsplash.com/photo-1600566753085-3b0b0b0b0b0b?w=1200&h=800&fit=crop&q=85'
         ];
+        
+        // Memoization cache for stable image selection across re-renders
+        // Key: carouselId, Value: Set of used image URLs for that carousel
+        const carouselImageCache = new Map();
+        
+        // Generate a unique image URL using deterministic seed based on propertyId
+        // This ensures the same property always gets the same image (stable across re-renders)
+        // and guarantees uniqueness by using propertyId as seed
+        function generateUniqueImageUrl(propertyId, index = 0) {
+            // Create a deterministic seed from propertyId + index
+            const seed = `${propertyId}-${index}`;
+            // Use a simple hash to create a unique number
+            let hash = 0;
+            for (let i = 0; i < seed.length; i++) {
+                const char = seed.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
+            }
+            // Use hash to select from base pool or generate unique URL
+            const baseIndex = Math.abs(hash) % ALL_UNSPLASH_IMAGES.length;
+            const baseUrl = ALL_UNSPLASH_IMAGES[baseIndex];
+            
+            // Add unique sig parameter to ensure uniqueness even if same base image
+            // This guarantees different URLs for different properties
+            const uniqueSig = Math.abs(hash) + index * 1000;
+            const separator = baseUrl.includes('?') ? '&' : '?';
+            return `${baseUrl}${separator}sig=${uniqueSig}`;
+        }
+        
+        // Get next available unique image URL for a carousel
+        // Expands pool dynamically if needed to guarantee uniqueness
+        function getNextUniqueImageUrl(carouselId, propertyId, usedImageUrls, imageIndex = 0) {
+            // First, try the property's deterministic image URL
+            const deterministicUrl = generateUniqueImageUrl(propertyId, imageIndex);
+            
+            // If not already used, return it
+            if (!usedImageUrls.has(deterministicUrl)) {
+                usedImageUrls.add(deterministicUrl);
+                return deterministicUrl;
+            }
+            
+            // If deterministic URL is used, try base pool images
+            const availableFromPool = ALL_UNSPLASH_IMAGES.filter(url => !usedImageUrls.has(url));
+            if (availableFromPool.length > 0) {
+                const selected = availableFromPool[Math.floor(Math.random() * availableFromPool.length)];
+                usedImageUrls.add(selected);
+                return selected;
+            }
+            
+            // Pool exhausted - generate unique URL using propertyId + increasing index
+            let attempt = 1;
+            let uniqueUrl;
+            do {
+                uniqueUrl = generateUniqueImageUrl(propertyId, imageIndex + attempt * 100);
+                attempt++;
+                // Safety limit to prevent infinite loop
+                if (attempt > 1000) {
+                    console.warn('[Image Selection] Too many attempts to find unique URL, using fallback');
+                    uniqueUrl = generateUniqueImageUrl(`fallback-${Date.now()}`, attempt);
+                    break;
+                }
+            } while (usedImageUrls.has(uniqueUrl));
+            
+            usedImageUrls.add(uniqueUrl);
+            return uniqueUrl;
+        }
         
         // Property praise texts for brochures
         // Indian Developer Names
@@ -2822,21 +2887,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Generate property cards with Unsplash images
+        // Guarantees zero duplicate images within a single carousel
         function generatePropertyCards() {
             // Generate 4-5 property cards based on search criteria
             const numCards = 4 + Math.floor(Math.random() * 2); // 4 or 5 cards
             const cards = [];
             
-            // Track all images used across all cards in this single scroll to prevent duplicates
-            const allUsedImagesInScroll = new Set();
+            // Create unique carousel ID for this selection session
+            const carouselId = `carousel-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             
-            // Select unique images for each card using utility function
-            // Shuffle first to ensure randomization, then select unique items
-            const shuffledImages = shuffleArray([...ALL_UNSPLASH_IMAGES]);
-            const unsplashImages = selectUniqueItems(shuffledImages, numCards, allUsedImagesInScroll);
+            // Get or create usedImageUrls Set for this carousel (memoized for stability)
+            let usedImageUrls = carouselImageCache.get(carouselId);
+            if (!usedImageUrls) {
+                usedImageUrls = new Set();
+                carouselImageCache.set(carouselId, usedImageUrls);
+            }
             
-            // Add selected images to tracking set
-            unsplashImages.forEach(img => allUsedImagesInScroll.add(img));
+            // Clear cache if it gets too large (keep last 10 carousels)
+            if (carouselImageCache.size > 10) {
+                const firstKey = carouselImageCache.keys().next().value;
+                carouselImageCache.delete(firstKey);
+            }
             
             // Property names (will be customized based on locality)
             const propertyNames = [
@@ -2855,7 +2926,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const propertyStatuses = ['Ready to move', 'Under construction', 'New launch'];
             
             for (let i = 0; i < numCards; i++) {
-                const imageUrl = unsplashImages[i]; // Each card gets a unique image
+                const propertyId = `property-${i + 1}`;
+                
+                // Get unique image URL for this card (guaranteed no duplicates in this carousel)
+                const imageUrl = getNextUniqueImageUrl(carouselId, propertyId, usedImageUrls, 0);
+                
                 const propertyName = propertyNames[i % propertyNames.length];
                 
                 // Generate price based on property type (rent vs buy/project)
@@ -2946,24 +3021,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Generate gallery images (3-5 images per property) - ensure unique images
                 const numGalleryImages = 3 + Math.floor(Math.random() * 3);
                 
-                // Track all images used in this card stack (to avoid duplicates across cards and galleries)
-                // Include all main card images plus any already used in galleries across ALL cards in this scroll
-                const allUsedInStack = new Set(allUsedImagesInScroll); // Start with all images used so far
-                allUsedInStack.add(imageUrl); // Add current card's main image
+                // Generate unique gallery images (excluding main image and all previously used images)
+                const galleryImages = [imageUrl]; // Always include main image as first
                 
-                // Select additional unique images for gallery (excluding main image and already used images)
-                // Use shuffled array to ensure better randomization
-                const shuffledForGallery = shuffleArray([...ALL_UNSPLASH_IMAGES]);
-                const additionalImages = selectUniqueItems(shuffledForGallery, numGalleryImages - 1, allUsedInStack);
-                
-                // Add gallery images to tracking set to prevent reuse in other cards
-                additionalImages.forEach(img => {
-                    allUsedInStack.add(img);
-                    allUsedImagesInScroll.add(img); // Track across entire scroll
-                });
-                
-                // Always include the main image as first in gallery
-                const galleryImages = [imageUrl, ...additionalImages];
+                // Get additional unique images for gallery
+                for (let galleryIndex = 1; galleryIndex < numGalleryImages; galleryIndex++) {
+                    const galleryImageUrl = getNextUniqueImageUrl(carouselId, propertyId, usedImageUrls, galleryIndex);
+                    galleryImages.push(galleryImageUrl);
+                }
                 
                 // Generate random coordinates for property (if using location)
                 let propertyLat = null;
@@ -2981,10 +3046,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 cards.push({
-                    id: `property-${i + 1}`,
+                    id: propertyId,
                     name: propertyName,
                     image: imageUrl,
-                    gallery: galleryImages, // Array of gallery images
+                    gallery: galleryImages, // Array of gallery images (all unique)
                     price: price.value,
                     priceUnit: price.unit,
                     bhk: conversationState.bhk || 3,
@@ -2994,6 +3059,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     status: propertyStatuses[i % propertyStatuses.length],
                     builtUpArea: builtUpArea,
                     distance: distance // Distance in km
+                });
+            }
+            
+            // DEV ASSERTION: Verify no duplicate images in this carousel
+            // This assertion helps verify the fix is working correctly
+            const allImageUrls = [];
+            cards.forEach(card => {
+                allImageUrls.push(card.image);
+                if (card.gallery) {
+                    allImageUrls.push(...card.gallery);
+                }
+            });
+            const uniqueUrls = new Set(allImageUrls);
+            if (allImageUrls.length !== uniqueUrls.size) {
+                const duplicates = allImageUrls.filter((url, index) => allImageUrls.indexOf(url) !== index);
+                console.warn('[Image Selection] ⚠️ DUPLICATE IMAGES DETECTED in carousel:', {
+                    carouselId,
+                    totalImages: allImageUrls.length,
+                    uniqueImages: uniqueUrls.size,
+                    duplicates: [...new Set(duplicates)],
+                    allUrls: allImageUrls
+                });
+                // Throw error in dev mode to catch issues early
+                if (window.__CHAT_DEBUG__) {
+                    throw new Error(`Duplicate images detected in carousel ${carouselId}`);
+                }
+            } else if (window.__CHAT_DEBUG__) {
+                console.log('[Image Selection] ✓ All images unique in carousel:', {
+                    carouselId,
+                    totalImages: allImageUrls.length,
+                    uniqueImages: uniqueUrls.size
                 });
             }
             
@@ -4231,20 +4327,25 @@ document.addEventListener('DOMContentLoaded', function() {
         // Track last fallback message to ensure non-repeating randomness
         let lastFallbackIndex = -1;
         
-        // Fallback responses for unmatched messages (beta/demo awareness)
-        // Playful, self-aware responses that don't block the user
+        // Fallback responses for unmatched messages (casual, demo-aware responses)
+        // Returns a random message from the pool, never repeating consecutively
         function getFallbackResponse() {
             const fallbackMessages = [
-                "Hmm, I'm still learning! This is a beta demo (~30% built), so I'm best at helping you find properties. Try asking about '3 BHK in Delhi' or 'rent under 50k'!",
-                "I'm a work in progress! Right now I'm great at property searches. Want to try '2 BHK for rent in Mumbai' or 'buy 4 BHK in Gurgaon'?",
-                "Still building my superpowers! I'm about 30% there, but I can definitely help you find homes. Try something like 'show me 3 BHK properties' or 'rent in Bangalore'.",
-                "I'm in beta mode (~30% complete), so I'm best at property searches right now! Try 'properties in Delhi' or 'rent 2 BHK under 40k' and I'll help you out.",
-                "Working on it! This is a demo version, so I'm focused on property searches. Ask me about '3 BHK for sale' or 'rent in Gurgaon' and I'll show you some great options!",
-                "Beta alert! I'm about 30% built, but I'm really good at finding properties. Try 'show me homes in Mumbai' or '2 BHK rent under 30k' and let's see what I can do!",
-                "Still learning the ropes! This demo is ~30% complete, but I excel at property searches. Want to try 'buy 4 BHK in Delhi' or 'rent properties near me'?",
-                "I'm a beta bot (~30% done), so I'm best at property searches for now! Try asking '3 BHK in Gurgaon' or 'rent under 50k' and I'll help you find your dream home.",
-                "Work in progress here! About 30% complete, but I'm great at property searches. Ask me 'show properties in Mumbai' or '2 BHK for rent' and I'll show you options!",
-                "Beta mode activated! I'm ~30% built, but property searches are my jam. Try 'buy 3 BHK in Bangalore' or 'rent in Delhi' and let's find you a home!"
+                "Haha I'm not set up for that yet. Still very demo right now.",
+                "That's a bit outside what I can do today. I'm still warming up.",
+                "Not there yet, honestly. This is just a partial demo.",
+                "I'm gonna sit this one out for now. Still very early days.",
+                "I don't really know that yet. I'm still learning the basics here.",
+                "That's out of scope for me right now. Demo brain only.",
+                "I'm not smart enough for that yet. Working on it though.",
+                "That's a future-me problem. Present-me is still in demo mode.",
+                "I can't help with that just yet. This is still pretty limited.",
+                "Yeah not something I handle right now. Very early build.",
+                "I'm only good at a few things so far. This isn't one of them.",
+                "That's beyond me for now. Still very much a work in progress.",
+                "I wish I knew that already. I'm not there yet though.",
+                "That's outside what I'm trained on right now. Demo vibes only.",
+                "Not today I'm still figuring things out here."
             ];
             
             // Non-repeating randomness: ensure we don't return the same message twice in a row
@@ -4257,11 +4358,193 @@ document.addEventListener('DOMContentLoaded', function() {
             return fallbackMessages[randomIndex];
         }
         
+        // Detect non-housing topics that should trigger fallback
+        // Comprehensive detection for ANY random query that's not housing-related
+        // This runs BEFORE property extraction to catch non-housing queries
+        function isNonHousingTopic(text, normalized) {
+            // Property keywords - if message has these, it might be housing-related (check later)
+            const propertyKeywords = /\b(property|properties|home|house|houses|apartment|apartments|flat|flats|bhk|bedroom|bedrooms|rent|rental|buy|purchase|sale|sell|price|budget|locality|area|sqft|sq ft|square feet|builder|developer|project|residential|commercial|real estate|realestate)\b/i.test(normalized);
+            
+            // ===== ENVIRONMENT & WEATHER =====
+            if (/\b(aqi|air quality|pollution|pm2|pm10|air index|air pollution|pollutant|smog|haze)\b/i.test(normalized)) return true;
+            if (/\b(weather|temperature|temp|rain|rainy|sunny|cloudy|humidity|forecast|climate|wind|storm|snow|fog|drizzle)\b/i.test(normalized)) return true;
+            if (/\b(season|winter|summer|spring|autumn|monsoon|drought|flood)\b/i.test(normalized)) return true;
+            
+            // ===== NEWS & CURRENT EVENTS =====
+            if (/\b(news|headlines|latest|update|happening|event|breaking|trending|viral|article|report)\b/i.test(normalized)) return true;
+            if (/\b(politics|election|vote|government|minister|president|prime minister|party)\b/i.test(normalized)) return true;
+            
+            // ===== ENTERTAINMENT =====
+            if (/\b(movie|film|actor|actress|celebrity|tv|show|series|episode|netflix|youtube|amazon prime|disney|hulu)\b/i.test(normalized)) return true;
+            if (/\b(music|song|singer|album|playlist|spotify|apple music|concert|gig|band)\b/i.test(normalized)) return true;
+            if (/\b(game|gaming|playstation|xbox|nintendo|pc game|mobile game|esports|streamer)\b/i.test(normalized)) return true;
+            if (/\b(joke|funny|meme|comedy|humor|laugh|hilarious|rofl|lol)\b/i.test(normalized)) return true;
+            if (/\b(book|novel|author|reading|library|story|fiction|non-fiction)\b/i.test(normalized)) return true;
+            
+            // ===== SPORTS =====
+            if (/\b(sport|football|cricket|basketball|tennis|match|game|player|team|score|league|tournament|world cup|olympics)\b/i.test(normalized)) return true;
+            if (/\b(soccer|hockey|baseball|golf|swimming|running|cycling|gym|workout|fitness|exercise)\b/i.test(normalized)) return true;
+            
+            // ===== FOOD & DINING =====
+            if (/\b(recipe|cooking|food|restaurant|cafe|dining|cuisine|dish|meal|breakfast|lunch|dinner|snack|hungry|thirsty)\b/i.test(normalized)) return true;
+            if (/\b(pizza|burger|pasta|sushi|chinese|italian|indian|mexican|bakery|coffee|tea|drink|beverage)\b/i.test(normalized)) return true;
+            if (/\b(delivery|zomato|swiggy|uber eats|doordash|grubhub|order food)\b/i.test(normalized)) return true;
+            
+            // ===== HEALTH & MEDICAL =====
+            if (/\b(health|doctor|hospital|medicine|sick|pain|symptom|disease|treatment|therapy|clinic|pharmacy|medication)\b/i.test(normalized)) return true;
+            if (/\b(fever|cough|cold|headache|stomach|ache|injury|wound|emergency|ambulance)\b/i.test(normalized)) return true;
+            if (/\b(fitness|gym|workout|exercise|yoga|meditation|diet|weight loss|weight gain|muscle)\b/i.test(normalized)) return true;
+            
+            // ===== TECHNOLOGY =====
+            if (/\b(tech|technology|computer|phone|mobile|smartphone|iphone|android|laptop|pc|mac|tablet)\b/i.test(normalized)) return true;
+            if (/\b(internet|wifi|network|software|app|application|website|bug|error|crash|update|upgrade)\b/i.test(normalized)) return true;
+            if (/\b(ai|artificial intelligence|machine learning|chatbot|robot|automation|blockchain|crypto|bitcoin)\b/i.test(normalized)) return true;
+            if (/\b(social media|facebook|instagram|twitter|linkedin|tiktok|snapchat|whatsapp|telegram)\b/i.test(normalized)) return true;
+            
+            // ===== EDUCATION & LEARNING =====
+            if (/\b(learn|study|education|school|college|university|course|class|exam|test|quiz|homework|assignment)\b/i.test(normalized)) return true;
+            if (/\b(teacher|professor|student|tuition|coaching|tutorial|lesson|subject|math|science|history|language)\b/i.test(normalized)) return true;
+            if (/\b(degree|diploma|certificate|scholarship|admission|enrollment|semester|grade|marks|result)\b/i.test(normalized)) return true;
+            
+            // ===== TRAVEL & TOURISM =====
+            if (/\b(travel|trip|vacation|holiday|tourist|visit|sightseeing|flight|ticket|hotel|resort|beach|mountain)\b/i.test(normalized) && !propertyKeywords) return true;
+            if (/\b(passport|visa|airport|airline|booking|reservation|itinerary|tour|guide|backpacking)\b/i.test(normalized)) return true;
+            
+            // ===== SHOPPING & E-COMMERCE =====
+            if (/\b(shop|shopping|buy|purchase|order|amazon|flipkart|myntra|product|item|delivery|cart|checkout)\b/i.test(normalized) && !propertyKeywords) return true;
+            if (/\b(price|cost|discount|offer|sale|deal|bargain|cheap|expensive|affordable)\b/i.test(normalized) && !propertyKeywords) return true;
+            
+            // ===== FINANCE & INVESTMENTS (non-property) =====
+            if (/\b(stock|share|market|trading|investment|mutual fund|sip|fd|fixed deposit|savings|bank|loan)\b/i.test(normalized) && !propertyKeywords) return true;
+            if (/\b(credit card|debit card|upi|paytm|gpay|phonepe|wallet|payment|transaction|balance)\b/i.test(normalized)) return true;
+            if (/\b(tax|income tax|gst|pan|aadhaar|account|balance|statement|emi)\b/i.test(normalized) && !propertyKeywords) return true;
+            
+            // ===== TIME & DATE =====
+            if (/\b(time|date|day|today|tomorrow|yesterday|week|month|year|clock|schedule|calendar|appointment)\b/i.test(normalized) && !propertyKeywords) return true;
+            if (/\b(morning|afternoon|evening|night|midnight|noon|am|pm|hour|minute|second|when)\b/i.test(normalized) && !propertyKeywords) return true;
+            
+            // ===== PETS & ANIMALS =====
+            if (/\b(pet|dog|cat|puppy|kitten|animal|veterinary|vet|adopt|breed|feed|walk)\b/i.test(normalized)) return true;
+            if (/\b(bird|fish|rabbit|hamster|turtle|snake|parrot|pigeon|cow|goat|chicken)\b/i.test(normalized)) return true;
+            
+            // ===== SCIENCE & SPACE =====
+            if (/\b(science|space|planet|star|moon|sun|earth|mars|galaxy|universe|astronomy|physics|chemistry|biology)\b/i.test(normalized)) return true;
+            if (/\b(experiment|research|discovery|invention|theory|hypothesis|scientist|lab|laboratory)\b/i.test(normalized)) return true;
+            
+            // ===== HISTORY & CULTURE =====
+            if (/\b(history|historical|ancient|medieval|war|battle|empire|king|queen|dynasty|civilization)\b/i.test(normalized)) return true;
+            if (/\b(culture|cultural|tradition|festival|celebration|holiday|custom|ritual|religion|spiritual)\b/i.test(normalized)) return true;
+            
+            // ===== RELATIONSHIPS & DATING =====
+            if (/\b(dating|relationship|girlfriend|boyfriend|marriage|wedding|divorce|love|romance|crush)\b/i.test(normalized)) return true;
+            if (/\b(family|parent|mother|father|sibling|brother|sister|child|kid|baby|grandparent)\b/i.test(normalized) && !propertyKeywords) return true;
+            
+            // ===== HOBBIES & INTERESTS =====
+            if (/\b(hobby|interest|passion|photography|painting|drawing|art|craft|music|dance|singing)\b/i.test(normalized)) return true;
+            if (/\b(collect|collection|stamp|coin|antique|vintage|artwork|sculpture|gallery|museum)\b/i.test(normalized)) return true;
+            
+            // ===== MATH & CALCULATIONS =====
+            if (/\b(calculate|math|mathematics|equation|formula|solve|add|subtract|multiply|divide|percentage)\b/i.test(normalized) && !propertyKeywords) return true;
+            if (/\b(convert|conversion|unit|measurement|meter|kilometer|kilogram|pound|currency|exchange rate)\b/i.test(normalized) && !propertyKeywords) return true;
+            
+            // ===== LANGUAGE & TRANSLATION =====
+            if (/\b(translate|translation|language|dictionary|meaning|definition|word|vocabulary|grammar|sentence)\b/i.test(normalized)) return true;
+            if (/\b(english|hindi|spanish|french|german|chinese|japanese|korean|arabic|tamil|telugu|marathi)\b/i.test(normalized) && !propertyKeywords) return true;
+            
+            // ===== RANDOM CHAT & CONVERSATION =====
+            if (/\b(how are you|what's up|whats up|how's it going|how do you do|tell me about|explain|describe)\b/i.test(normalized) && !propertyKeywords) return true;
+            if (/\b(hello|hi|hey|good morning|good afternoon|good evening|good night|greetings)\b/i.test(normalized) && !propertyKeywords) return true;
+            
+            // ===== GENERAL QUESTIONS (catch-all) =====
+            // If it's a question word but no property keywords, likely non-housing
+            const questionWords = /\b(what|how|why|when|where|who|which|can you|could you|would you|tell me|explain|describe|what is|what are|how is|how are|why is|why are|when is|when are|where is|where are|who is|who are)\b/i.test(normalized);
+            if (questionWords && !propertyKeywords) {
+                // Additional check: if question is about something specific (not properties)
+                const specificTopics = /\b(is|are|was|were|do|does|did|has|have|had|will|would|should|can|could|may|might)\b/i.test(normalized);
+                if (specificTopics) {
+                    return true; // Likely a general question, not about properties
+                }
+            }
+            
+            // ===== RANDOM TOPICS (catch-all patterns) =====
+            // Questions starting with "what's" or "what is" without property context
+            if (/^(what'?s|what is|what are)\s+/i.test(normalized) && !propertyKeywords) return true;
+            
+            // "How to" questions (usually tutorials/guides, not property search)
+            if (/^how to\s+/i.test(normalized) && !propertyKeywords) return true;
+            
+            // "Why" questions (usually explanations, not property search)
+            if (/^why\s+/i.test(normalized) && !propertyKeywords) return true;
+            
+            // "When" questions about events/time (not property-related)
+            if (/^when\s+/i.test(normalized) && !/\b(property|home|house|apartment|flat|rent|buy)\b/i.test(normalized)) return true;
+            
+            // "Where" questions about locations/places (not property search)
+            if (/^where\s+/i.test(normalized) && !/\b(property|home|house|apartment|flat|rent|buy|locality|area)\b/i.test(normalized)) return true;
+            
+            // "Who" questions (people, not properties)
+            if (/^who\s+/i.test(normalized)) return true;
+            
+            // "Which" questions without property context
+            if (/^which\s+/i.test(normalized) && !propertyKeywords) return true;
+            
+            return false;
+        }
+        
+        // Check if message is clearly housing-related (strict check)
+        // Only returns true if message is explicitly about properties/homes
+        function isHousingRelated(text, normalized, updates) {
+            // Must have explicit housing keywords AND property-related extraction
+            const housingKeywords = /\b(property|properties|home|house|houses|apartment|apartments|flat|flats|bhk|bedroom|rent|rental|buy|purchase|sale|sell|price|budget|locality|area|sqft|sq ft|square feet|builder|developer|project|residential|commercial)\b/i.test(normalized);
+            
+            const hasIntent = !!updates.intent;
+            const hasBHK = !!updates.bhk;
+            const hasPrice = !!(updates.price || updates.priceMin || updates.priceMax);
+            const hasLocality = !!updates.locality;
+            const hasLocationRequest = !!updates.useLocation;
+            
+            // Only consider it housing-related if:
+            // 1. Has housing keywords AND property-related extraction, OR
+            // 2. Has explicit property search intent (rent/buy), OR
+            // 3. Has BHK (clearly property-related), OR
+            // 4. Has price with housing context, OR
+            // 5. Location request for property search
+            if (housingKeywords && (hasIntent || hasBHK || hasPrice || hasLocality || hasLocationRequest)) {
+                return true;
+            }
+            
+            // Explicit property search intent
+            if (hasIntent) return true;
+            
+            // BHK is always property-related
+            if (hasBHK) return true;
+            
+            // Price with housing keywords
+            if (hasPrice && housingKeywords) return true;
+            
+            // Location request for properties
+            if (hasLocationRequest) return true;
+            
+            return false;
+        }
+        
         // Check if CURRENT message matches a handled intent (state-agnostic)
         // This ensures fallback triggers even mid-conversation if user switches topics
         function wasMessageHandled(text, updates) {
             // Normalize input before intent checks (handles case, spacing, punctuation, typos)
             const normalized = normalizeText(text);
+            
+            // INTENT CHECK 0: Non-housing topics (NOT handled - triggers fallback)
+            // This MUST run first to catch non-housing queries even if they extract locality
+            if (isNonHousingTopic(text, normalized)) {
+                if (window.__CHAT_DEBUG__) {
+                    console.log('[Intent] Unhandled: Non-housing topic detected - will trigger fallback', {
+                        normalized,
+                        text
+                    });
+                }
+                return false; // Not handled - will trigger fallback
+            }
             
             // INTENT CHECK 1: Greeting (handled)
             if (isGreeting(text)) {
@@ -4278,24 +4561,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return true;
             }
             
-            // INTENT CHECK 3: Property-related information extracted from CURRENT message (handled)
-            // Only check updates from current message, NOT existing conversation state
-            // This ensures unrelated messages mid-conversation trigger fallback
-            const hasIntent = !!updates.intent;
-            const hasBHK = !!updates.bhk;
-            const hasPrice = !!(updates.price || updates.priceMin || updates.priceMax);
-            const hasLocality = !!updates.locality;
-            const hasLocationRequest = !!updates.useLocation;
-            
-            // If CURRENT message extracted any property-related info, it's handled
-            if (hasIntent || hasBHK || hasPrice || hasLocality || hasLocationRequest) {
+            // INTENT CHECK 3: Strict housing-related check
+            // Only consider it handled if it's clearly about properties/homes
+            if (isHousingRelated(text, normalized, updates)) {
                 if (window.__CHAT_DEBUG__) {
-                    console.log('[Intent] Handled: Property-related info extracted', {
-                        intent: hasIntent,
-                        bhk: hasBHK,
-                        price: hasPrice,
-                        locality: hasLocality,
-                        location: hasLocationRequest
+                    console.log('[Intent] Handled: Housing-related message', {
+                        intent: !!updates.intent,
+                        bhk: !!updates.bhk,
+                        price: !!(updates.price || updates.priceMin || updates.priceMax),
+                        locality: !!updates.locality,
+                        location: !!updates.useLocation
                     });
                 }
                 return true;
@@ -4303,15 +4578,15 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // INTENT CHECK 4: Location permission keywords (handled)
             // Check for location-related requests even if not explicitly extracted
-            const locationKeywords = /near me|around me|nearby|my location|current location|where am i/i.test(normalized);
+            const locationKeywords = /near me|around me|nearby|my location|current location|where am i|explore.*near me|properties.*near me/i.test(normalized);
             if (locationKeywords) {
-                if (window.__CHAT_DEBUG__) console.log('[Intent] Handled: Location request');
+                if (window.__CHAT_DEBUG__) console.log('[Intent] Handled: Location request for properties');
                 return true;
             }
             
             // Message does NOT match any handled intent - will trigger fallback
             if (window.__CHAT_DEBUG__) {
-                console.log('[Intent] Unhandled: No matching intent found', {
+                console.log('[Intent] Unhandled: No matching intent found - will trigger fallback', {
                     normalized,
                     updates,
                     conversationState: { ...conversationState }
