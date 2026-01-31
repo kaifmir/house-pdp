@@ -2168,14 +2168,15 @@ document.addEventListener('DOMContentLoaded', function() {
             hasLocation: false
         };
         
-        // Local property images - using HOUSE 1-5 images from local folder
-        // Optimized for performance - same images used for cards, gallery, and brochures
+        // Local property images - using optimized HOUSE 1-5 images from local folder
+        // Optimized JPEG format (1200px max width, 85% quality) - ~94% smaller file size
+        // Same images used for cards, gallery, and brochures
         const PROPERTY_IMAGE_POOL = [
-            'HOUSE 1.png',
-            'HOUSE 2.png',
-            'HOUSE 3.png',
-            'HOUSE 4.png',
-            'HOUSE 5.png'
+            'HOUSE 1.jpg',
+            'HOUSE 2.jpg',
+            'HOUSE 3.jpg',
+            'HOUSE 4.jpg',
+            'HOUSE 5.jpg'
         ];
         
         // Memoization cache for stable image selection across re-renders
