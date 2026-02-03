@@ -371,8 +371,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // iOS-specific haptic feedback
                 try {
                     // Method 1: WebKit message handler (PWA with native bridge)
-                    if (window.webkit?.messageHandlers?.haptic) {
-                        window.webkit.messageHandlers.haptic.postMessage({ type: 'light' });
+                if (window.webkit?.messageHandlers?.haptic) {
+                    window.webkit.messageHandlers.haptic.postMessage({ type: 'light' });
                         return;
                     }
                     
@@ -398,8 +398,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             audioContext.close().catch(() => {});
                         }, 20);
                         return;
-                    }
-                } catch (e) {
+                }
+            } catch (e) {
                     // Silently fail if iOS haptic methods are not available
                 }
             }
@@ -1763,7 +1763,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 stack.appendChild(msgDiv);
             }
             
-            return msgDiv;
+                    return msgDiv;
         }
         
         // Hide typing indicator
@@ -1849,54 +1849,45 @@ document.addEventListener('DOMContentLoaded', function() {
         function getGreetingResponse() {
             const greetings = [
                 {
-                    text: "Hi! 👋 How can I help you find your perfect home today?",
-                    withExamples: "Hi! 👋 How can I help you find your perfect home today?\n\nTry: '3 BHK in Delhi' or '2 BHK near metro'"
+                    text: "Hey! How can I help you with your house search today? Could you tell me what you're looking for - like the BHK size, your budget, whether you want to rent or buy, and which locality you prefer?",
                 },
                 {
-                    text: "Hey there! What are you looking for in your home search?",
-                    withExamples: "Hey there! What are you looking for in your home search?\n\nTry: 'Apartments in Noida' or 'Villa with pool'"
+                    text: "Hello! I'd be happy to help you find the perfect home. To get started, could you share a few details? What BHK are you looking for, what's your budget range, are you planning to rent or buy, and which area interests you?",
                 },
                 {
-                    text: "Hello! I'm here to help you find your dream home. What can I assist you with?",
-                    withExamples: "Hello! I'm here to help you find your dream home. What can I assist you with?\n\nTry: '2 BHK in Gurgaon' or 'Studio apartment'"
+                    text: "Hi there! Let's find you a great place. To help me search better, could you tell me: what size property you need (BHK), your budget, whether it's for rent or purchase, and your preferred locality?",
                 },
                 {
-                    text: "Hi! Ready to explore some amazing properties? How can I help?",
-                    withExamples: "Hi! Ready to explore some amazing properties? How can I help?\n\nTry: '4 BHK in Bangalore' or 'Penthouse near nature'"
+                    text: "Hey! Welcome. I'm here to help with your property search. It would be great if you could share: the number of bedrooms you need, your budget, whether you're looking to rent or buy, and which locality you have in mind.",
                 },
                 {
-                    text: "Hey! What kind of home are you searching for today?",
-                    withExamples: "Hey! What kind of home are you searching for today?\n\nTry: '3 BHK in Mumbai' or '2 BHK furnished'"
+                    text: "Hello! How can I assist you today? To find the best matches, I'd love to know: what BHK configuration works for you, your budget range, if you're renting or buying, and your preferred location.",
                 },
                 {
-                    text: "Hello there! Let's find you the perfect place. What are you looking for?",
-                    withExamples: "Hello there! Let's find you the perfect place. What are you looking for?\n\nTry: 'Buy property in Delhi' or 'Rent 2 BHK'"
+                    text: "Hi! Great to have you here. To help you find the right property, could you let me know: what size home you're looking for (BHK), your budget, whether it's rent or buy, and which locality you prefer?",
                 },
                 {
-                    text: "Hi! I'm here to make your home search easier. What can I help with?",
-                    withExamples: "Hi! I'm here to make your home search easier. What can I help with?\n\nTry: '3 BHK in Pune' or 'Apartment near school'"
+                    text: "Hey there! I'm here to help you with your home search. To get started, it would help if you could share: your BHK requirement, budget range, whether you want to rent or buy, and your preferred area or locality.",
                 },
                 {
-                    text: "Hey! What brings you here today? Looking for a new home?",
-                    withExamples: "Hey! What brings you here today? Looking for a new home?\n\nTry: '2 BHK in Hyderabad' or 'Villa in gated community'"
+                    text: "Hello! Let's find you a wonderful home. Could you help me understand what you're looking for? I'd need to know: the BHK size, your budget, rent or buy preference, and which locality you're interested in.",
                 },
                 {
-                    text: "Hi there! How can I help you with your home search today?",
-                    withExamples: "Hi there! How can I help you with your home search today?\n\nTry: '3 BHK sea view' or '2 BHK gated community'"
+                    text: "Hi! How can I help you with your property search today? To make this easier, could you tell me: what BHK you need, your budget, whether you're looking to rent or buy, and your preferred locality?",
                 },
                 {
-                    text: "Hello! What are you looking for in your next home?",
-                    withExamples: "Hello! What are you looking for in your next home?\n\nTry: 'Luxury apartment' or 'Penthouse terrace'"
+                    text: "Hey! Welcome. To help you find the perfect match, I'd appreciate if you could share: the number of bedrooms (BHK), your budget range, whether it's for rent or purchase, and which area you're considering.",
+                },
+                {
+                    text: "Hello there! I'm here to assist with your house search. To get the best results, could you provide: your BHK requirement, budget, rent or buy preference, and the locality you have in mind?",
+                },
+                {
+                    text: "Hi! Great to meet you. Let's find you a home that fits perfectly. Could you share: what size property you need (BHK), your budget, whether you want to rent or buy, and which locality interests you?",
                 }
             ];
             
             // Pick a random greeting
             const greeting = greetings[Math.floor(Math.random() * greetings.length)];
-            
-            // Sometimes add examples (35% chance) - makes it feel more helpful
-            if (Math.random() < 0.35) {
-                return greeting.withExamples;
-            }
             
             return greeting.text;
         }
@@ -2405,7 +2396,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return false;
         }
-        
+
         // Extract numbers from text (handles grammatical mistakes)
         function extractNumbers(text) {
             const normalized = normalizeText(text);
@@ -2829,7 +2820,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(() => {
                             showPropertyCards();
                         }, 1000);
-                    } else {
+                } else {
                         // Still missing some info, ask for it
                         const followUp = getFollowUpQuestion();
                         if (followUp) {
@@ -2840,6 +2831,215 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }, 1500);
             };
+        }
+        
+        // Show login bottom sheet
+        function showLoginBottomSheet() {
+            // Remove existing login bottom sheet if any
+            const existing = document.getElementById('login-bottom-sheet');
+            if (existing) existing.remove();
+            
+            // Create bottom sheet container
+            const loginSheet = document.createElement('div');
+            loginSheet.id = 'login-bottom-sheet';
+            loginSheet.className = 'login-bottom-sheet';
+            
+            // State for login bottom sheet
+            let phoneNumber = '';
+            let cursorVisible = false;
+            let showError = false;
+            let inputFocused = false;
+            
+            // Create the login bottom sheet HTML structure
+            loginSheet.innerHTML = `
+                <div class="login-bottom-sheet-overlay"></div>
+                <div class="login-bottom-sheet-content">
+                    <button class="login-close-btn" id="login-close-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#656565" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                    
+                    <div class="login-frame3">
+                        <!-- Header Section with Logo -->
+                        <div class="login-frame5">
+                            <div class="login-frame2">
+                                <img src="Login image.jpg" alt="Login background" class="login-bg-image" onerror="this.style.display='none'">
+                                <img src="Container.png" alt="Container" class="login-container-image" onerror="this.style.display='none'">
+                    </div>
+                            <h2 class="login-heading">Login to Housing</h2>
+                    </div>
+                        
+                        <!-- Phone Input Field -->
+                        <div class="login-container2" id="login-phone-container">
+                            <div class="login-country-selector" id="login-country-selector">
+                                <span class="login-flag">🇮🇳</span>
+                                <span class="login-country-code">+91</span>
+                    </div>
+                            <div class="login-phone-input-area" id="login-phone-input-area">
+                                <input type="tel" class="login-phone-input" id="login-phone-input" placeholder="Phone number" maxlength="10" inputmode="numeric">
+                        </div>
+                            <button class="login-clear-btn" id="login-clear-btn" style="display: none;">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                            <div class="login-cursor" id="login-cursor" style="display: none;"></div>
+                        </div>
+                        </div>
+                    
+                    <!-- Buttons Section -->
+                    <div class="login-frame7">
+                        <button class="login-continue-btn" id="login-continue-btn">Continue</button>
+                        
+                        <div class="login-or-divider">
+                            <div class="login-or-line"></div>
+                            <span class="login-or-text">OR</span>
+                            <div class="login-or-line"></div>
+                    </div>
+                        
+                        <button class="login-whatsapp-btn" id="login-whatsapp-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="#5e23dc" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                            </svg>
+                            <span>Continue with WhatsApp</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(loginSheet);
+            document.body.style.overflow = 'hidden';
+            
+            // Get references to elements
+            const phoneInput = document.getElementById('login-phone-input');
+            const phoneContainer = document.getElementById('login-phone-container');
+            const clearBtn = document.getElementById('login-clear-btn');
+            const cursor = document.getElementById('login-cursor');
+            const continueBtn = document.getElementById('login-continue-btn');
+            const whatsappBtn = document.getElementById('login-whatsapp-btn');
+            const closeBtn = document.getElementById('login-close-btn');
+            const overlay = loginSheet.querySelector('.login-bottom-sheet-overlay');
+            
+            // Phone input handler
+            phoneInput.addEventListener('input', function(e) {
+                // Only allow numbers
+                const value = e.target.value.replace(/\D/g, '');
+                phoneNumber = value;
+                e.target.value = value;
+                
+                // Show/hide clear button
+                if (phoneNumber.length > 0) {
+                    clearBtn.style.display = 'flex';
+                } else {
+                    clearBtn.style.display = 'none';
+                }
+            });
+            
+            // Cursor blink animation
+            let cursorBlinkInterval;
+            function startCursorBlink() {
+                if (cursorBlinkInterval) clearInterval(cursorBlinkInterval);
+                cursorBlinkInterval = setInterval(() => {
+                    if (cursorVisible && inputFocused) {
+                        cursor.style.opacity = cursor.style.opacity === '0' ? '1' : '0';
+                    }
+                }, 500);
+            }
+            function stopCursorBlink() {
+                if (cursorBlinkInterval) {
+                    clearInterval(cursorBlinkInterval);
+                    cursorBlinkInterval = null;
+                }
+            }
+            
+            // Phone input focus handler
+            phoneInput.addEventListener('focus', function() {
+                inputFocused = true;
+                cursorVisible = true;
+                cursor.style.display = 'block';
+                cursor.style.opacity = '1';
+                phoneContainer.classList.add('login-input-focused');
+                startCursorBlink();
+            });
+            
+            phoneInput.addEventListener('blur', function() {
+                inputFocused = false;
+                cursorVisible = false;
+                cursor.style.display = 'none';
+                phoneContainer.classList.remove('login-input-focused');
+                if (!showError) {
+                    phoneContainer.classList.remove('login-input-error');
+                }
+                stopCursorBlink();
+            });
+            
+            // Clear button handler
+            clearBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                phoneNumber = '';
+                phoneInput.value = '';
+                clearBtn.style.display = 'none';
+                phoneInput.focus();
+            });
+            
+            // Continue button handler
+            continueBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Validate phone number (should be 10 digits)
+                if (phoneNumber.length !== 10) {
+                    showError = true;
+                    phoneContainer.classList.add('login-input-error');
+                    phoneContainer.classList.add('login-shake');
+                    setTimeout(() => {
+                        phoneContainer.classList.remove('login-shake');
+                    }, 500);
+                    return;
+                }
+                
+                // Close bottom sheet and show success message
+                closeLoginBottomSheet();
+                addBotMessage("Great! I've received your phone number. We'll send you an OTP shortly.");
+            });
+            
+            // WhatsApp button handler
+            whatsappBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeLoginBottomSheet();
+                addBotMessage("Redirecting to WhatsApp for login...");
+            });
+            
+            // Close button handler
+            closeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                closeLoginBottomSheet();
+            });
+            
+            // Overlay click handler
+            overlay.addEventListener('click', function() {
+                closeLoginBottomSheet();
+            });
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                loginSheet.classList.add('active');
+            });
+            
+            // Close function
+            function closeLoginBottomSheet() {
+                stopCursorBlink();
+                loginSheet.classList.remove('active');
+                setTimeout(() => {
+                    loginSheet.remove();
+                    document.body.style.overflow = '';
+                }, 300);
+            }
         }
         
         // Shuffle array to randomize order
@@ -2953,11 +3153,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (useCrores) {
                             priceValue = basePrice.toFixed(1);
                             priceUnit = 'Cr';
-                        } else {
+            } else {
                             priceValue = (basePrice * 100).toFixed(1);
                             priceUnit = 'L';
                         }
-                    } else {
+                } else {
                         // Default buy/project range: 90L - 5Cr
                         const useCrores = Math.random() > 0.3;
                         if (useCrores) {
@@ -2998,9 +3198,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             galleryImages.push(candidateImage);
                             galleryUsedImages.add(candidateImage);
                             found = true;
-                            break;
-                        }
-                    }
+                    break;
+                }
+            }
                     // If all 5 images already used in this gallery (shouldn't happen with 3-5 gallery images)
                     // Just skip adding more (we already have main image)
                     if (!found && galleryImages.length < PROPERTY_IMAGE_POOL.length) {
@@ -3421,7 +3621,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const priceNum = parseFloat(card.price);
                     if (priceNum >= 100000) {
                         price.textContent = `₹${(priceNum / 100000).toFixed(1)}L`;
-                    } else {
+                } else {
                         price.textContent = `₹${(priceNum / 1000).toFixed(0)}k`;
                     }
                 } else {
@@ -3464,7 +3664,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (favoriteBtn.classList.contains('active')) {
                         svg.setAttribute('fill', 'currentColor');
                         svg.setAttribute('stroke', 'none');
-            } else {
+                } else {
                         svg.setAttribute('fill', 'none');
                         svg.setAttribute('stroke', 'currentColor');
                     }
@@ -3782,7 +3982,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (Math.abs(diff) > swipeThreshold) {
                     if (diff > 0) {
                         nextImage(); // Swipe left - next
-            } else {
+                } else {
                         prevImage(); // Swipe right - previous
                     }
                 }
@@ -3960,7 +4160,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     stack.appendChild(msgDiv);
                     
                     // Scroll message to top
-                    requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
                         scrollMessageIntoView(msgDiv);
                     });
                 }
@@ -4262,7 +4462,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add delay before showing properties (realistic processing time)
             const delay = 1800 + Math.random() * 1000; // 1800-2800ms delay
             
-            setTimeout(() => {
+                setTimeout(() => {
                 // Hide typing indicator
                 hideTypingIndicator();
                 
@@ -4604,7 +4804,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Normalize input before processing (handles case, spacing, punctuation, typos)
                     const normalized = normalizeText(text);
                     
-                    // Check for brochure request first
+                    // Check for login request first (with typo tolerance)
+                    const isLoginRequest = /login|log in|loggin|loging|loign|loin|sign in|signin|sign.*in/i.test(normalized) ||
+                        fuzzyMatchWord(text, 'login', 0.7) ||
+                        fuzzyMatchWord(text, 'log in', 0.7) ||
+                        fuzzyMatchWord(text, 'sign in', 0.7);
+                    
+                    if (isLoginRequest) {
+                        if (window.__CHAT_DEBUG__) console.log('[Intent] Routing to login flow');
+                        // Only open login bottom sheet if we're on the chat screen
+                        const chatScreen = document.getElementById('chat-screen');
+                        if (chatScreen && chatScreen.classList.contains('active')) {
+                            showLoginBottomSheet();
+                        } else {
+                            addBotMessage("Please open the chat to login.");
+                        }
+                        return;
+                    }
+                    
+                    // Check for brochure request
                     const isBrochureRequest = /show.*brochure|brochure.*show|view.*brochure|brochure.*view|download.*brochure|brochure.*download/i.test(normalized) ||
                         fuzzyMatchWord(text, 'show brochure', 0.7) ||
                         fuzzyMatchWord(text, 'brochure', 0.7);
