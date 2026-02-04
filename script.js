@@ -4026,6 +4026,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const bottomSheetOverlay = document.getElementById('property-detail-bottom-sheet');
             if (!bottomSheetOverlay) return;
             
+            // Cleanup mouse event listeners if they exist
+            if (bottomSheetOverlay._cleanupMouseEvents) {
+                bottomSheetOverlay._cleanupMouseEvents();
+            }
+            
             const bottomSheet = bottomSheetOverlay.querySelector('.pdp-bottom-sheet');
             if (bottomSheet) {
                 bottomSheet.classList.remove('show');
