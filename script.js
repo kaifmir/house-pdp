@@ -3773,19 +3773,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Expand: If scrolling up and not yet expanded, expand to full screen
                 if (!isFullyExpanded && scrollTop > 0) {
                     expandToFull();
+                    lastScrollTop = scrollTop;
                     return;
                 }
                 
-                // Collapse: If at top (scrollTop === 0) and was scrolling down, check for pull-down gesture
-                if (isFullyExpanded && scrollTop === 0) {
-                    // Check if we're in a pull-down state (negative scroll or overscroll)
-                    const scrollDelta = scrollTop - lastScrollTop;
-                    if (scrollDelta < 0 || (scrollTop === 0 && lastScrollTop === 0 && isScrolling)) {
-                        // User is at top and trying to pull down - collapse
-                        collapseToSheet();
-                    }
-                }
-                
+                // Track scroll position for collapse detection
                 lastScrollTop = scrollTop;
             };
             
@@ -3904,32 +3896,71 @@ document.addEventListener('DOMContentLoaded', function() {
             headerArea.addEventListener('touchend', handleEnd, { passive: true });
             headerArea.addEventListener('mousedown', handleStart);
             
-            // Enhanced pull-down detection for collapse
+            // Enhanced pull-down detection for collapse (works on both touch and mouse)
             let pullDownStartY = 0;
             let isPullingDown = false;
-            const handleHeaderTouchStart = (e) => {
+            let pullDownStartScroll = 0;
+            
+            const handlePullDownStart = (e) => {
                 if (isFullyExpanded && pdpContent.scrollTop === 0) {
                     const touch = e.touches ? e.touches[0] : e;
                     pullDownStartY = touch.clientY;
+                    pullDownStartScroll = pdpContent.scrollTop;
                     isPullingDown = true;
                 }
             };
-            const handleHeaderTouchMove = (e) => {
-                if (isPullingDown && isFullyExpanded && pdpContent.scrollTop === 0) {
-                    const touch = e.touches ? e.touches[0] : e;
-                    const deltaY = touch.clientY - pullDownStartY;
-                    if (deltaY > 20) { // Threshold for pull-down
-                        collapseToSheet();
-                        isPullingDown = false;
-                    }
+            
+            const handlePullDownMove = (e) => {
+                if (!isPullingDown || !isFullyExpanded) return;
+                if (pdpContent.scrollTop > 0) {
+                    // User scrolled away from top, cancel pull-down
+                    isPullingDown = false;
+                    return;
+                }
+                
+                const touch = e.touches ? e.touches[0] : e;
+                const deltaY = touch.clientY - pullDownStartY;
+                
+                // If dragging down more than 30px at the top, collapse
+                if (deltaY > 30) {
+                    collapseToSheet();
+                    isPullingDown = false;
+                    e.preventDefault();
                 }
             };
-            const handleHeaderTouchEnd = () => {
+            
+            const handlePullDownEnd = () => {
                 isPullingDown = false;
             };
-            headerArea.addEventListener('touchstart', handleHeaderTouchStart, { passive: true });
-            headerArea.addEventListener('touchmove', handleHeaderTouchMove, { passive: true });
-            headerArea.addEventListener('touchend', handleHeaderTouchEnd, { passive: true });
+            
+            // Add pull-down detection to header and content area
+            headerArea.addEventListener('touchstart', handlePullDownStart, { passive: true });
+            headerArea.addEventListener('touchmove', handlePullDownMove, { passive: false });
+            headerArea.addEventListener('touchend', handlePullDownEnd, { passive: true });
+            headerArea.addEventListener('mousedown', handlePullDownStart);
+            
+            // Also detect pull-down in content area when at top
+            pdpContent.addEventListener('touchstart', (e) => {
+                if (isFullyExpanded && pdpContent.scrollTop === 0) {
+                    handlePullDownStart(e);
+                }
+            }, { passive: true });
+            
+            pdpContent.addEventListener('touchmove', (e) => {
+                if (isPullingDown) {
+                    handlePullDownMove(e);
+                }
+            }, { passive: false });
+            
+            pdpContent.addEventListener('touchend', handlePullDownEnd, { passive: true });
+            
+            // Mouse events for desktop
+            document.addEventListener('mousemove', (e) => {
+                if (isPullingDown) {
+                    handlePullDownMove(e);
+                }
+            });
+            document.addEventListener('mouseup', handlePullDownEnd);
             
             // Hero Image
             const heroImage = document.createElement('div');
@@ -3976,7 +4007,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const priceNum = parseFloat(card.price);
                 if (priceNum >= 100000) {
                     price.textContent = `₹${(priceNum / 100000).toFixed(1)}L`;
-            } else {
+                } else {
                     price.textContent = `₹${(priceNum / 1000).toFixed(0)}k`;
                 }
                 } else {
@@ -4330,7 +4361,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!this.dataset.failed) {
                         this.dataset.failed = '1';
                         this.src = PROPERTY_IMAGE_POOL[0];
-                    } else {
+            } else {
                         // If fallback also fails, show placeholder background
                         this.style.display = 'none';
                         this.parentElement.style.backgroundColor = '#f2f2f2';
@@ -4881,7 +4912,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // Hide and remove after 2 seconds
-            setTimeout(() => {
+                setTimeout(() => {
                 toast.classList.remove('show');
                 setTimeout(() => {
                     toast.remove();
@@ -4903,7 +4934,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Position above keyboard
                     const keyboardHeight = window.innerHeight - window.visualViewport.height;
                     toast.style.bottom = `${keyboardHeight + 16}px`;
-                } else {
+            } else {
                     // Position above input field
                     const inputRect = inputBar.getBoundingClientRect();
                     toast.style.bottom = `${window.innerHeight - inputRect.top + 16}px`;
@@ -5229,9 +5260,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             addBotMessage("Please open the chat to login.");
                         }
-                        return;
-                    }
-                    
+                    return;
+                }
+                
                     // Check for brochure request
                     const isBrochureRequest = /show.*brochure|brochure.*show|view.*brochure|brochure.*view|download.*brochure|brochure.*download/i.test(normalized) ||
                         fuzzyMatchWord(text, 'show brochure', 0.7) ||
@@ -5240,9 +5271,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (isBrochureRequest) {
                         if (window.__CHAT_DEBUG__) console.log('[Intent] Routing to brochure flow');
                         showBrochureMessage();
-                        return;
-                    }
-                    
+                    return;
+                }
+                
                     // Extract information from user message (with smart extraction for typos)
                     const updates = smartExtract(text);
                     
