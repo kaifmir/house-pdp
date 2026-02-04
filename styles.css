@@ -2333,15 +2333,15 @@ html, body {
 }
 
 .feedback-btn.active {
-    color: #5e23dc;
+    color: #8B5CF6;
 }
 
 .feedback-btn.active svg {
-    color: #5e23dc;
+    color: #8B5CF6;
 }
 
 .feedback-btn.active svg path {
-    fill: #5e23dc !important;
+    fill: #8B5CF6 !important;
 }
 
 .feedback-btn svg {
