@@ -2867,7 +2867,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="login-frame2">
                                 <img src="Login image.jpg" alt="Login background" class="login-bg-image" onerror="this.style.display='none'">
                                 <img src="Container.png" alt="Container" class="login-container-image" onerror="this.style.display='none'">
-                    </div>
+                        </div>
                             <h2 class="login-heading">Login to Housing</h2>
                     </div>
                         
@@ -2884,10 +2884,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                     <line x1="18" y1="6" x2="6" y2="18"></line>
                                     <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
+                        </svg>
                             </button>
                             <div class="login-cursor" id="login-cursor" style="display: none;"></div>
-                        </div>
+                    </div>
                         </div>
                     
                     <!-- Buttons Section -->
@@ -2898,7 +2898,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="login-or-line"></div>
                             <span class="login-or-text">OR</span>
                             <div class="login-or-line"></div>
-                    </div>
+                        </div>
                         
                         <button class="login-whatsapp-btn" id="login-whatsapp-btn">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="#5e23dc" xmlns="http://www.w3.org/2000/svg">
@@ -2906,7 +2906,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             </svg>
                             <span>Continue with WhatsApp</span>
                         </button>
-                    </div>
+                        </div>
                 </div>
             `;
             
@@ -3709,32 +3709,154 @@ document.addEventListener('DOMContentLoaded', function() {
             return carousel;
         }
         
-        // Open Property Detail Page (PDP)
+        // Open Property Detail Page (PDP) in bottom sheet
         function openPropertyDetailPage(card) {
             // Remove existing PDP if any
-            removeElementById('property-detail-page');
+            removeElementById('property-detail-bottom-sheet');
             
-            // Create PDP overlay
-            const pdpOverlay = document.createElement('div');
-            pdpOverlay.id = 'property-detail-page';
-            pdpOverlay.className = 'property-detail-page';
+            // Create bottom sheet overlay
+            const bottomSheetOverlay = document.createElement('div');
+            bottomSheetOverlay.id = 'property-detail-bottom-sheet';
+            bottomSheetOverlay.className = 'pdp-bottom-sheet-overlay';
             
-            // Back button
-            const backBtn = document.createElement('button');
-            backBtn.className = 'pdp-back-btn';
-            backBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
-            backBtn.onclick = function() {
-                // Add slide-out animation
-                pdpOverlay.classList.add('pdp-slide-out');
-                setTimeout(() => {
-                    pdpOverlay.remove();
-                    document.body.style.overflow = '';
-                }, 300); // Match animation duration
+            // Create bottom sheet
+            const bottomSheet = document.createElement('div');
+            bottomSheet.className = 'pdp-bottom-sheet';
+            bottomSheet.id = 'pdp-bottom-sheet';
+            
+            // Progressive expansion on scroll
+            let initialHeight = Math.min(window.innerHeight * 0.7, 600); // Start at 70vh or 600px
+            let maxHeight = window.innerHeight * 0.98; // Max at 98vh
+            let currentHeight = initialHeight;
+            let isFullyExpanded = false;
+            let lastScrollTop = 0;
+            let scrollVelocity = 0;
+            let isDragging = false;
+            
+            // Set initial height
+            bottomSheet.style.height = `${initialHeight}px`;
+            bottomSheet.style.maxHeight = `${initialHeight}px`;
+            
+            // Handle progressive expansion on scroll
+            const handleScroll = (e) => {
+                if (isFullyExpanded) return; // Once fully expanded, use normal scroll
+                
+                const scrollTop = pdpContent.scrollTop;
+                const scrollDelta = lastScrollTop - scrollTop; // Positive when scrolling up
+                
+                // Calculate scroll velocity
+                scrollVelocity = scrollDelta;
+                
+                // If scrolling up (positive delta) and at or near top, expand
+                if (scrollDelta > 0 && scrollTop <= 20) {
+                    // Progressive expansion based on scroll velocity
+                    const expansionAmount = Math.min(scrollDelta * 1.5, 10); // Cap expansion per scroll
+                    currentHeight = Math.min(currentHeight + expansionAmount, maxHeight);
+                    bottomSheet.style.height = `${currentHeight}px`;
+                    bottomSheet.style.maxHeight = `${currentHeight}px`;
+                    
+                    // Prevent default scroll when expanding
+                    if (currentHeight < maxHeight * 0.95) {
+                        pdpContent.scrollTop = 0;
+                    }
+                    
+                    if (currentHeight >= maxHeight * 0.95) {
+                        isFullyExpanded = true;
+                        bottomSheet.classList.add('fully-expanded');
+                    }
+                }
+                
+                lastScrollTop = scrollTop;
             };
             
-            // PDP Content Container
+            // Touch/mouse drag to expand
+            let startY = 0;
+            let startHeight = 0;
+            
+            const handleStart = (e) => {
+                const touch = e.touches ? e.touches[0] : e;
+                startY = touch.clientY;
+                startHeight = currentHeight;
+                isDragging = true;
+            };
+            
+            const handleMove = (e) => {
+                if (!isDragging) return;
+                const touch = e.touches ? e.touches[0] : e;
+                const deltaY = startY - touch.clientY; // Negative when dragging up
+                
+                if (deltaY > 0 && currentHeight < maxHeight) {
+                    // Dragging up - expand
+                    currentHeight = Math.min(startHeight + deltaY, maxHeight);
+                    bottomSheet.style.height = `${currentHeight}px`;
+                    bottomSheet.style.maxHeight = `${currentHeight}px`;
+                    
+                    if (currentHeight >= maxHeight * 0.95) {
+                        isFullyExpanded = true;
+                        bottomSheet.classList.add('fully-expanded');
+                    }
+                } else if (deltaY < 0 && currentHeight > initialHeight) {
+                    // Dragging down - collapse
+                    currentHeight = Math.max(startHeight + deltaY, initialHeight);
+                    bottomSheet.style.height = `${currentHeight}px`;
+                    bottomSheet.style.maxHeight = `${currentHeight}px`;
+                    isFullyExpanded = false;
+                    bottomSheet.classList.remove('fully-expanded');
+                }
+            };
+            
+            const handleEnd = () => {
+                isDragging = false;
+            };
+            
+            // Close button
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'pdp-bottom-sheet-close';
+            closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            closeBtn.onclick = function() {
+                closePDPBottomSheet();
+            };
+            
+            // Drag handle - make it draggable
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'pdp-bottom-sheet-handle';
+            dragHandle.addEventListener('touchstart', handleStart, { passive: true });
+            dragHandle.addEventListener('touchmove', handleMove, { passive: true });
+            dragHandle.addEventListener('touchend', handleEnd, { passive: true });
+            dragHandle.addEventListener('mousedown', handleStart);
+            
+            // Mouse move/up handlers (scoped to prevent conflicts)
+            const mouseMoveHandler = (e) => {
+                if (isDragging) {
+                    handleMove(e);
+                }
+            };
+            const mouseUpHandler = () => {
+                if (isDragging) {
+                    handleEnd();
+                }
+            };
+            document.addEventListener('mousemove', mouseMoveHandler);
+            document.addEventListener('mouseup', mouseUpHandler);
+            
+            // Cleanup on close
+            const cleanup = () => {
+                document.removeEventListener('mousemove', mouseMoveHandler);
+                document.removeEventListener('mouseup', mouseUpHandler);
+            };
+            
+            // PDP Content Container (scrollable)
             const pdpContent = document.createElement('div');
-            pdpContent.className = 'pdp-content';
+            pdpContent.className = 'pdp-bottom-sheet-content';
+            pdpContent.addEventListener('scroll', handleScroll, { passive: true });
+            
+            // Also allow dragging from anywhere in the header area
+            const headerArea = document.createElement('div');
+            headerArea.className = 'pdp-bottom-sheet-header';
+            headerArea.addEventListener('touchstart', handleStart, { passive: true });
+            headerArea.addEventListener('touchmove', handleMove, { passive: true });
+            headerArea.addEventListener('touchend', handleEnd, { passive: true });
+            headerArea.addEventListener('mousedown', handleStart);
             
             // Hero Image
             const heroImage = document.createElement('div');
@@ -3784,7 +3906,7 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                     price.textContent = `₹${(priceNum / 1000).toFixed(0)}k`;
                 }
-            } else {
+                } else {
                 price.textContent = `₹${card.price} ${priceUnit}`;
             }
             
@@ -3849,15 +3971,17 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             gallerySection.appendChild(galleryGrid);
             
-            // CTA Buttons
+            // Sticky CTA Section
             const ctaSection = document.createElement('div');
-            ctaSection.className = 'pdp-cta-section';
+            ctaSection.className = 'pdp-bottom-sheet-cta';
             const contactBtn = document.createElement('button');
             contactBtn.className = 'pdp-cta-primary';
             contactBtn.textContent = 'Contact Owner';
             const scheduleBtn = document.createElement('button');
             scheduleBtn.className = 'pdp-cta-secondary';
             scheduleBtn.textContent = 'Schedule Visit';
+            ctaSection.appendChild(contactBtn);
+            ctaSection.appendChild(scheduleBtn);
             
             // Assemble content
             contentWrapper.appendChild(propertyName);
@@ -3866,21 +3990,52 @@ document.addEventListener('DOMContentLoaded', function() {
             contentWrapper.appendChild(detailsGrid);
             contentWrapper.appendChild(description);
             contentWrapper.appendChild(gallerySection);
-            ctaSection.appendChild(contactBtn);
-            ctaSection.appendChild(scheduleBtn);
             
             pdpContent.appendChild(heroImage);
             pdpContent.appendChild(contentWrapper);
-            pdpContent.appendChild(ctaSection);
             
-            pdpOverlay.appendChild(backBtn);
-            pdpOverlay.appendChild(pdpContent);
+            bottomSheet.appendChild(headerArea);
+            bottomSheet.appendChild(pdpContent);
+            bottomSheet.appendChild(ctaSection);
             
-            document.body.appendChild(pdpOverlay);
+            bottomSheetOverlay.appendChild(bottomSheet);
+            document.body.appendChild(bottomSheetOverlay);
+            
+            // Prevent body scroll
             document.body.style.overflow = 'hidden';
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                bottomSheetOverlay.classList.add('show');
+                bottomSheet.classList.add('show');
+            });
+            
+            // Close on overlay click
+            bottomSheetOverlay.addEventListener('click', (e) => {
+                if (e.target === bottomSheetOverlay) {
+                    closePDPBottomSheet();
+                }
+            });
             
             // Smooth scroll to top
             pdpContent.scrollTop = 0;
+        }
+        
+        // Close PDP bottom sheet
+        function closePDPBottomSheet() {
+            const bottomSheetOverlay = document.getElementById('property-detail-bottom-sheet');
+            if (!bottomSheetOverlay) return;
+            
+            const bottomSheet = bottomSheetOverlay.querySelector('.pdp-bottom-sheet');
+            if (bottomSheet) {
+                bottomSheet.classList.remove('show');
+            }
+            bottomSheetOverlay.classList.remove('show');
+            
+            setTimeout(() => {
+                bottomSheetOverlay.remove();
+                document.body.style.overflow = '';
+            }, 300);
         }
         
         // Open property gallery in fullscreen
@@ -4152,6 +4307,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 botContent.appendChild(botText);
                 botContent.appendChild(brochureComponent);
+                
+                // Add feedback buttons
+                const feedbackButtons = createFeedbackButtons(msgId);
+                botContent.appendChild(feedbackButtons);
+                
                 msgDiv.appendChild(botContent);
                 
                 // Add to chat stack
@@ -4328,7 +4488,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!this.dataset.failed) {
                     this.dataset.failed = '1';
                     this.src = PROPERTY_IMAGE_POOL[0];
-                } else {
+            } else {
                     // If fallback also fails, show placeholder background
                     this.style.display = 'none';
                     this.parentElement.style.backgroundColor = '#f2f2f2';
@@ -4497,6 +4657,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 botContent.appendChild(botText);
                 botContent.appendChild(carousel);
+                
+                // Add feedback buttons
+                const feedbackButtons = createFeedbackButtons(msgId);
+                botContent.appendChild(feedbackButtons);
+                
                 msgDiv.appendChild(botContent);
                 
                 // Add to chat stack
@@ -4513,6 +4678,144 @@ document.addEventListener('DOMContentLoaded', function() {
             }, delay);
             
             return 'loading';
+        }
+        
+        // Create feedback buttons (thumbs up/down) for property cards and brochures
+        function createFeedbackButtons(messageId) {
+            const feedbackContainer = document.createElement('div');
+            feedbackContainer.className = 'feedback-buttons';
+            feedbackContainer.dataset.messageId = messageId;
+            
+            // Add text before buttons
+            const feedbackText = document.createElement('span');
+            feedbackText.className = 'feedback-text';
+            feedbackText.textContent = 'Was this helpful?';
+            
+            const thumbsUpBtn = document.createElement('button');
+            thumbsUpBtn.className = 'feedback-btn feedback-btn-up';
+            thumbsUpBtn.setAttribute('aria-label', 'Thumbs up');
+            thumbsUpBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                    <path d="M234,80.12A24,24,0,0,0,216,72H160V56a40,40,0,0,0-40-40,8,8,0,0,0-7.16,4.42L75.06,96H32a16,16,0,0,0-16,16v88a16,16,0,0,0,16,16H204a24,24,0,0,0,23.82-21l12-96A24,24,0,0,0,234,80.12ZM32,112H72v88H32ZM223.94,97l-12,96a8,8,0,0,1-7.94,7H88V105.89l36.71-73.43A24,24,0,0,1,144,56V80a8,8,0,0,0,8,8h64a8,8,0,0,1,7.94,9Z"></path>
+                </svg>
+            `;
+            
+            const thumbsDownBtn = document.createElement('button');
+            thumbsDownBtn.className = 'feedback-btn feedback-btn-down';
+            thumbsDownBtn.setAttribute('aria-label', 'Thumbs down');
+            thumbsDownBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
+                    <path d="M239.82,157l-12-96A24,24,0,0,0,204,40H32A16,16,0,0,0,16,56v88a16,16,0,0,0,16,16H75.06l37.78,75.58A8,8,0,0,0,120,240a40,40,0,0,0,40-40V184h56a24,24,0,0,0,23.82-27ZM72,144H32V56H72Zm150,21.29a7.88,7.88,0,0,1-6,2.71H152a8,8,0,0,0-8,8v24a24,24,0,0,1-19.29,23.54L88,150.11V56H204a8,8,0,0,1,7.94,7l12,96A7.87,7.87,0,0,1,222,165.29Z"></path>
+                </svg>
+            `;
+            
+            // Track selected state
+            let selectedFeedback = null;
+            
+            const handleFeedback = (type) => {
+                if (selectedFeedback === type) {
+                    // Deselect if clicking the same button
+                    selectedFeedback = null;
+                    thumbsUpBtn.classList.remove('active');
+                    thumbsDownBtn.classList.remove('active');
+                } else {
+                    // Select new feedback
+                    selectedFeedback = type;
+                    if (type === 'up') {
+                        thumbsUpBtn.classList.add('active');
+                        thumbsDownBtn.classList.remove('active');
+                    } else {
+                        thumbsDownBtn.classList.add('active');
+                        thumbsUpBtn.classList.remove('active');
+                    }
+                    
+                    // Show toast notification
+                    showFeedbackToast();
+                }
+            };
+            
+            thumbsUpBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleFeedback('up');
+            });
+            
+            thumbsDownBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleFeedback('down');
+            });
+            
+            feedbackContainer.appendChild(feedbackText);
+            feedbackContainer.appendChild(thumbsUpBtn);
+            feedbackContainer.appendChild(thumbsDownBtn);
+            
+            return feedbackContainer;
+        }
+        
+        // Show minimal toast notification for feedback
+        function showFeedbackToast() {
+            // Remove existing toast if any
+            const existingToast = document.querySelector('.feedback-toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = 'feedback-toast';
+            toast.textContent = 'Thanks for sharing feedback';
+            
+            document.body.appendChild(toast);
+            
+            // Position toast based on keyboard state
+            positionFeedbackToast(toast);
+            
+            // Show toast
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+            
+            // Hide and remove after 2 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 2000);
+        }
+        
+        // Position toast above keyboard or input field
+        function positionFeedbackToast(toast) {
+            const inputBar = document.querySelector('.chat-input-bar');
+            if (!inputBar) return;
+            
+            const updatePosition = () => {
+                // Check if keyboard is open using visualViewport
+                const isKeyboardOpen = window.visualViewport && 
+                    (window.innerHeight - window.visualViewport.height) > 150;
+                
+                if (isKeyboardOpen) {
+                    // Position above keyboard
+                    const keyboardHeight = window.innerHeight - window.visualViewport.height;
+                    toast.style.bottom = `${keyboardHeight + 16}px`;
+                } else {
+                    // Position above input field
+                    const inputRect = inputBar.getBoundingClientRect();
+                    toast.style.bottom = `${window.innerHeight - inputRect.top + 16}px`;
+                }
+            };
+            
+            updatePosition();
+            
+            // Update position on keyboard state changes
+            if (window.visualViewport) {
+                const handleViewportChange = () => {
+                    if (toast && document.body.contains(toast)) {
+                        updatePosition();
+                    } else {
+                        window.visualViewport.removeEventListener('resize', handleViewportChange);
+                    }
+                };
+                window.visualViewport.addEventListener('resize', handleViewportChange);
+            }
         }
         
         // Track last fallback message to ensure non-repeating randomness
