@@ -3873,6 +3873,37 @@ html, body {
     color: #000;
 }
 
+.pdp-bottom-sheet-back {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.pdp-bottom-sheet-back:hover,
+.pdp-bottom-sheet-back:active {
+    background: #ffffff;
+    transform: scale(1.05);
+}
+
+.pdp-bottom-sheet-back svg {
+    width: 18px;
+    height: 18px;
+    color: #000;
+}
+
 .pdp-bottom-sheet-content {
     flex: 1;
     overflow-y: auto;

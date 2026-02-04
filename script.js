@@ -3724,46 +3724,82 @@ document.addEventListener('DOMContentLoaded', function() {
             bottomSheet.className = 'pdp-bottom-sheet';
             bottomSheet.id = 'pdp-bottom-sheet';
             
-            // Snap to full screen on first scroll
+            // Two-way snap points: collapsed and full screen
             let initialHeight = Math.min(window.innerHeight * 0.7, 600); // Start at 70vh or 600px
             let maxHeight = window.innerHeight * 0.98; // Max at 98vh
             let currentHeight = initialHeight;
             let isFullyExpanded = false;
-            let hasExpanded = false; // Guard to trigger only once per open
             let lastScrollTop = 0;
             let isDragging = false;
+            let scrollStartY = 0;
+            let isScrolling = false;
             
             // Set initial height
             bottomSheet.style.height = `${initialHeight}px`;
             bottomSheet.style.maxHeight = `${initialHeight}px`;
             
-            // Handle snap to full screen on first scroll
+            // Expand to full screen
+            const expandToFull = () => {
+                if (isFullyExpanded) return;
+                isFullyExpanded = true;
+                currentHeight = maxHeight;
+                bottomSheet.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                bottomSheet.style.height = `${maxHeight}px`;
+                bottomSheet.style.maxHeight = `${maxHeight}px`;
+                bottomSheet.classList.add('fully-expanded');
+                setTimeout(() => {
+                    bottomSheet.style.transition = '';
+                }, 300);
+            };
+            
+            // Collapse to bottom sheet
+            const collapseToSheet = () => {
+                if (!isFullyExpanded) return;
+                isFullyExpanded = false;
+                currentHeight = initialHeight;
+                bottomSheet.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                bottomSheet.style.height = `${initialHeight}px`;
+                bottomSheet.style.maxHeight = `${initialHeight}px`;
+                bottomSheet.classList.remove('fully-expanded');
+                setTimeout(() => {
+                    bottomSheet.style.transition = '';
+                }, 300);
+            };
+            
+            // Handle scroll - expand on scroll up, collapse on pull down at top
             const handleScroll = (e) => {
                 const scrollTop = pdpContent.scrollTop;
                 
-                // On first meaningful scroll (scrollTop > 0), snap to full screen
-                if (!hasExpanded && scrollTop > 0) {
-                    hasExpanded = true;
-                    isFullyExpanded = true;
-                    currentHeight = maxHeight;
-                    
-                    // Smoothly animate to full height
-                    bottomSheet.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                    bottomSheet.style.height = `${maxHeight}px`;
-                    bottomSheet.style.maxHeight = `${maxHeight}px`;
-                    bottomSheet.classList.add('fully-expanded');
-                    
-                    // Remove transition after animation completes
-                    setTimeout(() => {
-                        bottomSheet.style.transition = '';
-                    }, 300);
-                    
-                    // Continue scroll naturally - don't block it
+                // Expand: If scrolling up and not yet expanded, expand to full screen
+                if (!isFullyExpanded && scrollTop > 0) {
+                    expandToFull();
                     return;
                 }
                 
-                // Once expanded, allow normal scrolling
+                // Collapse: If at top (scrollTop === 0) and was scrolling down, check for pull-down gesture
+                if (isFullyExpanded && scrollTop === 0) {
+                    // Check if we're in a pull-down state (negative scroll or overscroll)
+                    const scrollDelta = scrollTop - lastScrollTop;
+                    if (scrollDelta < 0 || (scrollTop === 0 && lastScrollTop === 0 && isScrolling)) {
+                        // User is at top and trying to pull down - collapse
+                        collapseToSheet();
+                    }
+                }
+                
                 lastScrollTop = scrollTop;
+            };
+            
+            // Track scroll start for pull-down detection
+            const handleScrollStart = (e) => {
+                isScrolling = true;
+                const touch = e.touches ? e.touches[0] : null;
+                if (touch) {
+                    scrollStartY = touch.clientY;
+                }
+            };
+            
+            const handleScrollEnd = () => {
+                isScrolling = false;
             };
             
             // Touch/mouse drag to expand
@@ -3808,11 +3844,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 isDragging = false;
             };
             
-            // Close button
+            // Close button (X)
             const closeBtn = document.createElement('button');
             closeBtn.className = 'pdp-bottom-sheet-close';
             closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
             closeBtn.onclick = function() {
+                closePDPBottomSheet();
+            };
+            
+            // Back button (only on Chat screen PDP)
+            const backBtn = document.createElement('button');
+            backBtn.className = 'pdp-bottom-sheet-back';
+            backBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+            backBtn.onclick = function() {
                 closePDPBottomSheet();
             };
             
@@ -3848,6 +3892,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const pdpContent = document.createElement('div');
             pdpContent.className = 'pdp-bottom-sheet-content';
             pdpContent.addEventListener('scroll', handleScroll, { passive: true });
+            pdpContent.addEventListener('touchstart', handleScrollStart, { passive: true });
+            pdpContent.addEventListener('touchend', handleScrollEnd, { passive: true });
+            pdpContent.addEventListener('touchcancel', handleScrollEnd, { passive: true });
             
             // Also allow dragging from anywhere in the header area
             const headerArea = document.createElement('div');
@@ -3856,6 +3903,33 @@ document.addEventListener('DOMContentLoaded', function() {
             headerArea.addEventListener('touchmove', handleMove, { passive: true });
             headerArea.addEventListener('touchend', handleEnd, { passive: true });
             headerArea.addEventListener('mousedown', handleStart);
+            
+            // Enhanced pull-down detection for collapse
+            let pullDownStartY = 0;
+            let isPullingDown = false;
+            const handleHeaderTouchStart = (e) => {
+                if (isFullyExpanded && pdpContent.scrollTop === 0) {
+                    const touch = e.touches ? e.touches[0] : e;
+                    pullDownStartY = touch.clientY;
+                    isPullingDown = true;
+                }
+            };
+            const handleHeaderTouchMove = (e) => {
+                if (isPullingDown && isFullyExpanded && pdpContent.scrollTop === 0) {
+                    const touch = e.touches ? e.touches[0] : e;
+                    const deltaY = touch.clientY - pullDownStartY;
+                    if (deltaY > 20) { // Threshold for pull-down
+                        collapseToSheet();
+                        isPullingDown = false;
+                    }
+                }
+            };
+            const handleHeaderTouchEnd = () => {
+                isPullingDown = false;
+            };
+            headerArea.addEventListener('touchstart', handleHeaderTouchStart, { passive: true });
+            headerArea.addEventListener('touchmove', handleHeaderTouchMove, { passive: true });
+            headerArea.addEventListener('touchend', handleHeaderTouchEnd, { passive: true });
             
             // Hero Image
             const heroImage = document.createElement('div');
@@ -3992,6 +4066,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             pdpContent.appendChild(heroImage);
             pdpContent.appendChild(contentWrapper);
+            
+            // Assemble header with buttons
+            headerArea.appendChild(dragHandle);
+            headerArea.appendChild(backBtn);
+            headerArea.appendChild(closeBtn);
             
             bottomSheet.appendChild(headerArea);
             bottomSheet.appendChild(pdpContent);
