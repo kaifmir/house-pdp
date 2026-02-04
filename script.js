@@ -3724,48 +3724,45 @@ document.addEventListener('DOMContentLoaded', function() {
             bottomSheet.className = 'pdp-bottom-sheet';
             bottomSheet.id = 'pdp-bottom-sheet';
             
-            // Progressive expansion on scroll
+            // Snap to full screen on first scroll
             let initialHeight = Math.min(window.innerHeight * 0.7, 600); // Start at 70vh or 600px
             let maxHeight = window.innerHeight * 0.98; // Max at 98vh
             let currentHeight = initialHeight;
             let isFullyExpanded = false;
+            let hasExpanded = false; // Guard to trigger only once per open
             let lastScrollTop = 0;
-            let scrollVelocity = 0;
             let isDragging = false;
             
             // Set initial height
             bottomSheet.style.height = `${initialHeight}px`;
             bottomSheet.style.maxHeight = `${initialHeight}px`;
             
-            // Handle progressive expansion on scroll
+            // Handle snap to full screen on first scroll
             const handleScroll = (e) => {
-                if (isFullyExpanded) return; // Once fully expanded, use normal scroll
-                
                 const scrollTop = pdpContent.scrollTop;
-                const scrollDelta = lastScrollTop - scrollTop; // Positive when scrolling up
                 
-                // Calculate scroll velocity
-                scrollVelocity = scrollDelta;
-                
-                // If scrolling up (positive delta) and at or near top, expand
-                if (scrollDelta > 0 && scrollTop <= 20) {
-                    // Progressive expansion based on scroll velocity
-                    const expansionAmount = Math.min(scrollDelta * 1.5, 10); // Cap expansion per scroll
-                    currentHeight = Math.min(currentHeight + expansionAmount, maxHeight);
-                    bottomSheet.style.height = `${currentHeight}px`;
-                    bottomSheet.style.maxHeight = `${currentHeight}px`;
+                // On first meaningful scroll (scrollTop > 0), snap to full screen
+                if (!hasExpanded && scrollTop > 0) {
+                    hasExpanded = true;
+                    isFullyExpanded = true;
+                    currentHeight = maxHeight;
                     
-                    // Prevent default scroll when expanding
-                    if (currentHeight < maxHeight * 0.95) {
-                        pdpContent.scrollTop = 0;
-                    }
+                    // Smoothly animate to full height
+                    bottomSheet.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                    bottomSheet.style.height = `${maxHeight}px`;
+                    bottomSheet.style.maxHeight = `${maxHeight}px`;
+                    bottomSheet.classList.add('fully-expanded');
                     
-                    if (currentHeight >= maxHeight * 0.95) {
-                        isFullyExpanded = true;
-                        bottomSheet.classList.add('fully-expanded');
-                    }
+                    // Remove transition after animation completes
+                    setTimeout(() => {
+                        bottomSheet.style.transition = '';
+                    }, 300);
+                    
+                    // Continue scroll naturally - don't block it
+                    return;
                 }
                 
+                // Once expanded, allow normal scrolling
                 lastScrollTop = scrollTop;
             };
             
@@ -3783,7 +3780,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const handleMove = (e) => {
                 if (!isDragging) return;
                 const touch = e.touches ? e.touches[0] : e;
-                const deltaY = startY - touch.clientY; // Negative when dragging up
+                const deltaY = startY - touch.clientY; // Positive when dragging up
                 
                 if (deltaY > 0 && currentHeight < maxHeight) {
                     // Dragging up - expand
@@ -3793,14 +3790,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     if (currentHeight >= maxHeight * 0.95) {
                         isFullyExpanded = true;
+                        hasExpanded = true; // Mark as expanded so scroll handler doesn't trigger
                         bottomSheet.classList.add('fully-expanded');
                     }
                 } else if (deltaY < 0 && currentHeight > initialHeight) {
-                    // Dragging down - collapse
+                    // Dragging down - collapse (but don't go below initial height)
                     currentHeight = Math.max(startHeight + deltaY, initialHeight);
                     bottomSheet.style.height = `${currentHeight}px`;
                     bottomSheet.style.maxHeight = `${currentHeight}px`;
                     isFullyExpanded = false;
+                    hasExpanded = false; // Reset so scroll can trigger expansion again
                     bottomSheet.classList.remove('fully-expanded');
                 }
             };
@@ -4700,8 +4699,8 @@ document.addEventListener('DOMContentLoaded', function() {
             thumbsUpBtn.className = 'feedback-btn feedback-btn-up';
             thumbsUpBtn.setAttribute('aria-label', 'Thumbs up');
             thumbsUpBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-                    <path d="M234,80.12A24,24,0,0,0,216,72H160V56a40,40,0,0,0-40-40,8,8,0,0,0-7.16,4.42L75.06,96H32a16,16,0,0,0-16,16v88a16,16,0,0,0,16,16H204a24,24,0,0,0,23.82-21l12-96A24,24,0,0,0,234,80.12ZM32,112H72v88H32ZM223.94,97l-12,96a8,8,0,0,1-7.94,7H88V105.89l36.71-73.43A24,24,0,0,1,144,56V80a8,8,0,0,0,8,8h64a8,8,0,0,1,7.94,9Z"></path>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256">
+                    <path fill="currentColor" d="M234,80.12A24,24,0,0,0,216,72H160V56a40,40,0,0,0-40-40,8,8,0,0,0-7.16,4.42L75.06,96H32a16,16,0,0,0-16,16v88a16,16,0,0,0,16,16H204a24,24,0,0,0,23.82-21l12-96A24,24,0,0,0,234,80.12ZM32,112H72v88H32ZM223.94,97l-12,96a8,8,0,0,1-7.94,7H88V105.89l36.71-73.43A24,24,0,0,1,144,56V80a8,8,0,0,0,8,8h64a8,8,0,0,1,7.94,9Z"></path>
                 </svg>
             `;
             
@@ -4709,8 +4708,8 @@ document.addEventListener('DOMContentLoaded', function() {
             thumbsDownBtn.className = 'feedback-btn feedback-btn-down';
             thumbsDownBtn.setAttribute('aria-label', 'Thumbs down');
             thumbsDownBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" fill="currentColor">
-                    <path d="M239.82,157l-12-96A24,24,0,0,0,204,40H32A16,16,0,0,0,16,56v88a16,16,0,0,0,16,16H75.06l37.78,75.58A8,8,0,0,0,120,240a40,40,0,0,0,40-40V184h56a24,24,0,0,0,23.82-27ZM72,144H32V56H72Zm150,21.29a7.88,7.88,0,0,1-6,2.71H152a8,8,0,0,0-8,8v24a24,24,0,0,1-19.29,23.54L88,150.11V56H204a8,8,0,0,1,7.94,7l12,96A7.87,7.87,0,0,1,222,165.29Z"></path>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256">
+                    <path fill="currentColor" d="M239.82,157l-12-96A24,24,0,0,0,204,40H32A16,16,0,0,0,16,56v88a16,16,0,0,0,16,16H75.06l37.78,75.58A8,8,0,0,0,120,240a40,40,0,0,0,40-40V184h56a24,24,0,0,0,23.82-27ZM72,144H32V56H72Zm150,21.29a7.88,7.88,0,0,1-6,2.71H152a8,8,0,0,0-8,8v24a24,24,0,0,1-19.29,23.54L88,150.11V56H204a8,8,0,0,1,7.94,7l12,96A7.87,7.87,0,0,1,222,165.29Z"></path>
                 </svg>
             `;
             

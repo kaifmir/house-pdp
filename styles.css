@@ -2357,6 +2357,11 @@ html, body {
     transition: fill 0.2s ease;
 }
 
+/* Ensure fill works on both active and inactive states */
+.feedback-btn:not(.active) svg path {
+    fill: currentColor;
+}
+
 /* Feedback toast notification */
 .feedback-toast {
     position: fixed;
