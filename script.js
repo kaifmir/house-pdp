@@ -10,7 +10,7 @@ window.__CHAT_DEBUG__ = window.__CHAT_DEBUG__ || false;
 
 function parityLog(...args) {
     if (window.__CHAT_DEBUG__) {
-        console.log('[Parity]', ...args);
+        if (window.__CHAT_DEBUG__) console.log('[Parity]', ...args);
     }
 }
 
@@ -65,7 +65,7 @@ function syncKeyboard() {
     const header = document.querySelector('.chat-top-bar');
     if (header) {
         const headerTop = header.getBoundingClientRect().top;
-        console.log('Header top:', headerTop, 'KB height:', kb, 'VV height:', vv.height);
+        if (window.__CHAT_DEBUG__) console.log('Header top:', headerTop, 'KB height:', kb, 'VV height:', vv.height);
     }
 }
 
@@ -164,7 +164,7 @@ document.addEventListener('focusin', (e) => {
     if (header) {
         const headerTop = header.getBoundingClientRect().top;
         const kb = getComputedStyle(document.documentElement).getPropertyValue('--kb').trim();
-        console.log('focusin - headerTop:', headerTop, 'kb:', kb, 'iOS:', isIOSDevice);
+        if (window.__CHAT_DEBUG__) console.log('focusin - headerTop:', headerTop, 'kb:', kb, 'iOS:', isIOSDevice);
     }
 }, { passive: true });
 
@@ -413,7 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const handleSearch = () => {
             playHaptic(); // Haptic feedback on search click
             if (searchInput.value.trim()) {
-                console.log('Searching for:', searchInput.value);
+                if (window.__CHAT_DEBUG__) console.log('Searching for:', searchInput.value);
             }
         };
         
@@ -620,7 +620,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSliderPosition(item, true);
         
         const navType = item.getAttribute('data-nav');
-        console.log('Navigated to:', navType);
+        if (window.__CHAT_DEBUG__) console.log('Navigated to:', navType);
     }
     
     // Initialize slider position
@@ -639,9 +639,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Nav item event handlers - SIMPLIFIED APPROACH
     if (!navItems || navItems.length === 0) {
-        console.error('Nav items not found!');
+        if (window.__CHAT_DEBUG__) console.error('Nav items not found!');
     } else {
-        console.log('Found', navItems.length, 'nav items');
+        if (window.__CHAT_DEBUG__) console.log('Found', navItems.length, 'nav items');
     }
     
     // Attach event listeners directly to each nav item
@@ -659,7 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     e.stopPropagation();
                 }
                 
-                console.log('Nav clicked:', navType);
+                if (window.__CHAT_DEBUG__) console.log('Nav clicked:', navType);
                 
                 // Update active state
                 navItems.forEach(nav => nav.classList.remove('active'));
@@ -962,12 +962,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const rail = document.getElementById('chipsRail');
         const track = document.getElementById('chipsTrack');
         if (!rail || !track) {
-            console.log('chips: missing rail/track');
+            if (window.__CHAT_DEBUG__) console.log('chips: missing rail/track');
             return;
         }
 
         const cs = getComputedStyle(rail);
-        console.log('chips debug', {
+        if (window.__CHAT_DEBUG__) console.log('chips debug', {
             railClient: rail.clientWidth,
             railScrollW: rail.scrollWidth,
             trackScrollW: track.scrollWidth,
@@ -987,13 +987,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         const after = rail.scrollLeft;
         const moved = Math.abs(after - before) > 0.5;
-        console.log('programmatic scroll works?', { before, after, moved });
+        if (window.__CHAT_DEBUG__) console.log('programmatic scroll works?', { before, after, moved });
         
         if (!moved) {
-            console.warn('⚠️ Programmatic scroll FAILED - rail may be blocked by preventDefault or scroll-snap');
+            if (window.__CHAT_DEBUG__) console.warn('⚠️ Programmatic scroll FAILED - rail may be blocked by preventDefault or scroll-snap');
         }
         if (rail.scrollWidth <= rail.clientWidth + 5) {
-            console.warn('⚠️ Rail not scrollable - need more clones or wider content');
+            if (window.__CHAT_DEBUG__) console.warn('⚠️ Rail not scrollable - need more clones or wider content');
         }
     }
 
@@ -1014,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const marquee = document.getElementById('chipsMarquee');
         const track = document.getElementById('chipsTrack');
         if (!marquee || !track) {
-            console.warn('chipsMarquee or chipsTrack not found');
+            if (window.__CHAT_DEBUG__) console.warn('chipsMarquee or chipsTrack not found');
             return;
         }
 
@@ -3262,18 +3262,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     propertyIds: cards.filter(card => card.image === url).map(card => card.id)
                 }));
                 
-                console.error('[Image Selection] ❌ DUPLICATE MAIN IMAGES DETECTED in carousel:', {
-                    carouselId,
-                    totalMainImages: mainImageUrls.length,
-                    uniqueMainImages: uniqueMainImages.size,
-                    duplicateCount: mainImageUrls.length - uniqueMainImages.size,
-                    duplicates: duplicateDetails,
-                    mainImageUrls: mainImageUrls
-                });
-                
-                // Throw error in dev mode to catch issues early
+                // Only log in debug mode to keep demo console clean
                 if (window.__CHAT_DEBUG__) {
-                    throw new Error(`Duplicate main images detected in carousel ${carouselId}. Duplicates: ${JSON.stringify(duplicateDetails)}`);
+                    console.error('[Image Selection] ❌ DUPLICATE MAIN IMAGES DETECTED in carousel:', {
+                        carouselId,
+                        totalMainImages: mainImageUrls.length,
+                        uniqueMainImages: uniqueMainImages.size,
+                        duplicateCount: mainImageUrls.length - uniqueMainImages.size,
+                        duplicates: duplicateDetails,
+                        mainImageUrls: mainImageUrls
+                    });
                 }
             } else if (window.__CHAT_DEBUG__) {
                 console.log('[Image Selection] ✓ All main property card images unique in carousel:', {
@@ -3581,7 +3579,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('✅ WRAPPER CLICKED - Opening gallery');
+                    if (window.__CHAT_DEBUG__) console.log('✅ WRAPPER CLICKED - Opening gallery');
                     createGallery();
                 }
                 
@@ -3976,8 +3974,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.addEventListener('mousemove', mouseMoveHandler);
             document.addEventListener('mouseup', mouseUpHandler);
             
-            // Cleanup on close
-            const cleanup = () => {
+            // Store cleanup function on overlay for proper cleanup on close
+            bottomSheetOverlay._cleanupMouseEvents = () => {
                 document.removeEventListener('mousemove', mouseMoveHandler);
                 document.removeEventListener('mouseup', mouseUpHandler);
             };
@@ -5277,7 +5275,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // This MUST run first to catch non-housing queries even if they extract locality
             if (isNonHousingTopic(text, normalized)) {
                 if (window.__CHAT_DEBUG__) {
-                    console.log('[Intent] Unhandled: Non-housing topic detected - will trigger fallback', {
+                    if (window.__CHAT_DEBUG__) console.log('[Intent] Unhandled: Non-housing topic detected - will trigger fallback', {
                         normalized,
                         text
                     });
@@ -5304,7 +5302,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Only consider it handled if it's clearly about properties/homes
             if (isHousingRelated(text, normalized, updates)) {
                 if (window.__CHAT_DEBUG__) {
-                    console.log('[Intent] Handled: Housing-related message', {
+                        if (window.__CHAT_DEBUG__) console.log('[Intent] Handled: Housing-related message', {
                         intent: !!updates.intent,
                         bhk: !!updates.bhk,
                         price: !!(updates.price || updates.priceMin || updates.priceMax),
@@ -5325,7 +5323,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Message does NOT match any handled intent - will trigger fallback
             if (window.__CHAT_DEBUG__) {
-                console.log('[Intent] Unhandled: No matching intent found - will trigger fallback', {
+                if (window.__CHAT_DEBUG__) console.log('[Intent] Unhandled: No matching intent found - will trigger fallback', {
                     normalized,
                     updates,
                     conversationState: { ...conversationState }
