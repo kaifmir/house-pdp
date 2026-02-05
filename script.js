@@ -3302,16 +3302,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 const imageWrapper = document.createElement('div');
                 imageWrapper.className = 'property-card__imgwrap';
                 
+                // Skeleton loader
+                const skeleton = document.createElement('div');
+                skeleton.className = 'property-card__skeleton';
+                imageWrapper.appendChild(skeleton);
+                
                 const image = document.createElement('img');
                 image.src = card.image;
                 image.alt = card.name;
-                image.className = 'property-card__img';
+                image.className = 'property-card__img property-card__img--loading';
                 image.loading = 'eager'; // Eager loading for visible property cards (better UX)
                 image.decoding = 'async'; // Async decoding for better performance
                 image.style.cursor = 'pointer';
                 image.style.pointerEvents = 'auto';
                 image.style.position = 'relative';
                 image.style.zIndex = '1';
+                
+                // Handle image load - fade in and remove skeleton
+                image.onload = function() {
+                    this.classList.remove('property-card__img--loading');
+                    this.classList.add('property-card__img--loaded');
+                    skeleton.classList.add('property-card__skeleton--hidden');
+                };
                 
                 // Handle image loading errors with fallback
                 image.onerror = function() {
