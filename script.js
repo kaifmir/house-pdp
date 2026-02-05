@@ -1846,50 +1846,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Generate varied greeting responses
+        // Track last greeting index to avoid repeats
+        let lastGreetingIndex = -1;
+        
         function getGreetingResponse() {
             const greetings = [
-                {
-                    text: "Hey! How can I help you with your house search today? Could you tell me what you're looking for - like the BHK size, your budget, whether you want to rent or buy, and which locality you prefer?",
-                },
-                {
-                    text: "Hello! I'd be happy to help you find the perfect home. To get started, could you share a few details? What BHK are you looking for, what's your budget range, are you planning to rent or buy, and which area interests you?",
-                },
-                {
-                    text: "Hi there! Let's find you a great place. To help me search better, could you tell me: what size property you need (BHK), your budget, whether it's for rent or purchase, and your preferred locality?",
-                },
-                {
-                    text: "Hey! Welcome. I'm here to help with your property search. It would be great if you could share: the number of bedrooms you need, your budget, whether you're looking to rent or buy, and which locality you have in mind.",
-                },
-                {
-                    text: "Hello! How can I assist you today? To find the best matches, I'd love to know: what BHK configuration works for you, your budget range, if you're renting or buying, and your preferred location.",
-                },
-                {
-                    text: "Hi! Great to have you here. To help you find the right property, could you let me know: what size home you're looking for (BHK), your budget, whether it's rent or buy, and which locality you prefer?",
-                },
-                {
-                    text: "Hey there! I'm here to help you with your home search. To get started, it would help if you could share: your BHK requirement, budget range, whether you want to rent or buy, and your preferred area or locality.",
-                },
-                {
-                    text: "Hello! Let's find you a wonderful home. Could you help me understand what you're looking for? I'd need to know: the BHK size, your budget, rent or buy preference, and which locality you're interested in.",
-                },
-                {
-                    text: "Hi! How can I help you with your property search today? To make this easier, could you tell me: what BHK you need, your budget, whether you're looking to rent or buy, and your preferred locality?",
-                },
-                {
-                    text: "Hey! Welcome. To help you find the perfect match, I'd appreciate if you could share: the number of bedrooms (BHK), your budget range, whether it's for rent or purchase, and which area you're considering.",
-                },
-                {
-                    text: "Hello there! I'm here to assist with your house search. To get the best results, could you provide: your BHK requirement, budget, rent or buy preference, and the locality you have in mind?",
-                },
-                {
-                    text: "Hi! Great to meet you. Let's find you a home that fits perfectly. Could you share: what size property you need (BHK), your budget, whether you want to rent or buy, and which locality interests you?",
-                }
+                "Hey! Try something like '2 BHK in Andheri under 50k' 🏠",
+                "Hi! You can search 'Buy 3 BHK in Whitefield'",
+                "Hello! Looking for 'Homes near HSR Layout'?",
+                "Hey there! Try '1 BHK for rent in Koramangala under 25k'",
+                "Hi! Search like 'Buy flat in Powai under 2 Cr'",
+                "Hello! You can ask 'Show 2 BHK in Bandra for rent'",
+                "Hey! Try '3 BHK in Indiranagar under 80k'",
+                "Hi there! Ask me 'Flats in Gurgaon under 40k'",
+                "Hello! Search '2 BHK to buy in Noida under 1 Cr'",
+                "Hey! Try 'Rent 1 BHK in Malad under 30k'"
             ];
             
-            // Pick a random greeting
-            const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+            // Pick random but avoid back-to-back repeats
+            let index;
+            do {
+                index = Math.floor(Math.random() * greetings.length);
+            } while (index === lastGreetingIndex && greetings.length > 1);
             
-            return greeting.text;
+            lastGreetingIndex = index;
+            return greetings[index];
+        }
+        
+        // Check if message is a location-proximity phrase that needs location modal
+        function isLocationProximityPhrase(text) {
+            const normalized = text.toLowerCase().trim();
+            const proximityPatterns = [
+                /\b(around|near)\s*(me|metro)\b/i,
+                /\bnearby\b/i,
+                /\bclose\s*to\s*me\b/i,
+                /\bproperties?\s*(around|near)\s*(me|metro)\b/i,
+                /\bflats?\s*(around|near)\s*(me|metro)\b/i,
+                /\bhomes?\s*(around|near)\s*(me|metro)\b/i
+            ];
+            
+            return proximityPatterns.some(pattern => pattern.test(normalized));
         }
         
         // Popular localities mapping for major Indian cities (with common misspellings)
@@ -5487,11 +5483,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 return true;
             }
             
-            // INTENT CHECK 4: Location permission keywords (handled)
-            // Check for location-related requests even if not explicitly extracted
-            const locationKeywords = /near me|around me|nearby|my location|current location|where am i|explore.*near me|properties.*near me/i.test(normalized);
-            if (locationKeywords) {
-                if (window.__CHAT_DEBUG__) console.log('[Intent] Handled: Location request for properties');
+            // INTENT CHECK 4: Location proximity phrases (handled)
+            // Check for location-related requests that trigger location modal
+            if (isLocationProximityPhrase(text)) {
+                if (window.__CHAT_DEBUG__) console.log('[Intent] Handled: Location proximity phrase');
                 return true;
             }
             
@@ -5541,6 +5536,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     return;
                 }
+                
+                    // Check for location proximity phrases (around me, near me, near metro, etc.)
+                    if (isLocationProximityPhrase(text)) {
+                        if (window.__CHAT_DEBUG__) console.log('[Intent] Routing to location modal');
+                        conversationState.useLocation = true;
+                        showLocationPermissionDialog();
+                        return;
+                    }
                 
                     // Check for brochure request
                     const isBrochureRequest = /show.*brochure|brochure.*show|view.*brochure|brochure.*view|download.*brochure|brochure.*download/i.test(normalized) ||
