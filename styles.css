@@ -1522,7 +1522,7 @@ button, .property-type-card {
 
 .scouty-greeting-text span {
     display: inline;
-    animation: blurFadeIn 0.8s ease-out both;
+    animation: blurFadeIn 0.5s ease-out both;
     filter: blur(6px);
     opacity: 0;
     word-spacing: 0.15em;
@@ -1531,7 +1531,7 @@ button, .property-type-card {
 .scouty-greeting-text span.visible {
     filter: blur(0);
     opacity: 1;
-    animation: blurFadeIn 0.8s ease-out both;
+    animation: blurFadeIn 0.5s ease-out both;
 }
 
 .scouty-greeting-text span.scouty-name {
@@ -2293,7 +2293,7 @@ html, body {
 .feedback-buttons {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     margin-top: 16px;
     padding: 0;
 }
@@ -3785,7 +3785,6 @@ html, body {
     z-index: 100000;
     opacity: 0;
     transition: opacity 0.3s ease;
-    backdrop-filter: blur(4px);
 }
 
 .pdp-bottom-sheet-overlay.show {
@@ -3808,6 +3807,7 @@ html, body {
     height: 70vh;
     max-height: 70vh;
     overflow: hidden;
+    will-change: height, border-radius;
 }
 
 .pdp-bottom-sheet.show {
@@ -3815,8 +3815,20 @@ html, body {
 }
 
 .pdp-bottom-sheet.fully-expanded {
-    height: 98vh !important;
-    max-height: 98vh !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    padding-top: env(safe-area-inset-top);
+    box-shadow: none !important;
+}
+
+/* Handle opacity controlled by JS during progressive expansion */
+.pdp-bottom-sheet.fully-expanded .pdp-bottom-sheet-handle {
+    pointer-events: none;
+}
+
+/* Adjust header padding in full-screen for safe area */
+.pdp-bottom-sheet.fully-expanded .pdp-bottom-sheet-header {
+    padding-top: 4px;
 }
 
 .pdp-bottom-sheet-header {
@@ -3840,37 +3852,7 @@ html, body {
     margin: 8px auto;
     flex-shrink: 0;
     pointer-events: none;
-}
-
-.pdp-bottom-sheet-close {
-    position: absolute;
-    top: 12px;
-    right: 16px;
-    width: 36px;
-    height: 36px;
-    background: rgba(255, 255, 255, 0.95);
-    border: none;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
-    padding: 0;
-}
-
-.pdp-bottom-sheet-close:hover,
-.pdp-bottom-sheet-close:active {
-    background: #ffffff;
-    transform: scale(1.05);
-}
-
-.pdp-bottom-sheet-close svg {
-    width: 18px;
-    height: 18px;
-    color: #000;
+    transition: opacity 0.3s ease;
 }
 
 .pdp-bottom-sheet-back {
@@ -3902,6 +3884,14 @@ html, body {
     width: 18px;
     height: 18px;
     color: #000;
+}
+
+/* Back button becomes sticky when fully expanded */
+.pdp-bottom-sheet.fully-expanded .pdp-bottom-sheet-back {
+    position: fixed;
+    top: calc(16px + env(safe-area-inset-top));
+    left: 16px;
+    z-index: 100002;
 }
 
 .pdp-bottom-sheet-content {
@@ -3943,16 +3933,6 @@ html, body {
 }
 
 @media (max-width: 480px) {
-    .pdp-bottom-sheet {
-        height: 65vh;
-        max-height: 65vh;
-    }
-    
-    .pdp-bottom-sheet.fully-expanded {
-        height: 98vh !important;
-        max-height: 98vh !important;
-    }
-    
     .pdp-bottom-sheet-content .pdp-hero-image {
         height: 200px;
     }

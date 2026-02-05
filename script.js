@@ -565,11 +565,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                     
                     charIndex++;
-                    currentTimeout = setTimeout(typeChar, 50);
+                    currentTimeout = setTimeout(typeChar, 35);
                 } else {
                     partIndex++;
                     charIndex = 0;
-                    currentTimeout = setTimeout(typeChar, 60);
+                    currentTimeout = setTimeout(typeChar, 45);
                 }
             } else {
                 // Animation complete
@@ -579,7 +579,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (scoutyCTA && bottomSheet.classList.contains('active')) {
                         scoutyCTA.style.display = 'flex';
                     }
-                }, 300);
+                }, 200);
             }
         }
         
@@ -3640,14 +3640,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 const ctaSection = document.createElement('div');
                 ctaSection.className = 'property-card__cta-section';
                 
-                // View CTA button
+                // Contact CTA button
                 const viewBtn = document.createElement('button');
                 viewBtn.className = 'property-card__view-btn';
-                viewBtn.textContent = 'View';
+                viewBtn.textContent = 'Contact';
                 viewBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    openPropertyDetailPage(card);
+                    showLoginBottomSheet();
                 });
                 
                 // Favorite button (next to CTA)
@@ -3724,64 +3724,167 @@ document.addEventListener('DOMContentLoaded', function() {
             bottomSheet.className = 'pdp-bottom-sheet';
             bottomSheet.id = 'pdp-bottom-sheet';
             
-            // Two-way snap points: collapsed and full screen
-            let initialHeight = Math.min(window.innerHeight * 0.7, 600); // Start at 70vh or 600px
-            let maxHeight = window.innerHeight * 0.98; // Max at 98vh
+            // Progressive expansion system
+            const initialHeight = Math.min(window.innerHeight * 0.7, 600); // Start at 70vh or 600px
+            const maxHeight = window.innerHeight; // Full viewport height
+            const heightRange = maxHeight - initialHeight;
+            const initialRadius = 24; // Initial border radius
+            
+            // Progress value: 0 = collapsed, 1 = fully expanded
+            let progress = 0;
             let currentHeight = initialHeight;
             let isFullyExpanded = false;
-            let lastScrollTop = 0;
             let isDragging = false;
-            let scrollStartY = 0;
-            let isScrolling = false;
+            let lastScrollTop = 0;
+            let isAnimating = false;
             
-            // Set initial height
+            // Hysteresis thresholds to prevent flickering
+            const EXPAND_THRESHOLD = 0.85;
+            const COLLAPSE_THRESHOLD = 0.15;
+            
+            // Throttle for scroll updates (16ms = ~60fps)
+            let lastUpdateTime = 0;
+            const THROTTLE_MS = 16;
+            
+            // Set initial styles
             bottomSheet.style.height = `${initialHeight}px`;
             bottomSheet.style.maxHeight = `${initialHeight}px`;
+            bottomSheet.style.borderRadius = `${initialRadius}px ${initialRadius}px 0 0`;
+            
+            // Interpolation helper
+            const interpolate = (value, inputRange, outputRange) => {
+                const [inMin, inMax] = inputRange;
+                const [outMin, outMax] = outputRange;
+                const clamped = Math.max(inMin, Math.min(inMax, value));
+                return outMin + ((clamped - inMin) / (inMax - inMin)) * (outMax - outMin);
+            };
+            
+            // Apply styles based on progress (0-1)
+            const applyProgress = (newProgress) => {
+                progress = Math.max(0, Math.min(1, newProgress));
+                
+                // Interpolate height
+                currentHeight = interpolate(progress, [0, 1], [initialHeight, maxHeight]);
+                
+                // Interpolate border radius
+                const radius = interpolate(progress, [0, 1], [initialRadius, 0]);
+                
+                // Interpolate handle opacity
+                const handleOpacity = interpolate(progress, [0.5, 1], [1, 0]);
+                
+                // Apply styles directly (no transition during drag)
+                bottomSheet.style.height = `${currentHeight}px`;
+                bottomSheet.style.maxHeight = `${currentHeight}px`;
+                bottomSheet.style.borderRadius = `${radius}px ${radius}px 0 0`;
+                
+                // Update handle opacity
+                const handle = bottomSheet.querySelector('.pdp-bottom-sheet-handle');
+                if (handle) {
+                    handle.style.opacity = handleOpacity;
+                }
+                
+                // Check hysteresis thresholds
+                if (progress >= EXPAND_THRESHOLD && !isFullyExpanded) {
+                    isFullyExpanded = true;
+                    bottomSheet.classList.add('fully-expanded');
+                } else if (progress <= COLLAPSE_THRESHOLD && isFullyExpanded) {
+                    isFullyExpanded = false;
+                    bottomSheet.classList.remove('fully-expanded');
+                }
+            };
+            
+            // Animate to target progress with spring-like easing
+            const animateToProgress = (targetProgress, duration = 300) => {
+                if (isAnimating) return;
+                isAnimating = true;
+                
+                const startProgress = progress;
+                const startTime = performance.now();
+                
+                const animate = (currentTime) => {
+                    const elapsed = currentTime - startTime;
+                    const t = Math.min(elapsed / duration, 1);
+                    
+                    // Spring-like easing
+                    const eased = 1 - Math.pow(1 - t, 3);
+                    
+                    const newProgress = startProgress + (targetProgress - startProgress) * eased;
+                    applyProgress(newProgress);
+                    
+                    if (t < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        isAnimating = false;
+                        applyProgress(targetProgress);
+                    }
+                };
+                
+                requestAnimationFrame(animate);
+            };
             
             // Expand to full screen
             const expandToFull = () => {
-                if (isFullyExpanded) return;
-                isFullyExpanded = true;
-                currentHeight = maxHeight;
-                bottomSheet.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                bottomSheet.style.height = `${maxHeight}px`;
-                bottomSheet.style.maxHeight = `${maxHeight}px`;
-                bottomSheet.classList.add('fully-expanded');
-                setTimeout(() => {
-                    bottomSheet.style.transition = '';
-                }, 300);
+                if (isFullyExpanded || isAnimating) return;
+                animateToProgress(1, 300);
             };
             
             // Collapse to bottom sheet
             const collapseToSheet = () => {
-                if (!isFullyExpanded) return;
-                isFullyExpanded = false;
-                currentHeight = initialHeight;
-                bottomSheet.style.transition = 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-                bottomSheet.style.height = `${initialHeight}px`;
-                bottomSheet.style.maxHeight = `${initialHeight}px`;
-                bottomSheet.classList.remove('fully-expanded');
-                setTimeout(() => {
-                    bottomSheet.style.transition = '';
-                }, 300);
+                if (!isFullyExpanded || isAnimating) return;
+                animateToProgress(0, 300);
             };
             
-            // Handle scroll - expand on scroll up, collapse on pull down at top
+            // Snap to nearest state based on current progress
+            const snapToNearestState = () => {
+                if (isAnimating) return;
+                if (progress > 0.5) {
+                    animateToProgress(1, 250);
+                } else {
+                    animateToProgress(0, 250);
+                }
+            };
+            
+            // Handle scroll - progressive expansion based on content scroll
             const handleScroll = (e) => {
+                if (isAnimating || isDragging) return;
+                
+                // Throttle updates
+                const now = performance.now();
+                if (now - lastUpdateTime < THROTTLE_MS) return;
+                lastUpdateTime = now;
+                
                 const scrollTop = pdpContent.scrollTop;
                 
-                // Expand: If scrolling up and not yet expanded, expand to full screen
-                if (!isFullyExpanded && scrollTop > 0) {
-                    expandToFull();
+                // If fully expanded and at top, don't do anything special
+                // Pull-down to collapse is handled separately
+                if (isFullyExpanded) {
                     lastScrollTop = scrollTop;
                     return;
                 }
                 
-                // Track scroll position for collapse detection
+                // Calculate progress based on scroll (first 100px of scroll drives expansion)
+                const scrollDriveRange = 100;
+                if (scrollTop > 0 && progress < 1) {
+                    const scrollProgress = Math.min(scrollTop / scrollDriveRange, 1);
+                    
+                    // Only expand, don't collapse via scroll
+                    if (scrollProgress > progress) {
+                        applyProgress(scrollProgress);
+                        
+                        // Once we pass threshold, animate to full
+                        if (progress >= EXPAND_THRESHOLD) {
+                            animateToProgress(1, 200);
+                        }
+                    }
+                }
+                
                 lastScrollTop = scrollTop;
             };
             
             // Track scroll start for pull-down detection
+            let scrollStartY = 0;
+            let isScrolling = false;
+            
             const handleScrollStart = (e) => {
                 isScrolling = true;
                 const touch = e.touches ? e.touches[0] : null;
@@ -3792,56 +3895,43 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const handleScrollEnd = () => {
                 isScrolling = false;
+                // If we're in a mid-state after scroll ends, snap to nearest
+                if (!isDragging && !isAnimating && progress > 0.1 && progress < 0.9) {
+                    snapToNearestState();
+                }
             };
             
-            // Touch/mouse drag to expand
+            // Touch/mouse drag to expand (header drag)
             let startY = 0;
-            let startHeight = 0;
+            let startProgress = 0;
             
             const handleStart = (e) => {
+                if (isAnimating) return;
                 const touch = e.touches ? e.touches[0] : e;
                 startY = touch.clientY;
-                startHeight = currentHeight;
+                startProgress = progress;
                 isDragging = true;
             };
             
             const handleMove = (e) => {
-                if (!isDragging) return;
+                if (!isDragging || isAnimating) return;
                 const touch = e.touches ? e.touches[0] : e;
                 const deltaY = startY - touch.clientY; // Positive when dragging up
                 
-                if (deltaY > 0 && currentHeight < maxHeight) {
-                    // Dragging up - expand
-                    currentHeight = Math.min(startHeight + deltaY, maxHeight);
-                    bottomSheet.style.height = `${currentHeight}px`;
-                    bottomSheet.style.maxHeight = `${currentHeight}px`;
-                    
-                    if (currentHeight >= maxHeight * 0.95) {
-                        isFullyExpanded = true;
-                        hasExpanded = true; // Mark as expanded so scroll handler doesn't trigger
-                        bottomSheet.classList.add('fully-expanded');
-                    }
-                } else if (deltaY < 0 && currentHeight > initialHeight) {
-                    // Dragging down - collapse (but don't go below initial height)
-                    currentHeight = Math.max(startHeight + deltaY, initialHeight);
-                    bottomSheet.style.height = `${currentHeight}px`;
-                    bottomSheet.style.maxHeight = `${currentHeight}px`;
-                    isFullyExpanded = false;
-                    hasExpanded = false; // Reset so scroll can trigger expansion again
-                    bottomSheet.classList.remove('fully-expanded');
-                }
+                // Calculate progress change based on drag distance
+                const dragSensitivity = heightRange; // Full drag range
+                const progressDelta = deltaY / dragSensitivity;
+                const newProgress = startProgress + progressDelta;
+                
+                applyProgress(newProgress);
             };
             
             const handleEnd = () => {
+                if (!isDragging) return;
                 isDragging = false;
-            };
-            
-            // Close button (X)
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'pdp-bottom-sheet-close';
-            closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-            closeBtn.onclick = function() {
-                closePDPBottomSheet();
+                
+                // Snap to nearest state
+                snapToNearestState();
             };
             
             // Back button (only on Chat screen PDP)
@@ -4098,10 +4188,9 @@ document.addEventListener('DOMContentLoaded', function() {
             pdpContent.appendChild(heroImage);
             pdpContent.appendChild(contentWrapper);
             
-            // Assemble header with buttons
+            // Assemble header with back button
             headerArea.appendChild(dragHandle);
             headerArea.appendChild(backBtn);
-            headerArea.appendChild(closeBtn);
             
             bottomSheet.appendChild(headerArea);
             bottomSheet.appendChild(pdpContent);
@@ -4825,6 +4914,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const thumbsDownOutline = `<path fill="currentColor" d="M239.82,157l-12-96A24,24,0,0,0,204,40H32A16,16,0,0,0,16,56v88a16,16,0,0,0,16,16H75.06l37.78,75.58A8,8,0,0,0,120,240a40,40,0,0,0,40-40V184h56a24,24,0,0,0,23.82-27ZM72,144H32V56H72Zm150,21.29a7.88,7.88,0,0,1-6,2.71H152a8,8,0,0,0-8,8v24a24,24,0,0,1-19.29,23.54L88,150.11V56H204a8,8,0,0,1,7.94,7l12,96A7.87,7.87,0,0,1,222,165.29Z"></path>`;
             // Thumbs down - filled version (active)
             const thumbsDownFilled = `<path fill="currentColor" d="M239.82,157l-12-96A24,24,0,0,0,204,40H32A16,16,0,0,0,16,56v88a16,16,0,0,0,16,16H75.06l37.78,75.58A8,8,0,0,0,120,240a40,40,0,0,0,40-40V184h56a24,24,0,0,0,23.82-27ZM72,144H32V56H72Z"></path>`;
+            
+            const thumbsDownBtn = document.createElement('button');
+            thumbsDownBtn.className = 'feedback-btn feedback-btn-down';
+            thumbsDownBtn.setAttribute('aria-label', 'Thumbs down');
             
             thumbsDownBtn.innerHTML = `
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" class="feedback-icon-svg">
