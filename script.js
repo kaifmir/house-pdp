@@ -3012,6 +3012,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     phoneContainer.classList.remove('login-input-error');
                 }
                 stopCursorBlink();
+                
+                // Reset keyboard offset on blur (delay to allow for focus transfer)
+                setTimeout(() => {
+                    // Only reset if no other input is focused
+                    if (!document.activeElement || 
+                        !loginSheet.contains(document.activeElement) || 
+                        document.activeElement.tagName !== 'INPUT') {
+                        if (window.__CHAT_DEBUG__) {
+                            console.log('[Login Keyboard] Blur - resetting offset');
+                        }
+                        sheetContent.style.transform = 'translateY(0)';
+                    }
+                }, 100);
             });
             
             // Clear button handler
@@ -3201,9 +3214,159 @@ document.addEventListener('DOMContentLoaded', function() {
                 loginSheet.classList.add('active');
             });
             
+            // ========== KEYBOARD HANDLING FOR iOS ==========
+            const sheetContent = loginSheet.querySelector('.login-bottom-sheet-content');
+            let currentKeyboardHeight = 0;
+            let keyboardAnimationFrame = null;
+            
+            // Get keyboard height using visualViewport API (iOS reliable method)
+            function getKeyboardHeight() {
+                if (window.visualViewport) {
+                    const vv = window.visualViewport;
+                    // iOS: keyboard height = difference between window.innerHeight and visualViewport
+                    const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
+                    return Math.max(0, keyboardHeight);
+                }
+                return 0; // Fallback for browsers without visualViewport
+            }
+            
+            // Apply keyboard offset to bottom sheet
+            function applyKeyboardOffset(height) {
+                if (keyboardAnimationFrame) {
+                    cancelAnimationFrame(keyboardAnimationFrame);
+                }
+                
+                keyboardAnimationFrame = requestAnimationFrame(() => {
+                    const clampedHeight = Math.max(0, height);
+                    
+                    if (window.__CHAT_DEBUG__) {
+                        console.log('[Login Keyboard] Height:', clampedHeight, 'px');
+                    }
+                    
+                    if (clampedHeight > 0) {
+                        // Keyboard is open - lift sheet above keyboard
+                        sheetContent.style.transform = `translateY(-${clampedHeight}px)`;
+                        sheetContent.style.transition = 'transform 0.25s ease-out';
+                    } else {
+                        // Keyboard is closed - reset position
+                        sheetContent.style.transform = 'translateY(0)';
+                        sheetContent.style.transition = 'transform 0.2s ease-out';
+                    }
+                    
+                    currentKeyboardHeight = clampedHeight;
+                });
+            }
+            
+            // Ensure input is visible after keyboard opens
+            function ensureInputVisible(inputElement) {
+                if (!inputElement) return;
+                
+                setTimeout(() => {
+                    // Scroll the input into view within the sheet content
+                    inputElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+            
+            // Throttled viewport resize handler
+            let viewportResizeTimeout = null;
+            function handleViewportResize() {
+                if (viewportResizeTimeout) return;
+                
+                viewportResizeTimeout = setTimeout(() => {
+                    viewportResizeTimeout = null;
+                    const kbHeight = getKeyboardHeight();
+                    
+                    if (window.__CHAT_DEBUG__) {
+                        console.log('[Login Keyboard] Viewport resize - kbHeight:', kbHeight);
+                    }
+                    
+                    applyKeyboardOffset(kbHeight);
+                }, 50);
+            }
+            
+            // Attach visualViewport listeners (iOS)
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', handleViewportResize);
+                window.visualViewport.addEventListener('scroll', handleViewportResize);
+                
+                if (window.__CHAT_DEBUG__) {
+                    console.log('[Login Keyboard] visualViewport listeners attached');
+                }
+            }
+            
+            // Enhanced focus handler for phone input
+            const originalPhoneFocus = phoneInput.onfocus;
+            phoneInput.addEventListener('focus', function(e) {
+                if (window.__CHAT_DEBUG__) {
+                    console.log('[Login Keyboard] Phone input focused');
+                }
+                
+                // On iOS, keyboard takes time to open - poll for height changes
+                let pollCount = 0;
+                const pollKeyboard = setInterval(() => {
+                    const kbHeight = getKeyboardHeight();
+                    if (kbHeight > 50 || pollCount > 20) {
+                        clearInterval(pollKeyboard);
+                        applyKeyboardOffset(kbHeight);
+                        ensureInputVisible(phoneInput);
+                    }
+                    pollCount++;
+                }, 50);
+            });
+            
+            // OTP inputs also need keyboard handling
+            otpInputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    if (window.__CHAT_DEBUG__) {
+                        console.log('[Login Keyboard] OTP input focused');
+                    }
+                    
+                    let pollCount = 0;
+                    const pollKeyboard = setInterval(() => {
+                        const kbHeight = getKeyboardHeight();
+                        if (kbHeight > 50 || pollCount > 20) {
+                            clearInterval(pollKeyboard);
+                            applyKeyboardOffset(kbHeight);
+                            ensureInputVisible(input);
+                        }
+                        pollCount++;
+                    }, 50);
+                });
+                
+                input.addEventListener('blur', function() {
+                    // Reset keyboard offset on blur (delay to allow for focus transfer between OTP inputs)
+                    setTimeout(() => {
+                        if (!document.activeElement || 
+                            !loginSheet.contains(document.activeElement) || 
+                            document.activeElement.tagName !== 'INPUT') {
+                            if (window.__CHAT_DEBUG__) {
+                                console.log('[Login Keyboard] OTP blur - resetting offset');
+                            }
+                            sheetContent.style.transform = 'translateY(0)';
+                        }
+                    }, 100);
+                });
+            });
+            
+            // Cleanup keyboard listeners
+            function cleanupKeyboardListeners() {
+                if (window.visualViewport) {
+                    window.visualViewport.removeEventListener('resize', handleViewportResize);
+                    window.visualViewport.removeEventListener('scroll', handleViewportResize);
+                }
+                if (keyboardAnimationFrame) {
+                    cancelAnimationFrame(keyboardAnimationFrame);
+                }
+                if (viewportResizeTimeout) {
+                    clearTimeout(viewportResizeTimeout);
+                }
+            }
+            // ========== END KEYBOARD HANDLING ==========
+            
             // Close function
             function closeLoginBottomSheet() {
                 stopCursorBlink();
+                cleanupKeyboardListeners();
                 loginSheet.classList.remove('active');
                 setTimeout(() => {
                     loginSheet.remove();
