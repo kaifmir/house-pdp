@@ -3893,43 +3893,45 @@ html, body {
     transition: opacity 0.3s ease;
 }
 
+/* Back button overlays hero image */
 .pdp-bottom-sheet-back {
     position: absolute;
-    top: 12px;
+    top: 16px;
     left: 16px;
-    width: 36px;
-    height: 36px;
-    background: rgba(255, 255, 255, 0.95);
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.5);
     border: none;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     transition: all 0.2s ease;
     padding: 0;
 }
 
 .pdp-bottom-sheet-back:hover,
 .pdp-bottom-sheet-back:active {
-    background: #ffffff;
+    background: rgba(0, 0, 0, 0.7);
     transform: scale(1.05);
 }
 
 .pdp-bottom-sheet-back svg {
-    width: 18px;
-    height: 18px;
-    color: #000;
+    width: 20px;
+    height: 20px;
+    color: #ffffff;
 }
 
-/* Back button becomes sticky when fully expanded */
+/* Back button becomes fixed when fully expanded */
 .pdp-bottom-sheet.fully-expanded .pdp-bottom-sheet-back {
     position: fixed;
     top: calc(16px + env(safe-area-inset-top));
     left: 16px;
-    z-index: 100002;
+    z-index: 100003;
 }
 
 .pdp-bottom-sheet-content {
@@ -3939,6 +3941,7 @@ html, body {
     -webkit-overflow-scrolling: touch;
     padding-bottom: 20px;
     overscroll-behavior: contain;
+    position: relative;
 }
 
 .pdp-bottom-sheet-content .pdp-hero-image {

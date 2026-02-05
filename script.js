@@ -4200,9 +4200,11 @@ document.addEventListener('DOMContentLoaded', function() {
             pdpContent.appendChild(heroImage);
             pdpContent.appendChild(contentWrapper);
             
-            // Assemble header with back button
+            // Add back button inside pdpContent, overlaying hero image
+            pdpContent.appendChild(backBtn);
+            
+            // Assemble header with drag handle only
             headerArea.appendChild(dragHandle);
-            headerArea.appendChild(backBtn);
             
             bottomSheet.appendChild(headerArea);
             bottomSheet.appendChild(pdpContent);
