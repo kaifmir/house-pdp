@@ -4212,6 +4212,7 @@ html, body {
     background: #ffffff;
     border-radius: 24px 24px 0 0;
     padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
     display: flex;
     flex-direction: column;
     gap: 24px;
@@ -4545,9 +4546,193 @@ html, body {
     flex-shrink: 0;
 }
 
+/* OTP Step Styles */
+.login-step {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: loginStepFadeIn 0.25s ease-out;
+}
+
+.login-step.hidden {
+    display: none;
+}
+
+@keyframes loginStepFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-otp-title {
+    font-family: 'Rubik', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: #222;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.login-otp-subtitle {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #767676;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.login-otp-container {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.login-otp-input {
+    width: 52px;
+    height: 56px;
+    border: 1px solid #e1e2e8;
+    border-radius: 12px;
+    background: #ffffff;
+    font-family: 'Rubik', sans-serif;
+    font-size: 24px;
+    font-weight: 500;
+    color: #222;
+    text-align: center;
+    caret-color: #5e23dc;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.login-otp-input:focus {
+    outline: none;
+    border-color: #5e23dc;
+    box-shadow: 0 0 0 3px rgba(94, 35, 220, 0.1);
+}
+
+.login-otp-input.filled {
+    border-color: #5e23dc;
+    animation: otpFillPop 0.2s ease-out;
+}
+
+@keyframes otpFillPop {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.login-otp-resend {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    color: #767676;
+    text-align: center;
+}
+
+.login-otp-resend-link {
+    color: #5e23dc;
+    font-weight: 500;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.login-otp-resend-link:disabled {
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* Success Step Styles */
+.login-success-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+}
+
+.login-success-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #5e23dc 0%, #7c4dff 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    animation: successIconPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes successIconPop {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.login-success-icon svg {
+    width: 32px;
+    height: 32px;
+    color: #ffffff;
+}
+
+.login-success-icon svg path {
+    stroke-dasharray: 30;
+    stroke-dashoffset: 30;
+    animation: checkmarkDraw 0.4s ease-out 0.2s forwards;
+}
+
+@keyframes checkmarkDraw {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.login-success-title {
+    font-family: 'Rubik', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: #222;
+    text-align: center;
+    animation: successTextFade 0.3s ease-out 0.3s both;
+}
+
+@keyframes successTextFade {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @media (max-width: 480px) {
     .login-bottom-sheet-content {
         padding: 16px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
         gap: 20px;
     }
     
@@ -4557,6 +4742,16 @@ html, body {
     
     .login-container2 {
         height: 52px;
+    }
+    
+    .login-otp-input {
+        width: 48px;
+        height: 52px;
+        font-size: 22px;
+    }
+    
+    .login-otp-container {
+        gap: 10px;
     }
 }
 

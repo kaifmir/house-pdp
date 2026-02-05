@@ -2849,6 +2849,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let cursorVisible = false;
             let showError = false;
             let inputFocused = false;
+            let currentStep = 'phone'; // 'phone', 'otp', 'success'
             
             // Create the login bottom sheet HTML structure
             loginSheet.innerHTML = `
@@ -2861,52 +2862,84 @@ document.addEventListener('DOMContentLoaded', function() {
                         </svg>
                     </button>
                     
-                    <div class="login-frame3">
-                        <!-- Header Section with Logo -->
-                        <div class="login-frame5">
-                            <div class="login-frame2">
-                                <img src="Login image.jpg" alt="Login background" class="login-bg-image" onerror="this.style.display='none'">
-                                <img src="Container.png" alt="Container" class="login-container-image" onerror="this.style.display='none'">
+                    <!-- Phone Step -->
+                    <div class="login-step" id="login-step-phone">
+                        <div class="login-frame3">
+                            <!-- Header Section with Logo -->
+                            <div class="login-frame5">
+                                <div class="login-frame2">
+                                    <img src="Login image.jpg" alt="Login background" class="login-bg-image" onerror="this.style.display='none'">
+                                    <img src="Container.png" alt="Container" class="login-container-image" onerror="this.style.display='none'">
+                                </div>
+                                <h2 class="login-heading">Login to Housing</h2>
+                            </div>
+                            
+                            <!-- Phone Input Field -->
+                            <div class="login-container2" id="login-phone-container">
+                                <div class="login-country-selector" id="login-country-selector">
+                                    <span class="login-flag">🇮🇳</span>
+                                    <span class="login-country-code">+91</span>
+                                </div>
+                                <div class="login-phone-input-area" id="login-phone-input-area">
+                                    <input type="tel" class="login-phone-input" id="login-phone-input" placeholder="Phone number" maxlength="10" inputmode="numeric">
+                                </div>
+                                <button class="login-clear-btn" id="login-clear-btn" style="display: none;">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                                    </svg>
+                                </button>
+                                <div class="login-cursor" id="login-cursor" style="display: none;"></div>
+                            </div>
                         </div>
-                            <h2 class="login-heading">Login to Housing</h2>
-                    </div>
                         
-                        <!-- Phone Input Field -->
-                        <div class="login-container2" id="login-phone-container">
-                            <div class="login-country-selector" id="login-country-selector">
-                                <span class="login-flag">🇮🇳</span>
-                                <span class="login-country-code">+91</span>
-                    </div>
-                            <div class="login-phone-input-area" id="login-phone-input-area">
-                                <input type="tel" class="login-phone-input" id="login-phone-input" placeholder="Phone number" maxlength="10" inputmode="numeric">
-                        </div>
-                            <button class="login-clear-btn" id="login-clear-btn" style="display: none;">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
+                        <!-- Buttons Section -->
+                        <div class="login-frame7">
+                            <button class="login-continue-btn" id="login-continue-btn">Continue</button>
+                            
+                            <div class="login-or-divider">
+                                <div class="login-or-line"></div>
+                                <span class="login-or-text">OR</span>
+                                <div class="login-or-line"></div>
+                            </div>
+                            
+                            <button class="login-whatsapp-btn" id="login-whatsapp-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#5e23dc" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                </svg>
+                                <span>Continue with WhatsApp</span>
                             </button>
-                            <div class="login-cursor" id="login-cursor" style="display: none;"></div>
+                        </div>
                     </div>
-                        </div>
                     
-                    <!-- Buttons Section -->
-                    <div class="login-frame7">
-                        <button class="login-continue-btn" id="login-continue-btn">Continue</button>
+                    <!-- OTP Step -->
+                    <div class="login-step hidden" id="login-step-otp">
+                        <div class="login-otp-title">Verify your number</div>
+                        <div class="login-otp-subtitle" id="login-otp-subtitle">Enter the 4-digit code sent to +91 XXXXXXXXXX</div>
                         
-                        <div class="login-or-divider">
-                            <div class="login-or-line"></div>
-                            <span class="login-or-text">OR</span>
-                            <div class="login-or-line"></div>
+                        <div class="login-otp-container" id="login-otp-container">
+                            <input type="text" class="login-otp-input" maxlength="1" inputmode="numeric" data-index="0">
+                            <input type="text" class="login-otp-input" maxlength="1" inputmode="numeric" data-index="1">
+                            <input type="text" class="login-otp-input" maxlength="1" inputmode="numeric" data-index="2">
+                            <input type="text" class="login-otp-input" maxlength="1" inputmode="numeric" data-index="3">
                         </div>
                         
-                        <button class="login-whatsapp-btn" id="login-whatsapp-btn">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="#5e23dc" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                            </svg>
-                            <span>Continue with WhatsApp</span>
-                        </button>
+                        <div class="login-otp-resend">
+                            Didn't receive code? <button class="login-otp-resend-link" id="login-resend-otp">Resend</button>
                         </div>
+                    </div>
+                    
+                    <!-- Success Step -->
+                    <div class="login-step hidden" id="login-step-success">
+                        <div class="login-success-container">
+                            <div class="login-success-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="login-success-title">You're logged in!</div>
+                        </div>
+                    </div>
                 </div>
             `;
             
@@ -2922,6 +2955,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const whatsappBtn = document.getElementById('login-whatsapp-btn');
             const closeBtn = document.getElementById('login-close-btn');
             const overlay = loginSheet.querySelector('.login-bottom-sheet-overlay');
+            
+            // Step elements
+            const stepPhone = document.getElementById('login-step-phone');
+            const stepOtp = document.getElementById('login-step-otp');
+            const stepSuccess = document.getElementById('login-step-success');
+            const otpSubtitle = document.getElementById('login-otp-subtitle');
+            const otpContainer = document.getElementById('login-otp-container');
+            const otpInputs = otpContainer.querySelectorAll('.login-otp-input');
+            const resendBtn = document.getElementById('login-resend-otp');
             
             // Phone input handler
             phoneInput.addEventListener('input', function(e) {
@@ -2985,7 +3027,127 @@ document.addEventListener('DOMContentLoaded', function() {
                 phoneInput.focus();
             });
             
-            // Continue button handler
+            // Switch to step function
+            function switchToStep(step) {
+                currentStep = step;
+                
+                // Hide all steps
+                stepPhone.classList.add('hidden');
+                stepOtp.classList.add('hidden');
+                stepSuccess.classList.add('hidden');
+                
+                // Show target step with animation
+                setTimeout(() => {
+                    if (step === 'phone') {
+                        stepPhone.classList.remove('hidden');
+                    } else if (step === 'otp') {
+                        stepOtp.classList.remove('hidden');
+                        // Focus first OTP input
+                        setTimeout(() => otpInputs[0].focus(), 100);
+                    } else if (step === 'success') {
+                        stepSuccess.classList.remove('hidden');
+                    }
+                }, 50);
+            }
+            
+            // Generate dummy OTP
+            function generateDummyOTP() {
+                return Math.floor(1000 + Math.random() * 9000).toString();
+            }
+            
+            // Auto-fill OTP with animation
+            function autoFillOTP(otp) {
+                const digits = otp.split('');
+                let index = 0;
+                
+                function fillNext() {
+                    if (index < digits.length && index < otpInputs.length) {
+                        const input = otpInputs[index];
+                        input.value = digits[index];
+                        input.classList.add('filled');
+                        index++;
+                        
+                        if (index < digits.length) {
+                            setTimeout(fillNext, 150); // 150ms between each digit
+                        } else {
+                            // All digits filled - verify after short delay
+                            setTimeout(verifyOTP, 400);
+                        }
+                    }
+                }
+                
+                setTimeout(fillNext, 300); // Start after 300ms
+            }
+            
+            // Verify OTP and show success
+            function verifyOTP() {
+                switchToStep('success');
+                
+                // Close after showing success
+                setTimeout(() => {
+                    closeLoginBottomSheet();
+                }, 1200);
+            }
+            
+            // OTP input handlers
+            otpInputs.forEach((input, index) => {
+                input.addEventListener('input', function(e) {
+                    const value = e.target.value.replace(/\D/g, '');
+                    e.target.value = value.slice(0, 1);
+                    
+                    if (value && index < otpInputs.length - 1) {
+                        // Move to next input
+                        otpInputs[index + 1].focus();
+                    }
+                    
+                    if (value) {
+                        input.classList.add('filled');
+                    } else {
+                        input.classList.remove('filled');
+                    }
+                    
+                    // Check if all filled
+                    const allFilled = Array.from(otpInputs).every(inp => inp.value.length === 1);
+                    if (allFilled) {
+                        setTimeout(verifyOTP, 300);
+                    }
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && !input.value && index > 0) {
+                        // Move to previous input on backspace
+                        otpInputs[index - 1].focus();
+                    }
+                });
+                
+                input.addEventListener('focus', function() {
+                    input.select();
+                });
+            });
+            
+            // Resend OTP handler
+            resendBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                resendBtn.disabled = true;
+                resendBtn.textContent = 'Sending...';
+                
+                setTimeout(() => {
+                    resendBtn.textContent = 'Resend';
+                    resendBtn.disabled = false;
+                    
+                    // Clear existing OTP
+                    otpInputs.forEach(input => {
+                        input.value = '';
+                        input.classList.remove('filled');
+                    });
+                    
+                    // Auto-fill new dummy OTP
+                    const newOtp = generateDummyOTP();
+                    autoFillOTP(newOtp);
+                }, 1000);
+            });
+            
+            // Continue button handler - now goes to OTP step
             continueBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -3001,17 +3163,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // Close bottom sheet and show success message
-                closeLoginBottomSheet();
-                addBotMessage("Great! I've received your phone number. We'll send you an OTP shortly.");
+                // Update OTP subtitle with phone number (masked)
+                const maskedPhone = phoneNumber.slice(0, 2) + 'XXXXXX' + phoneNumber.slice(-2);
+                otpSubtitle.textContent = `Enter the 4-digit code sent to +91 ${maskedPhone}`;
+                
+                // Switch to OTP step
+                switchToStep('otp');
+                
+                // Generate and auto-fill dummy OTP after delay
+                const dummyOTP = generateDummyOTP();
+                setTimeout(() => {
+                    autoFillOTP(dummyOTP);
+                }, 800);
             });
             
-            // WhatsApp button handler
+            // WhatsApp button handler - also goes through success flow
             whatsappBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                closeLoginBottomSheet();
-                addBotMessage("Redirecting to WhatsApp for login...");
+                switchToStep('success');
+                
+                setTimeout(() => {
+                    closeLoginBottomSheet();
+                }, 1200);
             });
             
             // Close button handler
