@@ -3697,35 +3697,34 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // ============================================================================
             // END-OF-CAROUSEL ELASTIC PULL SYSTEM
-            // No permanent spacer - overlay slides in from right during pull only
+            // Inline reveal zone after last card - expands during pull, collapses on release
             // Pull works by dragging on the last card itself
+            // Cards never move - only the reveal zone expands
             // ============================================================================
             
             // Pull state
             let isOverscrolling = false;
             let rawPullDistance = 0;
             let startX = 0;
-            let startScrollLeft = 0;
-            let maxScrollLeft = 0;
+            let baseMaxScrollLeft = 0; // Max scroll before reveal zone expands
             let isArmed = false;
             let rafId = null;
             let originalScrollSnap = '';
-            let isPulling = false; // Tracks if we're in pull mode (vs normal scroll)
+            let isPulling = false;
             
-            // Tuning constants - harder resistance
+            // Tuning constants
             const RAW_PULL_MAX = 220; // Max raw pull distance to track
-            const PULL_THRESHOLD = 170; // Raw pull needed to arm (harder)
-            const REVEAL_WIDTH = 120; // Width of reveal panel
+            const PULL_THRESHOLD = 170; // Raw pull needed to arm
+            const MAX_REVEAL_WIDTH = 120; // Max reveal zone width
             
             // Strong resistance curve
             const applyResistance = (raw) => {
-                // Exponential decay resistance - starts easy, gets very hard
-                return REVEAL_WIDTH * (1 - Math.exp(-raw / 100)) * 0.9;
+                return MAX_REVEAL_WIDTH * (1 - Math.exp(-raw / 100)) * 0.9;
             };
             
-            // Create reveal overlay (positioned on wrapper, not inside carousel)
-            const revealOverlay = document.createElement('div');
-            revealOverlay.className = 'carousel-reveal-overlay';
+            // Create reveal zone (inline, after last card - width 0 at rest)
+            const revealZone = document.createElement('div');
+            revealZone.className = 'carousel-reveal-zone';
             
             const revealContent = document.createElement('div');
             revealContent.className = 'carousel-reveal-content';
@@ -3737,24 +3736,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <span class="overscroll-label">View all</span>
             `;
-            revealOverlay.appendChild(revealContent);
+            revealZone.appendChild(revealContent);
             
             // Apply pull state using requestAnimationFrame
             const applyPullState = () => {
                 if (!isPulling) return;
                 
-                // Apply resistance curve
-                const resisted = applyResistance(rawPullDistance);
-                const progress = Math.min(resisted / (REVEAL_WIDTH * 0.8), 1);
+                // Apply resistance curve to get reveal width
+                const revealWidth = applyResistance(rawPullDistance);
+                const progress = Math.min(revealWidth / (MAX_REVEAL_WIDTH * 0.8), 1);
                 isArmed = rawPullDistance >= PULL_THRESHOLD;
                 
-                // Reveal overlay slides in from right
-                const translateX = REVEAL_WIDTH - resisted;
-                const scale = 0.88 + (0.12 * progress);
+                // Expand reveal zone width (creates space after last card)
+                revealZone.style.width = `${revealWidth}px`;
+                revealZone.style.minWidth = `${revealWidth}px`;
                 
-                revealOverlay.style.opacity = '1';
+                // Scroll to show the new space
+                carousel.scrollLeft = baseMaxScrollLeft + revealWidth;
+                
+                // Update content appearance
+                const scale = 0.88 + (0.12 * progress);
                 revealContent.style.opacity = progress.toString();
-                revealContent.style.transform = `translate3d(${Math.max(0, translateX)}px, -50%, 0) scale(${scale})`;
+                revealContent.style.transform = `scale(${scale})`;
                 
                 rafId = null;
             };
@@ -3767,14 +3770,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const resetReveal = (animated = true) => {
                 if (animated) {
-                    revealContent.style.transition = 'opacity 0.25s ease-out, transform 0.25s ease-out';
+                    revealZone.style.transition = 'width 0.25s ease-out, min-width 0.25s ease-out';
+                    revealContent.style.transition = 'opacity 0.2s ease-out, transform 0.2s ease-out';
                 }
+                
+                revealZone.style.width = '0';
+                revealZone.style.minWidth = '0';
                 revealContent.style.opacity = '0';
-                revealContent.style.transform = `translate3d(${REVEAL_WIDTH}px, -50%, 0) scale(0.88)`;
-                revealOverlay.style.opacity = '0';
+                revealContent.style.transform = 'scale(0.88)';
                 
                 if (animated) {
                     setTimeout(() => {
+                        revealZone.style.transition = 'none';
                         revealContent.style.transition = 'none';
                     }, 250);
                 }
@@ -3782,51 +3789,44 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Touch/pointer handlers
             const handleTouchStart = (e) => {
-                // Calculate max scroll position (no spacer in DOM)
-                maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+                // Calculate base max scroll (before reveal zone expands)
+                // Exclude current reveal zone width
+                const currentRevealWidth = parseFloat(revealZone.style.width) || 0;
+                baseMaxScrollLeft = carousel.scrollWidth - carousel.clientWidth - currentRevealWidth;
                 
                 const touch = e.touches ? e.touches[0] : e;
                 startX = touch.clientX;
-                startScrollLeft = carousel.scrollLeft;
                 isOverscrolling = false;
                 rawPullDistance = 0;
                 isArmed = false;
                 isPulling = false;
                 
-                // Store original scroll-snap
+                // Store original scroll-snap and remove transitions for immediate response
                 originalScrollSnap = carousel.style.scrollSnapType || '';
+                revealZone.style.transition = 'none';
+                revealContent.style.transition = 'none';
             };
             
             const handleTouchMove = (e) => {
                 if (startX === 0) return;
                 
                 const touch = e.touches ? e.touches[0] : e;
-                const deltaX = startX - touch.clientX; // Positive = pulling left (trying to see more)
+                const deltaX = startX - touch.clientX; // Positive = pulling left
                 
-                // Check if we're at or very near the end
-                const atEnd = carousel.scrollLeft >= maxScrollLeft - 1;
+                // Check if we're at or near the end (based on base scroll, not including reveal)
+                const atEnd = carousel.scrollLeft >= baseMaxScrollLeft - 1;
                 
                 if (atEnd && deltaX > 5) {
-                    // Start pull mode - dragging on last card triggers this
+                    // Start pull mode
                     if (!isPulling) {
                         isPulling = true;
                         isOverscrolling = true;
-                        // Disable scroll-snap
                         carousel.style.scrollSnapType = 'none';
-                        // Pin scroll at max
-                        carousel.scrollLeft = maxScrollLeft;
                     }
                     
-                    // Calculate pull distance from when we started pulling
                     rawPullDistance = Math.min(deltaX, RAW_PULL_MAX);
-                    
-                    // Keep scroll pinned at end
-                    carousel.scrollLeft = maxScrollLeft;
-                    
-                    // Schedule visual update
                     scheduleUpdate();
                     
-                    // Prevent default when actively pulling
                     if (rawPullDistance > 10) {
                         e.preventDefault();
                     }
@@ -3837,33 +3837,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     rawPullDistance = 0;
                     isArmed = false;
                     
-                    // Restore scroll-snap
                     carousel.style.scrollSnapType = originalScrollSnap || '';
-                    
-                    // Reset reveal
                     resetReveal(true);
                 }
             };
             
             const handleTouchEnd = () => {
-                // Cancel any pending rAF
                 if (rafId !== null) {
                     cancelAnimationFrame(rafId);
                     rafId = null;
                 }
                 
                 if (isArmed && isPulling) {
-                    // Threshold reached - navigate to View All page
                     showViewAllPage(allCards || cards);
                 }
                 
-                // Restore scroll-snap
                 carousel.style.scrollSnapType = originalScrollSnap || '';
-                
-                // Reset reveal with animation
                 resetReveal(true);
                 
-                // Reset state
                 isOverscrolling = false;
                 isPulling = false;
                 rawPullDistance = 0;
@@ -4318,11 +4309,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 carousel.appendChild(cardElement);
             });
             
-            // Add carousel to wrapper (NO spacer - ends at last card)
-            wrapper.appendChild(carousel);
+            // Add reveal zone inside carousel (after all cards, width 0 at rest)
+            carousel.appendChild(revealZone);
             
-            // Add reveal overlay to wrapper (slides in from right during pull)
-            wrapper.appendChild(revealOverlay);
+            // Add carousel to wrapper
+            wrapper.appendChild(carousel);
             
             // Add full-width "View all" secondary CTA button below carousel
             const viewAllBtn = document.createElement('button');
