@@ -3388,8 +3388,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Generate property cards with local images
         // Guarantees zero duplicate images within a single carousel using deterministic hash + linear probing
         function generatePropertyCards() {
-            // Generate 4-5 property cards based on search criteria
-            const numCards = 4 + Math.floor(Math.random() * 2); // 4 or 5 cards
+            // Generate 8-12 property cards based on search criteria (will be capped to 7 in carousel)
+            const numCards = 8 + Math.floor(Math.random() * 5); // 8-12 cards
             const cards = [];
             
             // Create stable carousel ID based on search criteria for memoization
@@ -3617,13 +3617,220 @@ document.addEventListener('DOMContentLoaded', function() {
             return cards;
         }
         
+        // Show "View all properties" blank page
+        function showViewAllPage(allCards) {
+            // Remove existing if any
+            removeElementById('view-all-properties-page');
+            
+            const overlay = document.createElement('div');
+            overlay.id = 'view-all-properties-page';
+            overlay.className = 'view-all-page';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: #ffffff;
+                z-index: 999999;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            `;
+            
+            // Close button (top-left)
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'view-all-close-btn';
+            closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            closeBtn.style.cssText = `
+                position: absolute;
+                top: calc(16px + env(safe-area-inset-top));
+                left: 16px;
+                width: 44px;
+                height: 44px;
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                z-index: 1000000;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            closeBtn.onclick = function() {
+                overlay.remove();
+                document.body.style.overflow = '';
+            };
+            
+            // Placeholder content
+            const placeholder = document.createElement('div');
+            placeholder.style.cssText = `
+                color: #767676;
+                font-size: 16px;
+                text-align: center;
+                padding: 20px;
+            `;
+            placeholder.textContent = 'All properties will be shown here';
+            
+            overlay.appendChild(closeBtn);
+            overlay.appendChild(placeholder);
+            document.body.appendChild(overlay);
+            document.body.style.overflow = 'hidden';
+        }
+        
         // Render property cards in horizontal scroll
-        function renderPropertyCards(cards) {
+        function renderPropertyCards(cards, allCards) {
+            // Cap to max 7 cards in carousel
+            const MAX_CAROUSEL_CARDS = 7;
+            const displayCards = cards.slice(0, MAX_CAROUSEL_CARDS);
+            const hasMoreCards = cards.length > MAX_CAROUSEL_CARDS || (allCards && allCards.length > MAX_CAROUSEL_CARDS);
+            
+            // Create wrapper for carousel + view all button
+            const wrapper = document.createElement('div');
+            wrapper.className = 'property-carousel-wrapper';
+            wrapper.style.cssText = 'position: relative; width: 100%;';
+            
             const carousel = document.createElement('div');
             carousel.className = 'property-carousel';
             carousel.style.pointerEvents = 'auto';
             
-            cards.forEach(card => {
+            // Elastic overscroll state
+            let isOverscrolling = false;
+            let pullDistance = 0;
+            let startX = 0;
+            let startScrollLeft = 0;
+            let maxScrollLeft = 0;
+            const PULL_THRESHOLD = 80; // px to trigger navigation
+            const MAX_PULL = 120; // max pull distance
+            const RESISTANCE = 0.35; // elastic resistance
+            
+            // Create overscroll affordance element
+            const overscrollAffordance = document.createElement('div');
+            overscrollAffordance.className = 'carousel-overscroll-affordance';
+            overscrollAffordance.innerHTML = `
+                <div class="overscroll-content">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                    <span>Show me more properties</span>
+                </div>
+            `;
+            overscrollAffordance.style.cssText = `
+                position: absolute;
+                right: 0;
+                top: 50%;
+                transform: translateY(-50%) translateX(12px);
+                opacity: 0;
+                pointer-events: none;
+                z-index: 10;
+                background: linear-gradient(135deg, #5E23DC 0%, #7B3FE4 100%);
+                color: white;
+                padding: 12px 16px;
+                border-radius: 20px;
+                font-size: 13px;
+                font-weight: 500;
+                box-shadow: 0 4px 12px rgba(94, 35, 220, 0.3);
+                white-space: nowrap;
+                transition: opacity 0.15s ease, transform 0.15s ease;
+            `;
+            
+            // Touch/pointer handlers for overscroll
+            const handleTouchStart = (e) => {
+                // Calculate max scroll position
+                maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+                
+                // Only track if at or near the end
+                if (carousel.scrollLeft >= maxScrollLeft - 2) {
+                    const touch = e.touches ? e.touches[0] : e;
+                    startX = touch.clientX;
+                    startScrollLeft = carousel.scrollLeft;
+                    isOverscrolling = false;
+                    pullDistance = 0;
+                }
+            };
+            
+            const handleTouchMove = (e) => {
+                if (!startX) return;
+                
+                const touch = e.touches ? e.touches[0] : e;
+                const deltaX = startX - touch.clientX; // Positive = pulling left (showing more)
+                
+                // Recalculate max scroll in case it changed
+                maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+                
+                // Check if we're at the end and trying to pull further
+                if (carousel.scrollLeft >= maxScrollLeft - 2 && deltaX > 0) {
+                    isOverscrolling = true;
+                    pullDistance = Math.min(deltaX, MAX_PULL);
+                    
+                    // Apply resistance curve for elastic feel
+                    const visualPull = pullDistance * RESISTANCE;
+                    const progress = Math.min(pullDistance / PULL_THRESHOLD, 1);
+                    
+                    // Update affordance appearance
+                    overscrollAffordance.style.opacity = progress.toString();
+                    overscrollAffordance.style.transform = `translateY(-50%) translateX(${(1 - progress) * 12}px)`;
+                    
+                    // Prevent default scrolling when overscrolling
+                    if (pullDistance > 10) {
+                        e.preventDefault();
+                    }
+                } else {
+                    // Reset if scrolling back
+                    if (isOverscrolling && deltaX < 0) {
+                        isOverscrolling = false;
+                        pullDistance = 0;
+                        overscrollAffordance.style.opacity = '0';
+                        overscrollAffordance.style.transform = 'translateY(-50%) translateX(12px)';
+                    }
+                }
+            };
+            
+            const handleTouchEnd = () => {
+                if (isOverscrolling && pullDistance >= PULL_THRESHOLD) {
+                    // Threshold reached - navigate to View All page
+                    showViewAllPage(allCards || cards);
+                }
+                
+                // Animate affordance back
+                overscrollAffordance.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                overscrollAffordance.style.opacity = '0';
+                overscrollAffordance.style.transform = 'translateY(-50%) translateX(12px)';
+                
+                // Reset after animation
+                setTimeout(() => {
+                    overscrollAffordance.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+                }, 300);
+                
+                // Reset state
+                isOverscrolling = false;
+                pullDistance = 0;
+                startX = 0;
+            };
+            
+            // Attach touch/pointer events
+            carousel.addEventListener('touchstart', handleTouchStart, { passive: true });
+            carousel.addEventListener('touchmove', handleTouchMove, { passive: false });
+            carousel.addEventListener('touchend', handleTouchEnd);
+            carousel.addEventListener('touchcancel', handleTouchEnd);
+            
+            // Mouse support for testing
+            carousel.addEventListener('mousedown', (e) => {
+                handleTouchStart(e);
+                
+                const handleMouseMove = (e) => handleTouchMove(e);
+                const handleMouseUp = () => {
+                    handleTouchEnd();
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                };
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+            });
+            
+            displayCards.forEach(card => {
                 const cardElement = document.createElement('div');
                 cardElement.className = 'property-card';
                 cardElement.setAttribute('data-property-id', card.id);
@@ -4049,7 +4256,36 @@ document.addEventListener('DOMContentLoaded', function() {
                 carousel.appendChild(cardElement);
             });
             
-            return carousel;
+            // Add carousel and overscroll affordance to wrapper
+            wrapper.appendChild(carousel);
+            wrapper.appendChild(overscrollAffordance);
+            
+            // Add "View all" text button below carousel
+            const viewAllBtn = document.createElement('button');
+            viewAllBtn.className = 'carousel-view-all-btn';
+            viewAllBtn.textContent = 'View all';
+            viewAllBtn.style.cssText = `
+                display: block;
+                margin: 8px 0 0 16px;
+                padding: 8px 0;
+                background: transparent;
+                border: none;
+                color: #5E23DC;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                font-family: 'Rubik', sans-serif;
+                text-decoration: none;
+            `;
+            viewAllBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showViewAllPage(allCards || cards);
+            });
+            
+            wrapper.appendChild(viewAllBtn);
+            
+            return wrapper;
         }
         
         // Open Property Detail Page (PDP) in bottom sheet
@@ -5174,14 +5410,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Hide typing indicator
                 hideTypingIndicator();
                 
-                const carousel = renderPropertyCards(cards);
+                const carousel = renderPropertyCards(cards, cards);
                 
                 // Create bot message with cards
                 const msgId = generateMessageId();
+                const displayedCount = Math.min(cards.length, 7);
                 const message = {
                     id: msgId,
                     role: 'bot',
-                    text: `Great! I found ${cards.length} properties matching your criteria.`,
+                    text: cards.length > 7 
+                        ? `Great! I found ${cards.length} properties matching your criteria. Here are the top ${displayedCount}.`
+                        : `Great! I found ${cards.length} properties matching your criteria.`,
                     timestamp: Date.now(),
                     hasCards: true
                 };
