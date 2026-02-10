@@ -6164,55 +6164,69 @@ html, body {
 .ai-chat-pill {
     position: relative;
     border-radius: 28px;
-    overflow: hidden;
+    overflow: visible;
 }
 
-/* Animated gradient glow background */
+/* Animated stroke border */
 .ai-chat-glow {
     position: absolute;
-    inset: 0;
-    border-radius: 28px;
-    padding: 1.5px;
+    inset: -1px;
+    border-radius: 29px;
     background: linear-gradient(
         90deg,
-        rgba(100, 100, 100, 0.3) 0%,
-        rgba(150, 150, 150, 0.5) 25%,
-        rgba(100, 100, 100, 0.3) 50%,
-        rgba(150, 150, 150, 0.5) 75%,
-        rgba(100, 100, 100, 0.3) 100%
+        rgba(180, 180, 180, 0.4) 0%,
+        rgba(120, 120, 120, 0.8) 20%,
+        rgba(180, 180, 180, 0.4) 40%,
+        rgba(120, 120, 120, 0.8) 60%,
+        rgba(180, 180, 180, 0.4) 80%,
+        rgba(120, 120, 120, 0.8) 100%
     );
-    background-size: 200% 100%;
-    animation: aiGlowShift 3s ease-in-out infinite;
-    -webkit-mask: 
-        linear-gradient(#fff 0 0) content-box, 
-        linear-gradient(#fff 0 0);
-    mask: 
-        linear-gradient(#fff 0 0) content-box, 
-        linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
+    background-size: 300% 100%;
+    animation: aiStrokeMove 4s linear infinite;
+    z-index: 0;
 }
 
-@keyframes aiGlowShift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+@keyframes aiStrokeMove {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+}
+
+/* Subtle moving glow/shimmer behind the pill */
+.ai-chat-shimmer {
+    position: absolute;
+    inset: -8px;
+    border-radius: 36px;
+    background: radial-gradient(
+        ellipse 60% 50% at 50% 50%,
+        rgba(150, 150, 150, 0.15) 0%,
+        transparent 70%
+    );
+    animation: aiShimmerMove 5s ease-in-out infinite;
+    z-index: -1;
+    pointer-events: none;
+}
+
+@keyframes aiShimmerMove {
+    0%, 100% { 
+        transform: translateX(-20px) scale(1);
+        opacity: 0.6;
+    }
+    50% { 
+        transform: translateX(20px) scale(1.05);
+        opacity: 0.9;
+    }
 }
 
 /* Inner content */
 .ai-chat-content {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 12px;
+    padding: 10px 16px;
     background: #FAFAFA;
     border-radius: 28px;
-    border: 1px solid #E8E8E8;
-}
-
-.ai-chat-left-icons {
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    z-index: 1;
 }
 
 .ai-icon-btn {
