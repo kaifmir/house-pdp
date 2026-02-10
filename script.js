@@ -3695,36 +3695,52 @@ document.addEventListener('DOMContentLoaded', function() {
             carousel.className = 'property-carousel';
             carousel.style.pointerEvents = 'auto';
             
-            // Elastic overscroll state
+            // ============================================================================
+            // END-OF-CAROUSEL ELASTIC PULL SYSTEM
+            // Fixed spacer width + transform-based reveal to prevent card jitter
+            // ============================================================================
+            
+            // Pull state (stored in refs to avoid re-renders)
             let isOverscrolling = false;
-            let pullDistance = 0;
+            let rawPullDistance = 0;
             let startX = 0;
             let maxScrollLeft = 0;
-            let isArmed = false; // Whether threshold is reached
-            const PULL_THRESHOLD = 90; // px to trigger navigation (~25% of card width)
-            const MAX_PULL = 140; // max pull distance
-            const RESISTANCE = 0.35; // elastic resistance
+            let isArmed = false;
+            let rafId = null;
+            let originalScrollSnap = '';
             
-            // Create spacer element (appended after last card - creates actual space)
+            // Tuning constants - harder resistance
+            const RAW_PULL_MAX = 200; // Max raw pull distance to track
+            const PULL_THRESHOLD = 150; // Raw pull needed to arm (increased from 90)
+            const TARGET_REVEAL = 50; // Visual reveal distance at full progress
+            const SPACER_WIDTH = 120; // Fixed spacer width (no layout changes during pull)
+            
+            // Strong resistance curve: starts easy, gets progressively harder
+            // resisted = 200 * (1 - exp(-raw / 80)) * 0.35
+            const applyResistance = (raw) => {
+                return 200 * (1 - Math.exp(-raw / 80)) * 0.35;
+            };
+            
+            // Create fixed-width spacer (width never changes during pull - prevents jitter)
             const overscrollSpacer = document.createElement('div');
             overscrollSpacer.className = 'carousel-overscroll-spacer';
             overscrollSpacer.style.cssText = `
                 flex-shrink: 0;
-                width: 0;
+                width: ${SPACER_WIDTH}px;
                 height: 100%;
                 display: flex;
                 align-items: center;
-                justify-content: center;
+                justify-content: flex-start;
                 overflow: hidden;
-                transition: none;
+                pointer-events: none;
             `;
             
-            // Create the circular affordance inside the spacer
+            // Create the circular affordance with GPU hints
             const overscrollAffordance = document.createElement('div');
             overscrollAffordance.className = 'carousel-overscroll-affordance';
             overscrollAffordance.innerHTML = `
                 <div class="overscroll-circle">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
                 </div>
@@ -3735,100 +3751,132 @@ document.addEventListener('DOMContentLoaded', function() {
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                gap: 8px;
+                gap: 10px;
+                min-width: 100px;
+                padding: 0 20px;
                 opacity: 0;
-                transform: scale(0.96);
-                min-width: 80px;
-                padding: 0 16px;
+                transform: translate3d(${SPACER_WIDTH}px, 0, 0) scale(0.92);
+                will-change: transform, opacity;
+                pointer-events: none;
             `;
             
             overscrollSpacer.appendChild(overscrollAffordance);
             
-            // Touch/pointer handlers for overscroll
+            // Apply pull state using requestAnimationFrame (prevents jitter)
+            const applyPullState = () => {
+                if (!isOverscrolling) return;
+                
+                // Apply resistance curve
+                const resisted = applyResistance(rawPullDistance);
+                const progress = Math.min(resisted / TARGET_REVEAL, 1);
+                isArmed = rawPullDistance >= PULL_THRESHOLD;
+                
+                // Transform-based reveal (no layout changes)
+                const translateX = SPACER_WIDTH * (1 - progress);
+                const scale = 0.92 + (0.08 * progress);
+                
+                overscrollAffordance.style.opacity = progress.toString();
+                overscrollAffordance.style.transform = `translate3d(${translateX}px, 0, 0) scale(${scale})`;
+                
+                rafId = null;
+            };
+            
+            const scheduleUpdate = () => {
+                if (rafId === null) {
+                    rafId = requestAnimationFrame(applyPullState);
+                }
+            };
+            
+            // Touch/pointer handlers
             const handleTouchStart = (e) => {
-                // Calculate max scroll position (before spacer is expanded)
-                const spacerWidth = parseFloat(overscrollSpacer.style.width) || 0;
-                maxScrollLeft = carousel.scrollWidth - carousel.clientWidth - spacerWidth;
+                // Calculate max scroll position (fixed spacer already in DOM)
+                maxScrollLeft = carousel.scrollWidth - carousel.clientWidth - SPACER_WIDTH;
                 
                 const touch = e.touches ? e.touches[0] : e;
                 startX = touch.clientX;
                 isOverscrolling = false;
-                pullDistance = 0;
+                rawPullDistance = 0;
                 isArmed = false;
                 
-                // Remove transition for immediate response
-                overscrollSpacer.style.transition = 'none';
+                // Store original scroll-snap and disable during potential pull
+                originalScrollSnap = carousel.style.scrollSnapType || '';
             };
             
             const handleTouchMove = (e) => {
                 if (startX === 0) return;
                 
                 const touch = e.touches ? e.touches[0] : e;
-                const deltaX = startX - touch.clientX; // Positive = pulling left (showing more)
-                
-                // Recalculate max scroll (excluding current spacer width)
-                const currentSpacerWidth = parseFloat(overscrollSpacer.style.width) || 0;
-                const baseScrollWidth = carousel.scrollWidth - currentSpacerWidth;
-                maxScrollLeft = baseScrollWidth - carousel.clientWidth;
+                const deltaX = startX - touch.clientX; // Positive = pulling left
                 
                 // Check if we're at the end and trying to pull further
-                if (carousel.scrollLeft >= maxScrollLeft - 2 && deltaX > 0) {
-                    isOverscrolling = true;
-                    pullDistance = Math.min(deltaX, MAX_PULL);
+                const atEnd = carousel.scrollLeft >= maxScrollLeft - 2;
+                
+                if (atEnd && deltaX > 0) {
+                    // Entering overscroll mode
+                    if (!isOverscrolling) {
+                        isOverscrolling = true;
+                        // Disable scroll-snap to prevent snap fights
+                        carousel.style.scrollSnapType = 'none';
+                    }
                     
-                    // Apply resistance curve for elastic feel
-                    const elasticWidth = pullDistance * RESISTANCE;
-                    const progress = Math.min(pullDistance / PULL_THRESHOLD, 1);
-                    isArmed = progress >= 1;
+                    // Track raw pull distance (pre-resistance)
+                    rawPullDistance = Math.min(deltaX, RAW_PULL_MAX);
                     
-                    // Update spacer width (creates actual space)
-                    overscrollSpacer.style.width = `${elasticWidth + 100}px`; // +100 for min content width (56px circle + padding)
+                    // Schedule visual update via rAF
+                    scheduleUpdate();
                     
-                    // Update affordance appearance
-                    overscrollAffordance.style.opacity = progress.toString();
-                    const scale = 0.96 + (0.04 * progress);
-                    overscrollAffordance.style.transform = `scale(${scale})`;
-                    
-                    // Scroll to show the spacer
-                    carousel.scrollLeft = maxScrollLeft + elasticWidth;
-                    
-                    // Prevent default scrolling when overscrolling
-                    if (pullDistance > 10) {
+                    // Prevent default scrolling when actively pulling
+                    if (rawPullDistance > 15) {
                         e.preventDefault();
                     }
                 } else if (deltaX <= 0 && isOverscrolling) {
-                    // User scrolling back - collapse spacer
+                    // User scrolling back - reset
                     isOverscrolling = false;
-                    pullDistance = 0;
+                    rawPullDistance = 0;
                     isArmed = false;
-                    overscrollSpacer.style.width = '0';
+                    
+                    // Restore scroll-snap
+                    carousel.style.scrollSnapType = originalScrollSnap || '';
+                    
+                    // Reset affordance
+                    overscrollAffordance.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
                     overscrollAffordance.style.opacity = '0';
-                    overscrollAffordance.style.transform = 'scale(0.96)';
+                    overscrollAffordance.style.transform = `translate3d(${SPACER_WIDTH}px, 0, 0) scale(0.92)`;
+                    
+                    setTimeout(() => {
+                        overscrollAffordance.style.transition = 'none';
+                    }, 150);
                 }
             };
             
             const handleTouchEnd = () => {
+                // Cancel any pending rAF
+                if (rafId !== null) {
+                    cancelAnimationFrame(rafId);
+                    rafId = null;
+                }
+                
                 if (isArmed && isOverscrolling) {
                     // Threshold reached - navigate to View All page
                     showViewAllPage(allCards || cards);
                 }
                 
-                // Animate spacer back to 0 (smooth snap back)
-                overscrollSpacer.style.transition = 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-                overscrollSpacer.style.width = '0';
-                overscrollAffordance.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+                // Restore scroll-snap
+                carousel.style.scrollSnapType = originalScrollSnap || '';
+                
+                // Animate affordance back smoothly (spring-like ease-out)
+                overscrollAffordance.style.transition = 'opacity 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94), transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
                 overscrollAffordance.style.opacity = '0';
-                overscrollAffordance.style.transform = 'scale(0.96)';
+                overscrollAffordance.style.transform = `translate3d(${SPACER_WIDTH}px, 0, 0) scale(0.92)`;
                 
                 // Reset transitions after animation
                 setTimeout(() => {
-                    overscrollSpacer.style.transition = 'none';
                     overscrollAffordance.style.transition = 'none';
-                }, 300);
+                }, 250);
                 
                 // Reset state
                 isOverscrolling = false;
-                pullDistance = 0;
+                rawPullDistance = 0;
                 startX = 0;
                 isArmed = false;
             };

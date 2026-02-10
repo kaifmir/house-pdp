@@ -2771,29 +2771,33 @@ html, body {
     width: 100%;
 }
 
-/* Overscroll spacer - creates actual space when pulling past last card */
+/* Overscroll spacer - fixed width, uses transform for reveal (prevents jitter) */
 .carousel-overscroll-spacer {
     flex-shrink: 0;
-    width: 0;
+    width: 120px; /* Fixed width - never changes during pull */
     min-height: 100%;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     overflow: hidden;
+    pointer-events: none;
 }
 
-/* Circular affordance inside spacer */
+/* Circular affordance - GPU accelerated transforms */
 .carousel-overscroll-affordance {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    opacity: 0;
-    transform: scale(0.96);
     min-width: 100px;
     padding: 0 20px;
+    opacity: 0;
+    transform: translate3d(120px, 0, 0) scale(0.92);
+    will-change: transform, opacity;
     pointer-events: none;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .carousel-overscroll-affordance .overscroll-circle {
@@ -2805,6 +2809,9 @@ html, body {
     align-items: center;
     justify-content: center;
     box-shadow: 0 4px 12px rgba(94, 35, 220, 0.3);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .carousel-overscroll-affordance .overscroll-circle svg {
