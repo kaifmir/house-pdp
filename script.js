@@ -3617,66 +3617,223 @@ document.addEventListener('DOMContentLoaded', function() {
             return cards;
         }
         
-        // Show "View all properties" blank page
+        // Show Search Results Page (SRP)
         function showViewAllPage(allCards) {
             // Remove existing if any
             removeElementById('view-all-properties-page');
             
-            const overlay = document.createElement('div');
-            overlay.id = 'view-all-properties-page';
-            overlay.className = 'view-all-page';
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: #ffffff;
-                z-index: 999999;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            `;
+            const page = document.createElement('div');
+            page.id = 'view-all-properties-page';
+            page.className = 'srp-page';
             
-            // Close button (top-left)
-            const closeBtn = document.createElement('button');
-            closeBtn.className = 'view-all-close-btn';
-            closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-            closeBtn.style.cssText = `
-                position: absolute;
-                top: calc(16px + env(safe-area-inset-top));
-                left: 16px;
-                width: 44px;
-                height: 44px;
-                background: transparent;
-                border: none;
-                cursor: pointer;
-                z-index: 1000000;
-                padding: 0;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            `;
-            closeBtn.onclick = function() {
-                overlay.remove();
+            // ========== HEADER ==========
+            const header = document.createElement('div');
+            header.className = 'srp-header';
+            
+            // Back button
+            const backBtn = document.createElement('button');
+            backBtn.className = 'srp-back-btn';
+            backBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>`;
+            backBtn.onclick = function() {
+                page.remove();
                 document.body.style.overflow = '';
             };
             
-            // Placeholder content
-            const placeholder = document.createElement('div');
-            placeholder.style.cssText = `
-                color: #767676;
-                font-size: 16px;
-                text-align: center;
-                padding: 20px;
+            // Search bar
+            const searchBar = document.createElement('div');
+            searchBar.className = 'srp-search-bar';
+            searchBar.innerHTML = `
+                <input type="text" placeholder="What are you looking for?" class="srp-search-input" readonly />
+                <button class="srp-search-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </button>
             `;
-            placeholder.textContent = 'All properties will be shown here';
             
-            overlay.appendChild(closeBtn);
-            overlay.appendChild(placeholder);
-            document.body.appendChild(overlay);
+            header.appendChild(backBtn);
+            header.appendChild(searchBar);
+            
+            // ========== TABS ==========
+            const tabs = document.createElement('div');
+            tabs.className = 'srp-tabs';
+            const tabItems = ['All', 'Projects', 'New launches', 'Owner', 'Ready to move'];
+            tabItems.forEach((tab, index) => {
+                const tabBtn = document.createElement('button');
+                tabBtn.className = 'srp-tab' + (index === 0 ? ' active' : '');
+                tabBtn.innerHTML = `
+                    <span class="srp-tab-icon">${getTabIcon(tab)}</span>
+                    <span class="srp-tab-label">${tab}</span>
+                `;
+                tabs.appendChild(tabBtn);
+            });
+            
+            // ========== FILTERS ==========
+            const filters = document.createElement('div');
+            filters.className = 'srp-filters';
+            
+            const filterItems = [
+                { label: 'Filters (3)', hasCount: true },
+                { label: 'Budget', hasDropdown: true },
+                { label: 'BHK type', hasDropdown: true },
+                { label: 'Property type', hasDropdown: true }
+            ];
+            
+            filterItems.forEach((filter, index) => {
+                const filterBtn = document.createElement('button');
+                filterBtn.className = 'srp-filter-btn' + (index === 0 ? ' primary' : '');
+                filterBtn.innerHTML = `
+                    <span>${filter.label}</span>
+                    ${filter.hasDropdown ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>' : ''}
+                `;
+                filters.appendChild(filterBtn);
+            });
+            
+            // ========== PROPERTY LIST ==========
+            const propertyList = document.createElement('div');
+            propertyList.className = 'srp-property-list';
+            
+            // Generate sample properties
+            const sampleProperties = generateSRPProperties(allCards);
+            sampleProperties.forEach((prop, index) => {
+                const card = createSRPPropertyCard(prop, index === 0);
+                propertyList.appendChild(card);
+            });
+            
+            // Assemble page
+            page.appendChild(header);
+            page.appendChild(tabs);
+            page.appendChild(filters);
+            page.appendChild(propertyList);
+            
+            document.body.appendChild(page);
             document.body.style.overflow = 'hidden';
+        }
+        
+        // Get tab icon SVG
+        function getTabIcon(tab) {
+            const icons = {
+                'All': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>',
+                'Projects': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>',
+                'New launches': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>',
+                'Owner': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>',
+                'Ready to move': '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+            };
+            return icons[tab] || '';
+        }
+        
+        // Generate SRP properties from cards
+        function generateSRPProperties(cards) {
+            const properties = [];
+            const locations = ['Dwarka, New Gurgaon', 'Sector 81, near Dwarka Expressway, New Gurgaon', 'Golf Course Road, Gurgaon', 'Sohna Road, Gurgaon'];
+            const projectNames = ['Sunil Apartment Housing', 'Ariisto Bellanza Phase 1 Wing Apartments Phase II', 'DLF The Camellias', 'M3M Golf Estate'];
+            const ownerNames = ['Yashvir Singh', 'Rahul Sharma', 'Priya Kapoor', 'Amit Verma'];
+            
+            // Add sponsored property first
+            properties.push({
+                isSponsored: true,
+                name: projectNames[0],
+                bhk: '3 BHK Apartment',
+                location: locations[0],
+                priceRange: '₹2.04 Cr. - ₹3.06 Cr.',
+                image: PROPERTY_IMAGE_POOL[0]
+            });
+            
+            // Add regular properties
+            for (let i = 0; i < 4; i++) {
+                const card = cards && cards[i] ? cards[i] : null;
+                properties.push({
+                    isSponsored: false,
+                    name: projectNames[(i + 1) % projectNames.length],
+                    bhk: `${2 + (i % 3)} BHK Apartment`,
+                    location: locations[(i + 1) % locations.length],
+                    price: `₹${(2.5 + i * 0.35).toFixed(2)} Cr`,
+                    avgPrice: `₹${12 + i * 2}k`,
+                    status: 'Ready to Move',
+                    daysAgo: `${1 + i}d ago`,
+                    ownerName: ownerNames[i % ownerNames.length],
+                    image: card ? card.image : PROPERTY_IMAGE_POOL[(i + 1) % PROPERTY_IMAGE_POOL.length],
+                    gallery: card ? card.gallery : [PROPERTY_IMAGE_POOL[(i + 1) % PROPERTY_IMAGE_POOL.length], PROPERTY_IMAGE_POOL[(i + 2) % PROPERTY_IMAGE_POOL.length]]
+                });
+            }
+            
+            return properties;
+        }
+        
+        // Create SRP property card
+        function createSRPPropertyCard(prop, isSponsored) {
+            const card = document.createElement('div');
+            card.className = 'srp-property-card' + (isSponsored ? ' sponsored' : '');
+            
+            if (isSponsored) {
+                card.innerHTML = `
+                    <div class="srp-card-sponsored-badge">+ Sponsored</div>
+                    <div class="srp-card-sponsored-layout">
+                        <div class="srp-card-sponsored-image">
+                            <img src="${prop.image}" alt="${prop.name}" />
+                        </div>
+                        <div class="srp-card-sponsored-info">
+                            <div class="srp-card-sponsored-title">${prop.name}</div>
+                            <div class="srp-card-sponsored-bhk">${prop.bhk}</div>
+                            <div class="srp-card-sponsored-location">${prop.location}</div>
+                            <div class="srp-card-sponsored-price">${prop.priceRange}</div>
+                        </div>
+                        <button class="srp-card-call-btn primary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="none">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="srp-card-know-more">Know more <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+                `;
+            } else {
+                card.innerHTML = `
+                    <div class="srp-card-gallery">
+                        <div class="srp-card-gallery-main">
+                            <img src="${prop.image}" alt="${prop.name}" />
+                            <div class="srp-card-gallery-badge">
+                                <span class="gallery-count">1/23</span>
+                                <span class="gallery-3d">🏠 3D view ›</span>
+                            </div>
+                            <button class="srp-card-favorite">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                            </button>
+                        </div>
+                        <div class="srp-card-gallery-thumb">
+                            <img src="${prop.gallery ? prop.gallery[1] : prop.image}" alt="" />
+                            <div class="srp-card-days-ago">${prop.daysAgo}</div>
+                        </div>
+                    </div>
+                    <div class="srp-card-info">
+                        <div class="srp-card-status">${prop.status} • Avg. Price/ sq.ft. ${prop.avgPrice}</div>
+                        <div class="srp-card-bhk">${prop.bhk}</div>
+                        <div class="srp-card-price">${prop.price}</div>
+                        <div class="srp-card-project">${prop.name}</div>
+                        <div class="srp-card-location">${prop.location}</div>
+                        <div class="srp-card-owner">
+                            <div class="srp-card-owner-avatar">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="#ccc" stroke="none"><circle cx="12" cy="8" r="4"/><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/></svg>
+                            </div>
+                            <div class="srp-card-owner-info">
+                                <div class="srp-card-owner-name">${prop.ownerName}</div>
+                                <div class="srp-card-owner-role">Owner</div>
+                            </div>
+                            <button class="srp-card-view-number">View Number</button>
+                            <button class="srp-card-whatsapp">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            </button>
+                            <button class="srp-card-call">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="none">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return card;
         }
         
         // Render property cards in horizontal scroll
