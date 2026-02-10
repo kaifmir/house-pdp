@@ -3727,7 +3727,11 @@ document.addEventListener('DOMContentLoaded', function() {
             stickyHeader.appendChild(tabsContainer);
             stickyHeader.appendChild(filters);
             
-            // ========== BOTTOM NAVIGATION ==========
+            // ========== BOTTOM NAVIGATION CONTAINER (Nav + AI Chat Bar) ==========
+            const bottomNavContainer = document.createElement('div');
+            bottomNavContainer.className = 'srp-bottom-container';
+            
+            // Bottom Navigation
             const bottomNav = document.createElement('div');
             bottomNav.className = 'srp-bottom-nav';
             bottomNav.innerHTML = `
@@ -3757,34 +3761,111 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             `;
             
+            // AI Chat Bar
+            const aiChatBar = document.createElement('div');
+            aiChatBar.className = 'srp-ai-chat-bar';
+            aiChatBar.innerHTML = `
+                <div class="ai-chat-pill">
+                    <div class="ai-chat-glow"></div>
+                    <div class="ai-chat-content">
+                        <div class="ai-chat-left-icons">
+                            <button class="ai-icon-btn" aria-label="Add image">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                                    <polyline points="21 15 16 10 5 21"/>
+                                </svg>
+                            </button>
+                            <button class="ai-icon-btn" aria-label="Attach file">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <input type="text" class="ai-chat-input" placeholder="Ask anything" readonly />
+                        <button class="ai-icon-btn ai-mic-btn" aria-label="Voice input">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                                <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="23"/>
+                                <line x1="8" y1="23" x2="16" y2="23"/>
+                            </svg>
+                        </button>
+                        <button class="ai-send-btn" aria-label="Send">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="19" x2="12" y2="5"/>
+                                <polyline points="5 12 12 5 19 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Clicking AI chat bar opens the chat
+            aiChatBar.addEventListener('click', function(e) {
+                if (!e.target.closest('.ai-send-btn')) {
+                    // Close SRP and focus on chat input
+                    page.remove();
+                    document.body.style.overflow = '';
+                    // Focus the main chat input
+                    const mainInput = document.getElementById('user-input');
+                    if (mainInput) {
+                        setTimeout(() => mainInput.focus(), 100);
+                    }
+                }
+            });
+            
+            bottomNavContainer.appendChild(bottomNav);
+            bottomNavContainer.appendChild(aiChatBar);
+            
             // Assemble page
             page.appendChild(stickyHeader);
             page.appendChild(propertyList);
-            page.appendChild(bottomNav);
+            page.appendChild(bottomNavContainer);
             
             document.body.appendChild(page);
             document.body.style.overflow = 'hidden';
             
-            // ========== SCROLL-BASED TAB COLLAPSE ==========
+            // ========== SCROLL-BASED TAB COLLAPSE + AI CHAT TAKEOVER ==========
             let isTabsCollapsed = false;
-            let lastScrollTop = 0;
-            const COLLAPSE_THRESHOLD = 150; // px to scroll before collapsing
+            let isAIChatActive = false;
+            let rafPending = false;
+            const COLLAPSE_THRESHOLD = 150; // px to scroll before collapsing tabs
             
-            propertyList.addEventListener('scroll', function() {
+            // Hysteresis thresholds for AI chat (in viewport heights)
+            const AI_ENTER_THRESHOLD = 1.8; // Show AI bar after 1.8x viewport
+            const AI_EXIT_THRESHOLD = 1.4;  // Hide AI bar when scrolling back above 1.4x viewport
+            
+            const handleScroll = () => {
+                rafPending = false;
                 const scrollTop = propertyList.scrollTop;
+                const viewportHeight = window.innerHeight;
+                const scrollRatio = scrollTop / viewportHeight;
                 
-                // Collapse tabs when scrolling down past threshold
+                // Tab collapse logic
                 if (scrollTop > COLLAPSE_THRESHOLD && !isTabsCollapsed) {
                     isTabsCollapsed = true;
                     tabsContainer.classList.add('collapsed');
-                }
-                // Expand tabs when scrolling back to top
-                else if (scrollTop <= 50 && isTabsCollapsed) {
+                } else if (scrollTop <= 50 && isTabsCollapsed) {
                     isTabsCollapsed = false;
                     tabsContainer.classList.remove('collapsed');
                 }
                 
-                lastScrollTop = scrollTop;
+                // AI Chat bar takeover with hysteresis
+                if (scrollRatio >= AI_ENTER_THRESHOLD && !isAIChatActive) {
+                    isAIChatActive = true;
+                    bottomNavContainer.classList.add('ai-active');
+                } else if (scrollRatio < AI_EXIT_THRESHOLD && isAIChatActive) {
+                    isAIChatActive = false;
+                    bottomNavContainer.classList.remove('ai-active');
+                }
+            };
+            
+            propertyList.addEventListener('scroll', function() {
+                if (!rafPending) {
+                    rafPending = true;
+                    requestAnimationFrame(handleScroll);
+                }
             }, { passive: true });
         }
         
