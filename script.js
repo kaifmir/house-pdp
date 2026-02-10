@@ -3782,7 +3782,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     isArmed = progress >= 1;
                     
                     // Update spacer width (creates actual space)
-                    overscrollSpacer.style.width = `${elasticWidth + 80}px`; // +80 for min content width
+                    overscrollSpacer.style.width = `${elasticWidth + 100}px`; // +100 for min content width (56px circle + padding)
                     
                     // Update affordance appearance
                     overscrollAffordance.style.opacity = progress.toString();

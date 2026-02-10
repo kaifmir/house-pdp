@@ -2788,17 +2788,17 @@ html, body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     opacity: 0;
     transform: scale(0.96);
-    min-width: 80px;
-    padding: 0 16px;
+    min-width: 100px;
+    padding: 0 20px;
     pointer-events: none;
 }
 
 .carousel-overscroll-affordance .overscroll-circle {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     background: linear-gradient(135deg, #5E23DC 0%, #7B3FE4 100%);
     display: flex;
@@ -2808,42 +2808,42 @@ html, body {
 }
 
 .carousel-overscroll-affordance .overscroll-circle svg {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
     color: white;
     margin-left: 2px; /* Visual centering for chevron */
 }
 
 .carousel-overscroll-affordance .overscroll-label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: #5E23DC;
     font-family: 'Rubik', sans-serif;
     white-space: nowrap;
+    text-align: center;
 }
 
-/* Full-width secondary CTA button below carousel */
+/* Full-width CTA button below carousel */
 .carousel-view-all-btn {
     display: block;
-    width: calc(100% - 32px);
-    margin: 12px 16px 0 16px;
+    width: 100%;
+    margin: 12px 0 0 0;
     padding: 14px 16px;
-    background: #F2F3F8;
-    border: 1px solid #E1E2E8;
-    border-radius: 12px;
-    color: #222;
+    background: #5E23DC;
+    border: none;
+    border-radius: 0;
+    color: #ffffff;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     font-family: 'Rubik', sans-serif;
     text-align: center;
-    transition: background 0.2s ease, border-color 0.2s ease;
+    transition: background 0.2s ease;
 }
 
 .carousel-view-all-btn:hover,
 .carousel-view-all-btn:active {
-    background: #E8E9EF;
-    border-color: #D8D8D8;
+    background: #4A1BB0;
 }
 
 /* View all properties page */
