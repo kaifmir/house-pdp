@@ -3770,12 +3770,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="ai-chat-stroke"></div>
                     <div class="ai-chat-content">
                         <div class="ai-chat-icon">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7v1h1a1 1 0 110 2h-1v1a7 7 0 01-7 7h-4a7 7 0 01-7-7v-1H2a1 1 0 110-2h1v-1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z"/>
-                                <circle cx="9" cy="13" r="1.5" fill="currentColor"/>
-                                <circle cx="15" cy="13" r="1.5" fill="currentColor"/>
-                                <path d="M9 17c.83.67 2 1 3 1s2.17-.33 3-1"/>
-                            </svg>
+                            <img src="Container.png" alt="AI" class="ai-chat-houze-icon" />
                         </div>
                         <input type="text" class="ai-chat-input" placeholder="Ask anything" readonly />
                         <button class="ai-icon-btn ai-mic-btn" aria-label="Voice input">
@@ -3828,8 +3823,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const COLLAPSE_THRESHOLD = 150; // px to scroll before collapsing tabs
             
             // Hysteresis thresholds for AI chat (in viewport heights)
-            const AI_ENTER_THRESHOLD = 1.8; // Show AI bar after 1.8x viewport
-            const AI_EXIT_THRESHOLD = 1.4;  // Hide AI bar when scrolling back above 1.4x viewport
+            const AI_ENTER_THRESHOLD = 0.8; // Show AI bar after 0.8x viewport (less scrolling needed)
+            const AI_EXIT_THRESHOLD = 0.5;  // Hide AI bar when scrolling back above 0.5x viewport
             
             const handleScroll = () => {
                 rafPending = false;

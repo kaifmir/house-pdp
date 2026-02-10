@@ -6280,23 +6280,30 @@ html, body {
     padding: 10px 12px 10px 14px;
     background: #FAFAFA;
     border-radius: 28px;
+    border: 1px solid #D8D8D8;
     z-index: 2;
 }
 
 /* AI Icon */
 .ai-chat-icon {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: #666;
 }
 
-.ai-chat-icon svg {
-    width: 22px;
-    height: 22px;
+.ai-chat-houze-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    animation: gentleSpin 8s linear infinite;
+}
+
+@keyframes gentleSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .ai-icon-btn {
