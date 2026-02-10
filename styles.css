@@ -2771,58 +2771,79 @@ html, body {
     width: 100%;
 }
 
-/* Overscroll affordance - appears when pulling past last card */
-.carousel-overscroll-affordance {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%) translateX(12px);
-    opacity: 0;
-    pointer-events: none;
-    z-index: 10;
-    background: linear-gradient(135deg, #5E23DC 0%, #7B3FE4 100%);
-    color: white;
-    padding: 12px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    font-family: 'Rubik', sans-serif;
-    box-shadow: 0 4px 12px rgba(94, 35, 220, 0.3);
-    white-space: nowrap;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.carousel-overscroll-affordance .overscroll-content {
+/* Overscroll spacer - creates actual space when pulling past last card */
+.carousel-overscroll-spacer {
+    flex-shrink: 0;
+    width: 0;
+    min-height: 100%;
     display: flex;
     align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Circular affordance inside spacer */
+.carousel-overscroll-affordance {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 8px;
+    opacity: 0;
+    transform: scale(0.96);
+    min-width: 80px;
+    padding: 0 16px;
+    pointer-events: none;
 }
 
-.carousel-overscroll-affordance svg {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
+.carousel-overscroll-affordance .overscroll-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #5E23DC 0%, #7B3FE4 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(94, 35, 220, 0.3);
 }
 
-/* View all button below carousel */
+.carousel-overscroll-affordance .overscroll-circle svg {
+    width: 22px;
+    height: 22px;
+    color: white;
+    margin-left: 2px; /* Visual centering for chevron */
+}
+
+.carousel-overscroll-affordance .overscroll-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #5E23DC;
+    font-family: 'Rubik', sans-serif;
+    white-space: nowrap;
+}
+
+/* Full-width secondary CTA button below carousel */
 .carousel-view-all-btn {
     display: block;
-    margin: 8px 0 0 16px;
-    padding: 8px 0;
-    background: transparent;
-    border: none;
-    color: #5E23DC;
+    width: calc(100% - 32px);
+    margin: 12px 16px 0 16px;
+    padding: 14px 16px;
+    background: #F2F3F8;
+    border: 1px solid #E1E2E8;
+    border-radius: 12px;
+    color: #222;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     font-family: 'Rubik', sans-serif;
-    text-decoration: none;
-    transition: opacity 0.2s ease;
+    text-align: center;
+    transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .carousel-view-all-btn:hover,
 .carousel-view-all-btn:active {
-    opacity: 0.7;
+    background: #E8E9EF;
+    border-color: #D8D8D8;
 }
 
 /* View all properties page */

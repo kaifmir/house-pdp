@@ -3699,65 +3699,77 @@ document.addEventListener('DOMContentLoaded', function() {
             let isOverscrolling = false;
             let pullDistance = 0;
             let startX = 0;
-            let startScrollLeft = 0;
             let maxScrollLeft = 0;
-            const PULL_THRESHOLD = 80; // px to trigger navigation
-            const MAX_PULL = 120; // max pull distance
+            let isArmed = false; // Whether threshold is reached
+            const PULL_THRESHOLD = 90; // px to trigger navigation (~25% of card width)
+            const MAX_PULL = 140; // max pull distance
             const RESISTANCE = 0.35; // elastic resistance
             
-            // Create overscroll affordance element
+            // Create spacer element (appended after last card - creates actual space)
+            const overscrollSpacer = document.createElement('div');
+            overscrollSpacer.className = 'carousel-overscroll-spacer';
+            overscrollSpacer.style.cssText = `
+                flex-shrink: 0;
+                width: 0;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                overflow: hidden;
+                transition: none;
+            `;
+            
+            // Create the circular affordance inside the spacer
             const overscrollAffordance = document.createElement('div');
             overscrollAffordance.className = 'carousel-overscroll-affordance';
             overscrollAffordance.innerHTML = `
-                <div class="overscroll-content">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <div class="overscroll-circle">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
-                    <span>Show me more properties</span>
                 </div>
+                <span class="overscroll-label">View all</span>
             `;
             overscrollAffordance.style.cssText = `
-                position: absolute;
-                right: 0;
-                top: 50%;
-                transform: translateY(-50%) translateX(12px);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
                 opacity: 0;
-                pointer-events: none;
-                z-index: 10;
-                background: linear-gradient(135deg, #5E23DC 0%, #7B3FE4 100%);
-                color: white;
-                padding: 12px 16px;
-                border-radius: 20px;
-                font-size: 13px;
-                font-weight: 500;
-                box-shadow: 0 4px 12px rgba(94, 35, 220, 0.3);
-                white-space: nowrap;
-                transition: opacity 0.15s ease, transform 0.15s ease;
+                transform: scale(0.96);
+                min-width: 80px;
+                padding: 0 16px;
             `;
+            
+            overscrollSpacer.appendChild(overscrollAffordance);
             
             // Touch/pointer handlers for overscroll
             const handleTouchStart = (e) => {
-                // Calculate max scroll position
-                maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+                // Calculate max scroll position (before spacer is expanded)
+                const spacerWidth = parseFloat(overscrollSpacer.style.width) || 0;
+                maxScrollLeft = carousel.scrollWidth - carousel.clientWidth - spacerWidth;
                 
-                // Only track if at or near the end
-                if (carousel.scrollLeft >= maxScrollLeft - 2) {
-                    const touch = e.touches ? e.touches[0] : e;
-                    startX = touch.clientX;
-                    startScrollLeft = carousel.scrollLeft;
-                    isOverscrolling = false;
-                    pullDistance = 0;
-                }
+                const touch = e.touches ? e.touches[0] : e;
+                startX = touch.clientX;
+                isOverscrolling = false;
+                pullDistance = 0;
+                isArmed = false;
+                
+                // Remove transition for immediate response
+                overscrollSpacer.style.transition = 'none';
             };
             
             const handleTouchMove = (e) => {
-                if (!startX) return;
+                if (startX === 0) return;
                 
                 const touch = e.touches ? e.touches[0] : e;
                 const deltaX = startX - touch.clientX; // Positive = pulling left (showing more)
                 
-                // Recalculate max scroll in case it changed
-                maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+                // Recalculate max scroll (excluding current spacer width)
+                const currentSpacerWidth = parseFloat(overscrollSpacer.style.width) || 0;
+                const baseScrollWidth = carousel.scrollWidth - currentSpacerWidth;
+                maxScrollLeft = baseScrollWidth - carousel.clientWidth;
                 
                 // Check if we're at the end and trying to pull further
                 if (carousel.scrollLeft >= maxScrollLeft - 2 && deltaX > 0) {
@@ -3765,48 +3777,60 @@ document.addEventListener('DOMContentLoaded', function() {
                     pullDistance = Math.min(deltaX, MAX_PULL);
                     
                     // Apply resistance curve for elastic feel
-                    const visualPull = pullDistance * RESISTANCE;
+                    const elasticWidth = pullDistance * RESISTANCE;
                     const progress = Math.min(pullDistance / PULL_THRESHOLD, 1);
+                    isArmed = progress >= 1;
+                    
+                    // Update spacer width (creates actual space)
+                    overscrollSpacer.style.width = `${elasticWidth + 80}px`; // +80 for min content width
                     
                     // Update affordance appearance
                     overscrollAffordance.style.opacity = progress.toString();
-                    overscrollAffordance.style.transform = `translateY(-50%) translateX(${(1 - progress) * 12}px)`;
+                    const scale = 0.96 + (0.04 * progress);
+                    overscrollAffordance.style.transform = `scale(${scale})`;
+                    
+                    // Scroll to show the spacer
+                    carousel.scrollLeft = maxScrollLeft + elasticWidth;
                     
                     // Prevent default scrolling when overscrolling
                     if (pullDistance > 10) {
                         e.preventDefault();
                     }
-                } else {
-                    // Reset if scrolling back
-                    if (isOverscrolling && deltaX < 0) {
-                        isOverscrolling = false;
-                        pullDistance = 0;
-                        overscrollAffordance.style.opacity = '0';
-                        overscrollAffordance.style.transform = 'translateY(-50%) translateX(12px)';
-                    }
+                } else if (deltaX <= 0 && isOverscrolling) {
+                    // User scrolling back - collapse spacer
+                    isOverscrolling = false;
+                    pullDistance = 0;
+                    isArmed = false;
+                    overscrollSpacer.style.width = '0';
+                    overscrollAffordance.style.opacity = '0';
+                    overscrollAffordance.style.transform = 'scale(0.96)';
                 }
             };
             
             const handleTouchEnd = () => {
-                if (isOverscrolling && pullDistance >= PULL_THRESHOLD) {
+                if (isArmed && isOverscrolling) {
                     // Threshold reached - navigate to View All page
                     showViewAllPage(allCards || cards);
                 }
                 
-                // Animate affordance back
-                overscrollAffordance.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                // Animate spacer back to 0 (smooth snap back)
+                overscrollSpacer.style.transition = 'width 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                overscrollSpacer.style.width = '0';
+                overscrollAffordance.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
                 overscrollAffordance.style.opacity = '0';
-                overscrollAffordance.style.transform = 'translateY(-50%) translateX(12px)';
+                overscrollAffordance.style.transform = 'scale(0.96)';
                 
-                // Reset after animation
+                // Reset transitions after animation
                 setTimeout(() => {
-                    overscrollAffordance.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+                    overscrollSpacer.style.transition = 'none';
+                    overscrollAffordance.style.transition = 'none';
                 }, 300);
                 
                 // Reset state
                 isOverscrolling = false;
                 pullDistance = 0;
                 startX = 0;
+                isArmed = false;
             };
             
             // Attach touch/pointer events
@@ -4256,27 +4280,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 carousel.appendChild(cardElement);
             });
             
-            // Add carousel and overscroll affordance to wrapper
-            wrapper.appendChild(carousel);
-            wrapper.appendChild(overscrollAffordance);
+            // Add overscroll spacer at the end of carousel (creates actual space when pulling)
+            carousel.appendChild(overscrollSpacer);
             
-            // Add "View all" text button below carousel
+            // Add carousel to wrapper
+            wrapper.appendChild(carousel);
+            
+            // Add full-width "View all" secondary CTA button below carousel
             const viewAllBtn = document.createElement('button');
             viewAllBtn.className = 'carousel-view-all-btn';
             viewAllBtn.textContent = 'View all';
-            viewAllBtn.style.cssText = `
-                display: block;
-                margin: 8px 0 0 16px;
-                padding: 8px 0;
-                background: transparent;
-                border: none;
-                color: #5E23DC;
-                font-size: 14px;
-                font-weight: 500;
-                cursor: pointer;
-                font-family: 'Rubik', sans-serif;
-                text-decoration: none;
-            `;
             viewAllBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
