@@ -6167,7 +6167,7 @@ html, body {
     overflow: visible;
 }
 
-/* Animated shimmer stroke border */
+/* Animated colorful stroke border - soft pink & purple */
 .ai-chat-stroke {
     position: absolute;
     inset: -1px;
@@ -6185,17 +6185,17 @@ html, body {
     padding: 1.5px;
     background: linear-gradient(
         90deg,
-        #C8C8C8 0%,
-        #E8E8E8 15%,
-        #A0A0A0 30%,
-        #E8E8E8 45%,
-        #C8C8C8 60%,
-        #E8E8E8 75%,
-        #A0A0A0 90%,
-        #C8C8C8 100%
+        #F8B4D9 0%,
+        #D8A8E8 15%,
+        #C4A8F0 30%,
+        #F0B8E0 45%,
+        #E8A8E8 55%,
+        #D0A0F0 70%,
+        #F4B0D8 85%,
+        #F8B4D9 100%
     );
     background-size: 300% 100%;
-    animation: strokeShimmer 6s ease-in-out infinite;
+    animation: strokeShimmer 5s ease-in-out infinite;
     -webkit-mask: 
         linear-gradient(#fff 0 0) content-box, 
         linear-gradient(#fff 0 0);
