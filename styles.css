@@ -6167,53 +6167,49 @@ html, body {
     overflow: visible;
 }
 
-/* Animated stroke border */
+/* Subtle static border */
 .ai-chat-glow {
     position: absolute;
-    inset: -1px;
-    border-radius: 29px;
-    background: linear-gradient(
-        90deg,
-        rgba(180, 180, 180, 0.4) 0%,
-        rgba(120, 120, 120, 0.8) 20%,
-        rgba(180, 180, 180, 0.4) 40%,
-        rgba(120, 120, 120, 0.8) 60%,
-        rgba(180, 180, 180, 0.4) 80%,
-        rgba(120, 120, 120, 0.8) 100%
-    );
-    background-size: 300% 100%;
-    animation: aiStrokeMove 4s linear infinite;
+    inset: 0;
+    border-radius: 28px;
+    border: 1px solid #E0E0E0;
     z-index: 0;
-}
-
-@keyframes aiStrokeMove {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 300% 50%; }
-}
-
-/* Subtle moving glow/shimmer behind the pill */
-.ai-chat-shimmer {
-    position: absolute;
-    inset: -8px;
-    border-radius: 36px;
-    background: radial-gradient(
-        ellipse 60% 50% at 50% 50%,
-        rgba(150, 150, 150, 0.15) 0%,
-        transparent 70%
-    );
-    animation: aiShimmerMove 5s ease-in-out infinite;
-    z-index: -1;
     pointer-events: none;
 }
 
-@keyframes aiShimmerMove {
+/* Moving glow orb behind the search bar */
+.ai-chat-shimmer {
+    position: absolute;
+    top: 50%;
+    left: -60px;
+    width: 140px;
+    height: 60px;
+    margin-top: -30px;
+    border-radius: 50%;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(120, 120, 120, 0.35) 0%,
+        rgba(160, 160, 160, 0.2) 35%,
+        transparent 65%
+    );
+    filter: blur(12px);
+    z-index: -1;
+    pointer-events: none;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    animation: aiGlowOrbit 5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+@keyframes aiGlowOrbit {
     0%, 100% { 
-        transform: translateX(-20px) scale(1);
-        opacity: 0.6;
+        transform: translate3d(0, 0, 0);
+        opacity: 0.5;
     }
     50% { 
-        transform: translateX(20px) scale(1.05);
-        opacity: 0.9;
+        transform: translate3d(calc(100vw - 100px), 0, 0);
+        opacity: 0.8;
     }
 }
 
