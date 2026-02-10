@@ -2771,36 +2771,41 @@ html, body {
     width: 100%;
 }
 
-/* Overscroll spacer - fixed width, uses transform for reveal (prevents jitter) */
-.carousel-overscroll-spacer {
-    flex-shrink: 0;
-    width: 120px; /* Fixed width - never changes during pull */
-    min-height: 100%;
+/* Reveal overlay - slides in from right during pull (no permanent space) */
+.carousel-reveal-overlay {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 120px;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    overflow: hidden;
+    justify-content: center;
     pointer-events: none;
+    opacity: 0;
+    z-index: 10;
+    overflow: visible;
 }
 
-/* Circular affordance - GPU accelerated transforms */
-.carousel-overscroll-affordance {
+/* Reveal content - circle + label */
+.carousel-reveal-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    min-width: 100px;
-    padding: 0 20px;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translate3d(120px, -50%, 0) scale(0.88);
     opacity: 0;
-    transform: translate3d(120px, 0, 0) scale(0.92);
     will-change: transform, opacity;
     pointer-events: none;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
 }
 
-.carousel-overscroll-affordance .overscroll-circle {
+.carousel-reveal-content .overscroll-circle {
     width: 56px;
     height: 56px;
     border-radius: 50%;
@@ -2814,14 +2819,14 @@ html, body {
     -webkit-backface-visibility: hidden;
 }
 
-.carousel-overscroll-affordance .overscroll-circle svg {
+.carousel-reveal-content .overscroll-circle svg {
     width: 26px;
     height: 26px;
     color: white;
     margin-left: 2px; /* Visual centering for chevron */
 }
 
-.carousel-overscroll-affordance .overscroll-label {
+.carousel-reveal-content .overscroll-label {
     font-size: 13px;
     font-weight: 500;
     color: #5E23DC;
@@ -2833,8 +2838,9 @@ html, body {
 /* Full-width secondary CTA button below carousel */
 .carousel-view-all-btn {
     display: block;
-    width: calc(100% - 32px);
-    margin: 12px 16px 0 16px;
+    width: calc(100% - 32px); /* Full width minus 16px padding on each side */
+    box-sizing: border-box;
+    margin: 12px 16px 0 16px; /* 16px horizontal margins to align with content */
     padding: 16px 16px;
     background: #ffffff;
     border: 1px solid #222222;
