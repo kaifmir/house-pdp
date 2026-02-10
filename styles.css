@@ -6167,48 +6167,106 @@ html, body {
     overflow: visible;
 }
 
-/* Subtle static border */
-.ai-chat-glow {
+/* Animated shimmer stroke border */
+.ai-chat-stroke {
     position: absolute;
     inset: 0;
     border-radius: 28px;
-    border: 1px solid #E0E0E0;
-    z-index: 0;
-    pointer-events: none;
+    padding: 1px;
+    background: linear-gradient(
+        90deg,
+        #D0D0D0 0%,
+        #A0A0A0 25%,
+        #D0D0D0 50%,
+        #A0A0A0 75%,
+        #D0D0D0 100%
+    );
+    background-size: 200% 100%;
+    animation: strokeShimmer 8s linear infinite;
+    z-index: 1;
+    -webkit-mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    mask: 
+        linear-gradient(#fff 0 0) content-box, 
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    will-change: background-position;
 }
 
-/* Moving glow orb behind the search bar */
-.ai-chat-shimmer {
+@keyframes strokeShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Glow blobs behind the search bar */
+.ai-chat-glow {
     position: absolute;
-    top: 50%;
-    left: -60px;
-    width: 140px;
-    height: 60px;
-    margin-top: -30px;
-    border-radius: 50%;
-    background: radial-gradient(
-        ellipse at center,
-        rgba(120, 120, 120, 0.35) 0%,
-        rgba(160, 160, 160, 0.2) 35%,
-        transparent 65%
-    );
-    filter: blur(12px);
+    inset: -12px;
+    border-radius: 40px;
     z-index: -1;
     pointer-events: none;
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform: translate3d(0, 0, 0);
-    animation: aiGlowOrbit 5s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+    overflow: hidden;
 }
 
-@keyframes aiGlowOrbit {
+.ai-chat-glow::before,
+.ai-chat-glow::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(16px);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.ai-chat-glow::before {
+    width: 100px;
+    height: 60px;
+    top: 50%;
+    left: -20px;
+    margin-top: -30px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(130, 130, 130, 0.3) 0%,
+        transparent 70%
+    );
+    animation: glowBlob1 6s ease-in-out infinite;
+}
+
+.ai-chat-glow::after {
+    width: 80px;
+    height: 50px;
+    top: 50%;
+    right: -10px;
+    margin-top: -25px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(150, 150, 150, 0.25) 0%,
+        transparent 70%
+    );
+    animation: glowBlob2 7s ease-in-out infinite;
+}
+
+@keyframes glowBlob1 {
     0%, 100% { 
-        transform: translate3d(0, 0, 0);
+        transform: translate3d(0, 0, 0) scale(1);
+        opacity: 0.6;
+    }
+    50% { 
+        transform: translate3d(80px, -5px, 0) scale(1.1);
+        opacity: 0.9;
+    }
+}
+
+@keyframes glowBlob2 {
+    0%, 100% { 
+        transform: translate3d(0, 0, 0) scale(1);
         opacity: 0.5;
     }
     50% { 
-        transform: translate3d(calc(100vw - 100px), 0, 0);
+        transform: translate3d(-60px, 5px, 0) scale(1.15);
         opacity: 0.8;
     }
 }
@@ -6218,11 +6276,27 @@ html, body {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
+    gap: 10px;
+    padding: 10px 12px 10px 14px;
     background: #FAFAFA;
     border-radius: 28px;
-    z-index: 1;
+    z-index: 2;
+}
+
+/* AI Icon */
+.ai-chat-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #666;
+}
+
+.ai-chat-icon svg {
+    width: 22px;
+    height: 22px;
 }
 
 .ai-icon-btn {
