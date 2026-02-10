@@ -6170,20 +6170,32 @@ html, body {
 /* Animated shimmer stroke border */
 .ai-chat-stroke {
     position: absolute;
+    inset: -1px;
+    border-radius: 29px;
+    z-index: 1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.ai-chat-stroke::before {
+    content: '';
+    position: absolute;
     inset: 0;
-    border-radius: 28px;
-    padding: 1px;
+    border-radius: 29px;
+    padding: 1.5px;
     background: linear-gradient(
         90deg,
-        #D0D0D0 0%,
-        #A0A0A0 25%,
-        #D0D0D0 50%,
-        #A0A0A0 75%,
-        #D0D0D0 100%
+        #C8C8C8 0%,
+        #E8E8E8 15%,
+        #A0A0A0 30%,
+        #E8E8E8 45%,
+        #C8C8C8 60%,
+        #E8E8E8 75%,
+        #A0A0A0 90%,
+        #C8C8C8 100%
     );
-    background-size: 200% 100%;
-    animation: strokeShimmer 8s linear infinite;
-    z-index: 1;
+    background-size: 300% 100%;
+    animation: strokeShimmer 6s ease-in-out infinite;
     -webkit-mask: 
         linear-gradient(#fff 0 0) content-box, 
         linear-gradient(#fff 0 0);
@@ -6196,8 +6208,9 @@ html, body {
 }
 
 @keyframes strokeShimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% { background-position: 100% 0; }
+    50% { background-position: 0% 0; }
+    100% { background-position: 100% 0; }
 }
 
 /* Glow blobs behind the search bar */
@@ -6280,7 +6293,6 @@ html, body {
     padding: 10px 12px 10px 14px;
     background: #FAFAFA;
     border-radius: 28px;
-    border: 1px solid #D8D8D8;
     z-index: 2;
 }
 
@@ -6298,6 +6310,7 @@ html, body {
     width: 28px;
     height: 28px;
     object-fit: contain;
+    opacity: 0.4;
     animation: gentleSpin 8s linear infinite;
 }
 
