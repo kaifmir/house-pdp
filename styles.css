@@ -2806,11 +2806,11 @@ html, body {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #5E23DC 0%, #7B3FE4 100%);
+    background: linear-gradient(135deg, #222222 0%, #444444 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(94, 35, 220, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     will-change: transform;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
@@ -2826,7 +2826,7 @@ html, body {
 .carousel-reveal-content .overscroll-label {
     font-size: 13px;
     font-weight: 500;
-    color: #5E23DC;
+    color: #222222;
     font-family: 'Rubik', sans-serif;
     white-space: nowrap;
     text-align: center;
@@ -5347,7 +5347,7 @@ html, body {
 }
 
 /* ============================================================================
-   SEARCH RESULTS PAGE (SRP)
+   SEARCH RESULTS PAGE (SRP) - Pixel-perfect Figma implementation (Monochrome)
    ============================================================================ */
 
 .srp-page {
@@ -5356,27 +5356,34 @@ html, body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #F5F5F5;
+    background: #F2F3F8;
     z-index: 999999;
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
 
-/* Header */
+/* Property list is now the scrollable container */
+.srp-page .srp-property-list {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* ===== HEADER ===== */
 .srp-header {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     padding: 12px 16px;
     padding-top: calc(12px + env(safe-area-inset-top));
     background: #fff;
-    border-bottom: 1px solid #E8E8E8;
+    box-shadow: 1px 1px 2px 0px rgba(0, 0, 0, 0.1);
 }
 
 .srp-back-btn {
-    width: 40px;
-    height: 40px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5385,11 +5392,10 @@ html, body {
     cursor: pointer;
     flex-shrink: 0;
     padding: 0;
-    border-radius: 50%;
 }
 
 .srp-back-btn:active {
-    background: #F5F5F5;
+    opacity: 0.7;
 }
 
 .srp-search-bar {
@@ -5397,47 +5403,89 @@ html, body {
     display: flex;
     align-items: center;
     background: #fff;
-    border: 1px solid #E1E2E8;
-    border-radius: 8px;
-    overflow: hidden;
+    border: 1px solid #D8D8D8;
+    border-radius: 12px;
+    height: 48px;
+    padding-left: 16px;
+    padding-right: 8px;
+    gap: 12px;
 }
 
-.srp-search-input {
+.srp-search-input-wrapper {
     flex: 1;
-    padding: 12px 16px;
-    border: none;
-    outline: none;
-    font-size: 14px;
-    font-family: 'Rubik', sans-serif;
-    color: #222;
-    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
 }
 
-.srp-search-input::placeholder {
-    color: #767676;
+.srp-search-cursor {
+    width: 1.2px;
+    height: 18px;
+    background: #000;
+    border-radius: 100px;
+    animation: srpCursorBlink 1s ease-in-out infinite;
+}
+
+@keyframes srpCursorBlink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+.srp-search-placeholder {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #434343;
+    opacity: 0.6;
+    line-height: 16px;
 }
 
 .srp-search-btn {
-    width: 44px;
-    height: 44px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #5E23DC;
+    background: #222;
     border: none;
     cursor: pointer;
-    border-radius: 0 8px 8px 0;
+    border-radius: 8px;
+    flex-shrink: 0;
 }
 
-/* Tabs */
+/* ===== STICKY HEADER ===== */
+.srp-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== TABS CONTAINER ===== */
+.srp-tabs-container {
+    background: #fff;
+    border-bottom: 1px solid #F2F3F8;
+    max-height: 70px;
+    overflow: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                opacity 0.25s ease,
+                border-color 0.3s ease;
+}
+
+.srp-tabs-container.collapsed {
+    max-height: 0;
+    border-bottom-color: transparent;
+}
+
 .srp-tabs {
     display: flex;
-    gap: 0;
-    background: #fff;
-    border-bottom: 1px solid #E8E8E8;
+    gap: 8px;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    padding: 0 16px;
 }
 
 .srp-tabs::-webkit-scrollbar {
@@ -5449,50 +5497,61 @@ html, body {
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    padding: 12px 16px;
+    padding: 10px 12px;
     background: transparent;
     border: none;
     cursor: pointer;
     font-family: 'Rubik', sans-serif;
-    font-size: 11px;
-    color: #767676;
+    font-size: 10px;
+    font-weight: 400;
+    color: #656565;
     white-space: nowrap;
     position: relative;
     flex-shrink: 0;
+    letter-spacing: 0.6px;
+    line-height: 12px;
+    min-width: 56px;
 }
 
 .srp-tab.active {
     color: #222;
-}
-
-.srp-tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 16px;
-    right: 16px;
-    height: 2px;
-    background: #5E23DC;
-    border-radius: 2px 2px 0 0;
+    font-weight: 500;
+    letter-spacing: 0.27px;
 }
 
 .srp-tab-icon {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.srp-tab-icon svg {
+    width: 24px;
+    height: 24px;
 }
 
 .srp-tab-label {
-    font-weight: 500;
+    text-align: center;
 }
 
-/* Filters */
+.srp-tab-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 8px;
+    right: 8px;
+    height: 3px;
+    background: #222;
+    border-radius: 2px 2px 0 0;
+}
+
+/* ===== FILTERS ===== */
 .srp-filters {
     display: flex;
     gap: 8px;
-    padding: 12px 16px;
+    padding: 16px;
     background: #fff;
-    border-bottom: 1px solid #E8E8E8;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -5505,77 +5564,103 @@ html, body {
 .srp-filter-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 14px;
+    gap: 8px;
+    padding: 8px;
     background: #fff;
-    border: 1px solid #E1E2E8;
-    border-radius: 20px;
+    border: 1px solid #D8D8D8;
+    border-radius: 8px;
     cursor: pointer;
     font-family: 'Rubik', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 12px;
+    font-weight: 400;
     color: #222;
     white-space: nowrap;
     flex-shrink: 0;
+    line-height: 16px;
+    letter-spacing: 0.2px;
 }
 
-.srp-filter-btn.primary {
-    background: #5E23DC;
-    border-color: #5E23DC;
-    color: #fff;
+.srp-filter-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
 }
 
-/* Property List */
+.srp-filter-btn.active {
+    background: #F0F0F0;
+    border-color: #222;
+    color: #222;
+}
+
+/* ===== PROPERTY LIST ===== */
 .srp-property-list {
     flex: 1;
     overflow-y: auto;
-    padding: 12px 16px;
+    padding: 16px;
+    padding-bottom: 24px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
     -webkit-overflow-scrolling: touch;
 }
 
-/* Property Card */
+/* ===== PROPERTY CARD BASE ===== */
 .srp-property-card {
     background: #fff;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.04);
 }
 
-/* Sponsored Card */
+/* ===== SPONSORED CARD ===== */
 .srp-property-card.sponsored {
-    border: 1px solid #E8E8E8;
-    position: relative;
+    box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.1);
+    padding: 8px;
+}
+
+.srp-card-sponsored-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .srp-card-sponsored-badge {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 500;
-    color: #767676;
-    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: #E1E2E8;
+    border-radius: 8px;
+    padding: 6px 8px;
+    width: fit-content;
+}
+
+.srp-card-sponsored-badge svg {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+}
+
+.srp-card-sponsored-badge span {
+    font-family: 'Rubik', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    color: #656565;
+    letter-spacing: 0.6px;
+    line-height: 12px;
 }
 
 .srp-card-sponsored-layout {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 16px;
 }
 
 .srp-card-sponsored-image {
-    width: 80px;
-    height: 80px;
+    width: 77px;
+    height: 68px;
     border-radius: 8px;
     overflow: hidden;
     flex-shrink: 0;
+    background: #f0f0f0;
 }
 
 .srp-card-sponsored-image img {
@@ -5587,42 +5672,50 @@ html, body {
 .srp-card-sponsored-info {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 }
 
 .srp-card-sponsored-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #222;
-    margin-bottom: 2px;
     font-family: 'Rubik', sans-serif;
-}
-
-.srp-card-sponsored-bhk {
-    font-size: 13px;
-    color: #767676;
-    margin-bottom: 2px;
-    font-family: 'Rubik', sans-serif;
-}
-
-.srp-card-sponsored-location {
     font-size: 12px;
-    color: #999;
-    margin-bottom: 4px;
+    font-weight: 500;
+    color: #222;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    margin-bottom: 0;
+}
+
+.srp-card-sponsored-meta {
     font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #767676;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+}
+
+.srp-card-sponsored-meta span {
+    display: block;
 }
 
 .srp-card-sponsored-price {
-    font-size: 14px;
-    font-weight: 600;
-    color: #222;
     font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #222;
+    line-height: 16px;
+    margin-top: 4px;
 }
 
 .srp-card-call-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 8px;
     border: none;
+    background: #222;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5630,38 +5723,40 @@ html, body {
     flex-shrink: 0;
 }
 
-.srp-card-call-btn.primary {
-    background: #5E23DC;
-}
-
 .srp-card-know-more {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 4px;
-    padding: 12px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #5E23DC;
-    border-top: 1px solid #F0F0F0;
+    gap: 2px;
     font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #656565;
     cursor: pointer;
+    text-decoration: underline;
+    line-height: 16px;
+    letter-spacing: 0.2px;
 }
 
-/* Regular Card Gallery */
+.srp-card-know-more svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* ===== REGULAR CARD GALLERY ===== */
 .srp-card-gallery {
     display: flex;
-    gap: 4px;
+    gap: 8px;
     padding: 8px;
-    padding-bottom: 0;
+    height: 116px;
 }
 
 .srp-card-gallery-main {
-    flex: 2;
+    flex: 1.2;
     position: relative;
     border-radius: 8px;
     overflow: hidden;
-    aspect-ratio: 4/3;
+    height: 100%;
 }
 
 .srp-card-gallery-main img {
@@ -5670,37 +5765,104 @@ html, body {
     object-fit: cover;
 }
 
-.srp-card-gallery-badge {
+/* Gallery Badges - Top (inside main image) */
+.srp-card-gallery-badges-top {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: flex;
+    gap: 4px;
+    z-index: 2;
+}
+
+/* Gallery Badges - Bottom (inside main image) */
+.srp-card-gallery-badges-bottom {
     position: absolute;
     bottom: 8px;
     left: 8px;
     display: flex;
-    gap: 6px;
+    gap: 4px;
+    z-index: 2;
 }
 
-.srp-card-gallery-badge .gallery-count,
-.srp-card-gallery-badge .gallery-3d {
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 11px;
+/* Badge Styles */
+.srp-badge {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 6px;
+    border-radius: 8px;
     font-family: 'Rubik', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 12px;
+    letter-spacing: 0.6px;
+}
+
+.srp-badge.verified,
+.srp-badge.rera {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(68px);
+    -webkit-backdrop-filter: blur(68px);
+    color: #fff;
+    height: 16px;
+    padding: 0 4px 0 0;
+}
+
+.srp-badge.verified svg,
+.srp-badge.rera svg {
+    width: 16px;
+    height: 16px;
+}
+
+.srp-badge.count {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(68px);
+    -webkit-backdrop-filter: blur(68px);
+    color: rgba(255, 255, 255, 0.8);
+    height: 16px;
+    padding: 2px 6px;
+}
+
+.srp-badge.threed {
+    background: #E1E2E8;
+    color: #434343;
+    height: 16px;
+    padding: 0 4px 0 4px;
+    border-radius: 16px;
+}
+
+.srp-badge.threed svg {
+    width: 10px;
+    height: 10px;
+}
+
+.srp-badge.days-ago {
+    background: rgba(0, 0, 0, 0.8);
+    color: rgba(255, 255, 255, 0.8);
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    left: auto;
+    bottom: auto;
+    height: 16px;
+    padding: 2px 6px;
 }
 
 .srp-card-favorite {
     position: absolute;
     top: 8px;
     right: 8px;
-    width: 32px;
-    height: 32px;
-    background: rgba(255, 255, 255, 0.9);
+    width: 16px;
+    height: 14px;
+    background: transparent;
     border: none;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    padding: 0;
+    z-index: 3;
 }
 
 .srp-card-gallery-thumb {
@@ -5708,6 +5870,7 @@ html, body {
     position: relative;
     border-radius: 8px;
     overflow: hidden;
+    height: 100%;
 }
 
 .srp-card-gallery-thumb img {
@@ -5716,79 +5879,117 @@ html, body {
     object-fit: cover;
 }
 
-.srp-card-days-ago {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
-    padding: 4px 8px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-family: 'Rubik', sans-serif;
+/* ===== CARD INFO ===== */
+.srp-card-info {
+    padding: 6px 8px 8px;
 }
 
-/* Card Info */
-.srp-card-info {
-    padding: 12px 16px 16px;
+.srp-card-status-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 16px;
 }
 
 .srp-card-status {
-    font-size: 12px;
-    color: #767676;
-    margin-bottom: 6px;
     font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #434343;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+}
+
+.srp-card-dot {
+    width: 4px;
+    height: 4px;
+    background: #434343;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.srp-card-avg-price {
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #434343;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+}
+
+.srp-card-avg-price strong {
+    font-weight: 500;
 }
 
 .srp-card-bhk {
-    font-size: 16px;
-    font-weight: 600;
-    color: #222;
-    margin-bottom: 4px;
     font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #222;
+    line-height: 16px;
+    margin-bottom: 8px;
 }
 
 .srp-card-price {
-    font-size: 18px;
-    font-weight: 700;
-    color: #222;
-    margin-bottom: 8px;
     font-family: 'Rubik', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #222;
+    line-height: 20px;
+    margin-bottom: 14px;
 }
 
 .srp-card-project {
-    font-size: 13px;
-    color: #222;
-    margin-bottom: 2px;
     font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #222;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .srp-card-location {
-    font-size: 12px;
-    color: #767676;
-    margin-bottom: 12px;
     font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #656565;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    margin-bottom: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Owner Section */
+.srp-card-divider {
+    height: 1px;
+    background: #E1E2E8;
+    margin-bottom: 16px;
+}
+
+/* ===== OWNER SECTION ===== */
 .srp-card-owner {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding-top: 12px;
-    border-top: 1px solid #F0F0F0;
+    gap: 8px;
 }
 
 .srp-card-owner-avatar {
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    background: #F5F5F5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
+}
+
+.srp-card-owner-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .srp-card-owner-info {
@@ -5797,36 +5998,52 @@ html, body {
 }
 
 .srp-card-owner-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: #222;
     font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #222;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .srp-card-owner-role {
-    font-size: 11px;
-    color: #767676;
     font-family: 'Rubik', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    color: #656565;
+    line-height: 12px;
+    letter-spacing: 0.6px;
+}
+
+.srp-card-owner-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .srp-card-view-number {
-    padding: 8px 14px;
+    padding: 8px 16px;
     background: #fff;
-    border: 1px solid #5E23DC;
-    border-radius: 20px;
+    border: 1px solid #222;
+    border-radius: 8px;
+    font-family: 'Rubik', sans-serif;
     font-size: 12px;
     font-weight: 500;
-    color: #5E23DC;
+    color: #222;
     cursor: pointer;
-    font-family: 'Rubik', sans-serif;
     white-space: nowrap;
+    line-height: 16px;
+    letter-spacing: 0.2px;
 }
 
 .srp-card-whatsapp {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 1px solid #E8E8E8;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid #222;
     background: #fff;
     display: flex;
     align-items: center;
@@ -5836,14 +6053,67 @@ html, body {
 }
 
 .srp-card-call {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     border: none;
-    background: #5E23DC;
+    background: #222;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     flex-shrink: 0;
+}
+
+/* ===== BOTTOM NAVIGATION ===== */
+.srp-bottom-nav {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 0 16px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid #E8E8E8;
+    flex-shrink: 0;
+}
+
+.srp-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 8px 4px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    gap: 0;
+}
+
+.srp-nav-item:active {
+    opacity: 0.7;
+}
+
+.srp-nav-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #434343;
+}
+
+.srp-nav-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.srp-nav-label {
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #434343;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    padding: 4px;
+    text-align: center;
 }
