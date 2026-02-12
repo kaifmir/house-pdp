@@ -1128,7 +1128,8 @@ img {
 }
 
 .nav-icon-rotate {
-    /* No rotation in colored mode */
+    animation: constantRotate 12s linear infinite;
+    will-change: transform;
 }
 
 @keyframes constantRotate {
@@ -1426,7 +1427,10 @@ button, .property-type-card {
     width: 130px;
     height: 130px;
     object-fit: contain;
+    filter: saturate(0.7) brightness(0.8);
     z-index: 1;
+    animation: constantRotate 12s linear infinite;
+    will-change: transform;
 }
 
 .scouty-face-overlay {
@@ -1465,7 +1469,6 @@ button, .property-type-card {
     height: 100%;
     object-fit: cover;
     display: block;
-    filter: grayscale(100%);
 }
 
 /* Foremost card - right and center, largest */
@@ -1704,14 +1707,14 @@ html, body {
 /* Step 2: Transform is on this element - header is OUTSIDE, so it's OK */
 /* Chat layout: stack from top, scroll behind header, stick-to-bottom auto-scroll */
 .chat-screen {
-    --chat-bg: #F8F8F8;
-    --chat-bg-rgb: 248, 248, 248;
+    --chat-bg: #F7F2EC;
+    --chat-bg-rgb: 247, 242, 236;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: #F5F5F5;
+    background: linear-gradient(to bottom, #F5F5F5 0%, #EBEBEB 100%);
     z-index: 10002;
     width: 100%;
     max-width: 100%;
@@ -1873,7 +1876,6 @@ html, body {
     object-fit: contain;
     position: relative;
     z-index: 1;
-    opacity: 1;
 }
 
 .chat-title-face {
@@ -2804,11 +2806,11 @@ html, body {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #5E23DC 0%, #7B3FE4 100%);
+    background: linear-gradient(135deg, #222222 0%, #444444 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(94, 35, 220, 0.35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     will-change: transform;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
@@ -2824,7 +2826,7 @@ html, body {
 .carousel-reveal-content .overscroll-label {
     font-size: 13px;
     font-weight: 500;
-    color: #5E23DC;
+    color: #222222;
     font-family: 'Rubik', sans-serif;
     white-space: nowrap;
     text-align: center;
@@ -2838,9 +2840,9 @@ html, body {
     margin: 12px 16px 0 16px; /* 16px horizontal margins to align with content */
     padding: 16px 16px;
     background: #ffffff;
-    border: 1px solid #5E23DC;
+    border: 1px solid #222222;
     border-radius: 12px;
-    color: #5E23DC;
+    color: #222;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -2851,8 +2853,8 @@ html, body {
 
 .carousel-view-all-btn:hover,
 .carousel-view-all-btn:active {
-    background: #EDE7FB;
-    border-color: #4A1CB0;
+    background: #F8F8F8;
+    border-color: #000000;
 }
 
 /* View all properties page */
@@ -3197,7 +3199,7 @@ html, body {
     height: 44px;
     border-radius: 12px;
     border: 0;
-    background: #5E23DC;
+    background: #111;
     color: #fff;
     font-size: 14px;
     font-family: 'Inter', sans-serif;
@@ -3235,7 +3237,7 @@ html, body {
     height: 44px;
     border-radius: 14px;
     border: 0;
-    background: #5E23DC;
+    background: #111;
     color: #fff;
     font-size: 14px;
     font-family: 'Inter', sans-serif;
@@ -3251,7 +3253,7 @@ html, body {
 
 .property-cta:active,
 .property-card__cta:active {
-    background: #4A1CB0;
+    background: #333;
 }
 
 .property-like,
@@ -3879,7 +3881,7 @@ html, body {
 .pdp-cta-primary {
     flex: 1;
     height: 52px;
-    background: #5E23DC;
+    background: #111;
     color: #fff;
     border: none;
     border-radius: 14px;
@@ -3892,7 +3894,7 @@ html, body {
 
 .pdp-cta-primary:hover,
 .pdp-cta-primary:active {
-    background: #7B3FE4;
+    background: #333;
     transform: translateY(-1px);
 }
 
@@ -3904,8 +3906,8 @@ html, body {
     flex: 1;
     height: 52px;
     background: transparent;
-    color: #5E23DC;
-    border: 1px solid #5E23DC;
+    color: #111;
+    border: 1px solid #ddd;
     border-radius: 14px;
     font-size: 16px;
     font-weight: 500;
@@ -3916,8 +3918,8 @@ html, body {
 
 .pdp-cta-secondary:hover,
 .pdp-cta-secondary:active {
-    background: #EDE7FB;
-    border-color: #4A1CB0;
+    background: #f8f8f8;
+    border-color: #111;
 }
 
 @media (max-width: 480px) {
@@ -4459,7 +4461,7 @@ html, body {
 }
 
 .login-container2.login-input-focused {
-    border-color: #5E23DC;
+    border-color: #222;
 }
 
 .login-container2.login-input-error {
@@ -5445,7 +5447,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #5E23DC;
+    background: #222;
     border: none;
     cursor: pointer;
     border-radius: 8px;
@@ -5512,7 +5514,7 @@ html, body {
 }
 
 .srp-tab.active {
-    color: #5E23DC;
+    color: #222;
     font-weight: 500;
     letter-spacing: 0.27px;
 }
@@ -5540,7 +5542,7 @@ html, body {
     left: 8px;
     right: 8px;
     height: 3px;
-    background: #5E23DC;
+    background: #222;
     border-radius: 2px 2px 0 0;
 }
 
@@ -5585,9 +5587,9 @@ html, body {
 }
 
 .srp-filter-btn.active {
-    background: #EDE7FB;
-    border-color: #5E23DC;
-    color: #5E23DC;
+    background: #F0F0F0;
+    border-color: #222;
+    color: #222;
 }
 
 /* ===== PROPERTY LIST ===== */
@@ -5713,7 +5715,7 @@ html, body {
     min-width: 32px;
     border-radius: 8px;
     border: none;
-    background: #5E23DC;
+    background: #222;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -5729,7 +5731,7 @@ html, body {
     font-family: 'Rubik', sans-serif;
     font-size: 12px;
     font-weight: 500;
-    color: #5E23DC;
+    color: #656565;
     cursor: pointer;
     text-decoration: underline;
     line-height: 16px;
@@ -6025,12 +6027,12 @@ html, body {
 .srp-card-view-number {
     padding: 8px 16px;
     background: #fff;
-    border: 1px solid #5E23DC;
+    border: 1px solid #222;
     border-radius: 8px;
     font-family: 'Rubik', sans-serif;
     font-size: 12px;
     font-weight: 500;
-    color: #5E23DC;
+    color: #222;
     cursor: pointer;
     white-space: nowrap;
     line-height: 16px;
@@ -6041,7 +6043,7 @@ html, body {
     width: 32px;
     height: 32px;
     border-radius: 8px;
-    border: 1px solid #5E23DC;
+    border: 1px solid #222;
     background: #fff;
     display: flex;
     align-items: center;
@@ -6055,7 +6057,7 @@ html, body {
     height: 32px;
     border-radius: 8px;
     border: none;
-    background: #5E23DC;
+    background: #222;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -6308,7 +6310,8 @@ html, body {
     width: 28px;
     height: 28px;
     object-fit: contain;
-    opacity: 1;
+    opacity: 0.4;
+    animation: gentleSpin 8s linear infinite;
 }
 
 @keyframes gentleSpin {
@@ -6364,7 +6367,7 @@ html, body {
     height: 40px;
     border-radius: 50%;
     border: none;
-    background: #5E23DC;
+    background: #222;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -6375,10 +6378,10 @@ html, body {
 }
 
 .ai-send-btn:hover {
-    background: #7B3FE4;
+    background: #333;
 }
 
 .ai-send-btn:active {
-    background: #4A1CB0;
+    background: #000;
     transform: scale(0.95);
 }
