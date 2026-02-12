@@ -1128,8 +1128,7 @@ img {
 }
 
 .nav-icon-rotate {
-    animation: constantRotate 12s linear infinite;
-    will-change: transform;
+    /* No rotation in colored mode */
 }
 
 @keyframes constantRotate {
@@ -1427,10 +1426,7 @@ button, .property-type-card {
     width: 130px;
     height: 130px;
     object-fit: contain;
-    filter: saturate(0.7) brightness(0.8);
     z-index: 1;
-    animation: constantRotate 12s linear infinite;
-    will-change: transform;
 }
 
 .scouty-face-overlay {
@@ -1876,6 +1872,7 @@ html, body {
     object-fit: contain;
     position: relative;
     z-index: 1;
+    opacity: 1;
 }
 
 .chat-title-face {
@@ -6310,8 +6307,7 @@ html, body {
     width: 28px;
     height: 28px;
     object-fit: contain;
-    opacity: 0.4;
-    animation: gentleSpin 8s linear infinite;
+    opacity: 1;
 }
 
 @keyframes gentleSpin {
