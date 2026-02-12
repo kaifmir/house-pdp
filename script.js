@@ -3770,7 +3770,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="ai-chat-stroke"></div>
                     <div class="ai-chat-content">
                         <div class="ai-chat-icon">
-                            <img src="Final chat.png" alt="AI" class="ai-chat-houze-icon" />
+                            <img src="chat-bot.png" alt="AI" class="ai-chat-houze-icon" />
                         </div>
                         <input type="text" class="ai-chat-input" placeholder="Ask anything" readonly />
                         <button class="ai-icon-btn ai-mic-btn" aria-label="Voice input">
