@@ -222,6 +222,22 @@ window.addEventListener('resize', debounce(checkMobileDevice, 150));
 document.addEventListener('DOMContentLoaded', function() {
     initDOMCache();
     
+    // Link opens directly on chat screen (no page animation); only hey + pills blur-in
+    const chatScreenEl = document.getElementById('chat-screen');
+    const chatIntroEl = document.getElementById('chat-intro');
+    if (chatScreenEl) {
+        chatScreenEl.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        sessionStorage.setItem('houzySplashSeen', 'true');
+        if (typeof primeViewport === 'function') primeViewport();
+        // Reveal hey + pills section with slight blur-in
+        if (chatIntroEl && chatIntroEl.classList.contains('initial-load')) {
+            setTimeout(function() {
+                chatIntroEl.classList.add('revealed');
+            }, 320);
+        }
+    }
+    
     const propertyTypeCards = document.querySelectorAll('.property-type-card');
     
     propertyTypeCards.forEach(card => {
@@ -882,9 +898,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const originalSet = track.querySelector('.chips-set');
         if (!originalSet) return null;
 
-        // Clone the set 2 more times (total 3 sets) - maintain 12px gap between sets
+        // Clone the set many times for infinite feel (no empty space between content)
         const originalHTML = originalSet.outerHTML;
-        track.innerHTML = originalHTML + originalHTML + originalHTML;
+        const NUM_CLONES = 6;
+        track.innerHTML = Array(NUM_CLONES).fill(originalHTML).join('');
 
         // iOS detection for scrollTo
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
@@ -901,9 +918,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const jumpToMiddle = () => {
             if (!rail || !track) return;
-            const third = track.scrollWidth / 3;
-            if (third > 0) {
-                setScrollLeft(rail, third);
+            const setWidth = track.scrollWidth / NUM_CLONES;
+            const startSet = Math.floor(NUM_CLONES / 2);
+            if (setWidth > 0) {
+                setScrollLeft(rail, setWidth * startSet);
             }
         };
 
@@ -945,11 +963,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function loopEdges() {
-            const third = track.scrollWidth / 3;
+            const setWidth = track.scrollWidth / NUM_CLONES;
             const x = rail.scrollLeft;
 
-            if (x < third * 0.5) setScrollLeftLoop(rail, x + third);
-            if (x > third * 1.5) setScrollLeftLoop(rail, x - third);
+            if (x < setWidth * 0.5) setScrollLeftLoop(rail, x + setWidth);
+            if (x > setWidth * (NUM_CLONES - 0.5)) setScrollLeftLoop(rail, x - setWidth);
         }
 
         rail.addEventListener('scroll', loopEdges, { passive: true });
@@ -1011,10 +1029,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Bulletproof interaction state machine - never gets stuck
     // ============================================================================
     (function() {
-        const marquee = document.getElementById('chipsMarquee');
+        const marquee = document.getElementById('chipsMarquee') || document.getElementById('chipsRail');
         const track = document.getElementById('chipsTrack');
         if (!marquee || !track) {
-            if (window.__CHAT_DEBUG__) console.warn('chipsMarquee or chipsTrack not found');
+            if (window.__CHAT_DEBUG__) console.warn('chipsMarquee/chipsRail or chipsTrack not found');
             return;
         }
 
@@ -1033,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Animation state
         let last = 0;
         let x = 0; // current translateX (px)
-        const speed = 18; // px/sec subtle (tune 12–24)
+        const speed = 12; // px/sec slow infinite scroll (both rows)
         
         // Drag state
         let dragStartX = 0;
@@ -1285,23 +1303,40 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     })();
     
-    // Back button - Return to homescreen
-    if (chatBackBtn) {
-        chatBackBtn.addEventListener('click', () => {
-            if (chatScreen) {
-                // Trigger slide-out animation
-                chatScreen.classList.remove('active');
-                chatScreen.classList.remove('keyboard-open');
-                
-                // Wait for animation to complete before cleaning up
-                setTimeout(() => {
-                    document.body.style.overflow = '';
-                    if (chatInput) {
-                        chatInput.blur();
-                    }
-                }, 400);
-            }
+    // Back button is disabled on AI chat (not clickable) – no handler
+
+    // Info bottom sheet (opens when header info icon is clicked)
+    const infoSheet = document.getElementById('info-bottom-sheet');
+    const infoSheetOverlay = infoSheet?.querySelector('.info-bottom-sheet-overlay');
+    const infoSheetCloseBtn = document.getElementById('info-bottom-sheet-close');
+    const infoSheetCta = document.getElementById('info-bottom-sheet-cta');
+    const chatInfoBtn = document.querySelector('.chat-header-menu-btn');
+
+    function openInfoBottomSheet() {
+        if (!infoSheet) return;
+        infoSheet.setAttribute('aria-hidden', 'false');
+        infoSheet.classList.add('active');
+    }
+
+    function closeInfoBottomSheet() {
+        if (!infoSheet) return;
+        infoSheet.classList.remove('active');
+        infoSheet.setAttribute('aria-hidden', 'true');
+    }
+
+    if (chatInfoBtn) {
+        chatInfoBtn.addEventListener('click', () => {
+            openInfoBottomSheet();
         });
+    }
+    if (infoSheetOverlay) {
+        infoSheetOverlay.addEventListener('click', closeInfoBottomSheet);
+    }
+    if (infoSheetCloseBtn) {
+        infoSheetCloseBtn.addEventListener('click', closeInfoBottomSheet);
+    }
+    if (infoSheetCta) {
+        infoSheetCta.addEventListener('click', closeInfoBottomSheet);
     }
     
     // Prime viewport on chat screen initialization
@@ -1417,14 +1452,8 @@ document.addEventListener('DOMContentLoaded', function() {
     })();
     
     // Legacy keyboard handling removed - now using CSS --kb-offset approach above
-    // Keep only haptic feedback and scroll prevention
+    // Keep only haptic feedback (scroll prevention removed so chat-messages can scroll when property cards are visible)
     if (chatInput && chatScreen) {
-        // Prevent scrolling on chat screen
-        chatScreen.addEventListener('scroll', (e) => {
-            e.preventDefault();
-            chatScreen.scrollTop = 0;
-        }, { passive: false });
-        
         // Haptic feedback on click (iOS + Android)
         chatInput.addEventListener('click', () => {
             // Use the centralized haptic function for iOS compatibility
@@ -1507,16 +1536,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const header = document.querySelector(".chat-top-bar");
             const composer = document.querySelector(".chat-input-bar");
             const messages = document.getElementById("chat-messages");
+            const chatScreen = document.getElementById("chat-screen");
             if (!header || !composer || !messages) return;
             
             const headerH = Math.ceil(header.getBoundingClientRect().height);
             const composerH = Math.ceil(composer.getBoundingClientRect().height);
             
-            // Set padding directly on #chat-messages
-            messages.style.paddingTop = (headerH + 16) + "px";
-            messages.style.paddingBottom = (composerH + 16) + "px";
+            const isIntroState = chatScreen && !chatScreen.classList.contains('chat-started');
             
-            // Update CSS variables for other uses
+            messages.style.paddingTop = (headerH + 16) + "px";
+            if (isIntroState) {
+                // Intro state: no 50% gap – keep hey + pills centered exactly between header and input
+                messages.style.paddingBottom = (composerH + 16) + "px";
+            } else {
+                // After first message: 50% viewport gap above input (ChatGPT-style)
+                const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+                const gapPercent = 0.50;
+                const gapAboveInput = Math.max(96, Math.round(vh * gapPercent));
+                messages.style.paddingBottom = (composerH + gapAboveInput) + "px";
+            }
+            
             document.documentElement.style.setProperty('--header-height', headerH + 'px');
             document.documentElement.style.setProperty('--composer-h', composerH + 'px');
         }
@@ -1746,32 +1785,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const typingIndicator = document.createElement('div');
             typingIndicator.className = 'typing-indicator';
             
-            // Create loader-5 structure
             const loader = document.createElement('div');
             loader.className = 'loader-5';
-            
             const span = document.createElement('span');
             loader.appendChild(span);
-            
             typingIndicator.appendChild(loader);
             botContent.appendChild(typingIndicator);
             msgDiv.appendChild(botContent);
             
-            // Add to chat stack
             const stack = domCache.chatStack;
             if (stack) {
                 stack.appendChild(msgDiv);
             }
             
-                    return msgDiv;
+            return msgDiv;
         }
         
         // Hide typing indicator
         function hideTypingIndicator() {
             const typingIndicator = document.getElementById('typing-indicator');
-            if (typingIndicator) {
-                typingIndicator.remove();
-            }
+            if (typingIndicator) typingIndicator.remove();
         }
         
         // Utility: Remove element by ID (with null check)
@@ -1791,8 +1824,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 showTypingIndicator();
             }
             
-            // Add longer delay before showing message (realistic thinking time)
-            const delay = showTyping ? 1800 + Math.random() * 1000 : 0; // 1800-2800ms delay
+            // 3 second loading for each bot reply (typing indicator + rotating text)
+            const delay = showTyping ? 3000 : 0;
             
             setTimeout(() => {
                 // Hide typing indicator
@@ -1820,6 +1853,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 botText.textContent = text.trim();
                 
                 botContent.appendChild(botText);
+                const feedbackButtons = createFeedbackButtons(msgId);
+                botContent.appendChild(feedbackButtons);
                 msgDiv.appendChild(botContent);
                 
             // Add to chat stack
@@ -1836,6 +1871,198 @@ document.addEventListener('DOMContentLoaded', function() {
             }, delay);
             
             return 'typing'; // Return placeholder ID while typing
+        }
+        
+        // Locality / "tell me about [place]" info cards (Figma Case 1 structure)
+        const LOCALITY_INFO_CARDS = {
+            'richmond park': {
+                title: 'Richmond Park',
+                byline: 'Residential society in Gurgaon by DLF',
+                locationLine: '📍 Richmond Park, Gurgaon',
+                overview: 'Richmond Park is a residential society and construction project in Gurgaon by DLF. It offers gated living with amenities like power backup, water supply, security, and good connectivity to the rest of the city. The project typically features 2 BHK to 4 BHK apartments and is suited for families and professionals. You can search for listings by saying "2 BHK in Richmond Park Gurgaon" or "Properties for sale in Richmond Park DLF".',
+                highlightsLabel: 'Key highlights',
+                highlights: [
+                    'DLF residential project in Gurgaon',
+                    'Gated society with security and amenities',
+                    'Good connectivity to NH-8 and city centres',
+                    'Mix of 2 BHK, 3 BHK, and 4 BHK options',
+                    'Family-friendly and investment-friendly'
+                ],
+                amenities: ['Power backup and water supply', 'Security and CCTV', 'Gated access', 'Lift and parking', 'Parks and common areas'],
+                propertyTypesText: 'Apartments in a gated DLF society, with ready-to-move and under-construction options. Configurations from 2 BHK to 4 BHK for rent and sale.'
+            },
+            'rohini': {
+                title: 'Rohini',
+                byline: 'Residential area in North West Delhi',
+                locationLine: '📍 Rohini, Delhi',
+                overview: 'Rohini is a well-developed residential and commercial hub in North West Delhi. It has multiple sectors with parks, schools, hospitals, and metro connectivity. Property options range from affordable to premium across sectors.',
+                highlightsLabel: 'Key highlights',
+                highlights: [
+                    'Metro connectivity (Red Line)',
+                    'Multiple sectors with parks and amenities',
+                    'Schools, hospitals, and shopping nearby',
+                    'Mix of 2 BHK, 3 BHK, and 4 BHK options',
+                    'Good rental and resale demand'
+                ],
+                amenities: ['Metro (Red Line)', 'Parks and green spaces', 'Power backup and water supply', 'Security and gated societies', 'Parking and lift'],
+                propertyTypesText: 'Builder floors, apartments in gated sectors, and independent houses. Configurations from 2 BHK to 4 BHK with both ready-to-move and under-construction options.'
+            },
+            'koramangala': {
+                title: 'Koramangala',
+                byline: 'Locality in Bangalore',
+                locationLine: '📍 Koramangala, Bangalore',
+                overview: 'Koramangala is a major residential and commercial area in Bangalore with a mix of tech offices, cafes, and residential blocks. It offers good connectivity and a range of apartments and independent houses.',
+                highlightsLabel: 'Key highlights',
+                highlights: [
+                    'Tech hub with offices and startups',
+                    'Wide range of 1–4 BHK apartments',
+                    'Restaurants, cafes, and shopping',
+                    'Well connected by road and metro',
+                    'Strong rental demand'
+                ],
+                amenities: ['Power backup and water supply', 'Security and CCTV', 'Lift and parking', 'Gym, pool, clubhouse in many projects'],
+                propertyTypesText: 'Apartments in gated communities, builder floors, and independent houses. Strong mix of 1–4 BHK with furnished and unfurnished options for rent and sale.'
+            }
+        };
+        
+        function getLocalityCardData(placeName) {
+            const key = (placeName || '').trim().toLowerCase().replace(/\s+/g, ' ');
+            return LOCALITY_INFO_CARDS[key] || null;
+        }
+        
+        function getGenericPlaceCard(displayName) {
+            return {
+                title: displayName,
+                byline: 'Society / Locality / Project – India',
+                locationLine: '📍 ' + displayName,
+                overview: displayName + ' is a well-known society, locality, or construction project in India. Such projects typically offer a mix of ready-to-move and under-construction units from reputed builders, with options ranging from 1–2 BHK to 3–4 BHK and villas. Residents value good connectivity, proximity to schools and hospitals, and amenities like power backup, water supply, and security. Family-oriented living, strong resale and rental demand, and RERA-registered projects are common. You can search for specific options by saying things like "2 BHK in ' + displayName + ' under 50 lakh" or "Properties for rent in ' + displayName + '".',
+                highlightsLabel: 'Key highlights',
+                highlights: [
+                    'Good connectivity (metro, highways, or main roads)',
+                    'Schools, hospitals, and daily-needs nearby',
+                    'Mix of 1 BHK to 4 BHK and builder projects',
+                    'Power backup, water supply, and security common in societies',
+                    'Family-friendly and suitable for long-term stay or investment',
+                    'RERA-registered projects and clear titles preferred by buyers'
+                ],
+                amenities: [
+                    'Power backup and water supply',
+                    'Security, CCTV, and gated access',
+                    'Lift and parking',
+                    'Play area, gym, or clubhouse in many societies'
+                ],
+                propertyTypesText: 'You’ll find a mix of builder floors, apartments in gated societies, and under-construction projects. Configurations range from 1 BHK to 4 BHK and villas, with both furnished and unfurnished options for rent and sale.'
+            };
+        }
+        
+        function showLocalityInfoCard(placeName) {
+            showTypingIndicator();
+            const delay = 3000;
+            setTimeout(() => {
+                hideTypingIndicator();
+                const data = getLocalityCardData(placeName);
+                const displayName = (placeName || '').trim() || 'This area';
+                const card = data || getGenericPlaceCard(displayName);
+                const title = card.title;
+                const byline = card.byline;
+                const locationLine = card.locationLine;
+                const overview = card.overview;
+                const highlightsLabel = (card.highlightsLabel != null) ? card.highlightsLabel : 'Key highlights';
+                const highlights = (card.highlights && card.highlights.length) ? card.highlights : [];
+                
+                const msgId = generateMessageId();
+                const message = {
+                    id: msgId,
+                    role: 'bot',
+                    text: title + ' – ' + overview.substring(0, 80) + '…',
+                    timestamp: Date.now()
+                };
+                messages.push(message);
+                
+                const msgDiv = document.createElement('div');
+                msgDiv.id = msgId;
+                msgDiv.className = 'msg msg-bot';
+                
+                const botContent = document.createElement('div');
+                botContent.className = 'bot-message-content';
+                
+                const h1 = document.createElement('h1');
+                h1.textContent = '📍 ' + title;
+                botContent.appendChild(h1);
+                
+                const pByline = document.createElement('p');
+                pByline.textContent = byline;
+                pByline.classList.add('bot-reply-muted');
+                botContent.appendChild(pByline);
+                
+                const pLocation = document.createElement('p');
+                pLocation.textContent = locationLine;
+                pLocation.classList.add('bot-reply-muted');
+                botContent.appendChild(pLocation);
+                
+                const hr1 = document.createElement('hr');
+                botContent.appendChild(hr1);
+                
+                const h2Overview = document.createElement('h2');
+                h2Overview.textContent = 'Locality Overview';
+                botContent.appendChild(h2Overview);
+                
+                const pOverview = document.createElement('p');
+                pOverview.textContent = overview;
+                botContent.appendChild(pOverview);
+                
+                if (highlights.length > 0) {
+                    const hr2 = document.createElement('hr');
+                    botContent.appendChild(hr2);
+                    const h2High = document.createElement('h2');
+                    h2High.textContent = highlightsLabel;
+                    botContent.appendChild(h2High);
+                    const ul = document.createElement('ul');
+                    ul.className = 'place-card-list';
+                    highlights.forEach(function (item) {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        ul.appendChild(li);
+                    });
+                    botContent.appendChild(ul);
+                }
+                
+                var amenities = card.amenities && card.amenities.length ? card.amenities : null;
+                if (amenities && amenities.length > 0) {
+                    const hrA = document.createElement('hr');
+                    botContent.appendChild(hrA);
+                    const h2A = document.createElement('h2');
+                    h2A.textContent = 'Amenities';
+                    botContent.appendChild(h2A);
+                    const ulA = document.createElement('ul');
+                    ulA.className = 'place-card-list';
+                    amenities.forEach(function (item) {
+                        const li = document.createElement('li');
+                        li.textContent = item;
+                        ulA.appendChild(li);
+                    });
+                    botContent.appendChild(ulA);
+                }
+                
+                if (card.propertyTypesText) {
+                    const hrP = document.createElement('hr');
+                    botContent.appendChild(hrP);
+                    const h2P = document.createElement('h2');
+                    h2P.textContent = 'Property types';
+                    botContent.appendChild(h2P);
+                    const pP = document.createElement('p');
+                    pP.textContent = card.propertyTypesText;
+                    botContent.appendChild(pP);
+                }
+                
+                const feedbackButtons = createFeedbackButtons(msgId);
+                botContent.appendChild(feedbackButtons);
+                msgDiv.appendChild(botContent);
+                
+                const stack = domCache.chatStack;
+                if (stack) stack.appendChild(msgDiv);
+                triggerHapticFeedback('medium');
+            }, delay);
         }
         
         // Detect if message is a greeting
@@ -2806,7 +3033,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 userLocation.hasLocation = true;
                 conversationState.useLocation = true;
                 
-                // Small delay for realistic feel
+                // 3 second loading for bot reply (typing indicator + rotating text)
                 setTimeout(() => {
                     hideTypingIndicator();
                     
@@ -2825,7 +3052,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             addBotMessage("Great! I've got your location. Could you tell me what type of property you're looking for? (e.g., 2 BHK, 3 BHK)");
                         }
                     }
-                }, 1500);
+                }, 3000);
             };
         }
         
@@ -2858,28 +3085,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         </svg>
                     </button>
                     
-                    <!-- Phone Step -->
+                    <!-- Phone Step – Figma Frame 2087324795 -->
                     <div class="login-step" id="login-step-phone">
                         <div class="login-frame3">
-                            <!-- Header Section with Logo -->
+                            <!-- Header: image (local) + overlapping logo container + close -->
                             <div class="login-frame5">
                                 <div class="login-frame2">
-                                    <img src="Login image.jpg" alt="Login background" class="login-bg-image" onerror="this.style.display='none'">
-                                    <img src="Container.png" alt="Container" class="login-container-image" onerror="this.style.display='none'">
+                                    <img src="assets/login/login-image.jpg" alt="" class="login-bg-image" onerror="this.style.display='none'">
+                                    <div class="login-logo-container">
+                                        <img src="assets/login/container.png" alt="" class="login-logo-inner" onerror="this.style.display='none'">
+                                    </div>
                                 </div>
-                                <h2 class="login-heading">Login to Housing</h2>
+                                <h2 class="login-heading">Login to contact seller</h2>
                             </div>
                             
-                            <!-- Phone Input Field -->
+                            <!-- Phone Input Field – Figma 328×48, +91 | placeholder -->
                             <div class="login-container2" id="login-phone-container">
                                 <div class="login-country-selector" id="login-country-selector">
-                                    <span class="login-flag">🇮🇳</span>
                                     <span class="login-country-code">+91</span>
                                 </div>
                                 <div class="login-phone-input-area" id="login-phone-input-area">
-                                    <input type="tel" class="login-phone-input" id="login-phone-input" placeholder="Phone number" maxlength="10" inputmode="numeric">
+                                    <input type="tel" class="login-phone-input" id="login-phone-input" placeholder="Phone number" maxlength="10" inputmode="numeric" readonly tabindex="-1" aria-readonly="true">
                                 </div>
-                                <button class="login-clear-btn" id="login-clear-btn" style="display: none;">
+                                <button class="login-clear-btn" id="login-clear-btn" style="display: none;" type="button" tabindex="-1">
                                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="18" y1="6" x2="6" y2="18"></line>
                                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -2889,9 +3117,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                         
-                        <!-- Buttons Section -->
+                        <!-- Buttons Section (display only – close via X or overlay) -->
                         <div class="login-frame7">
-                            <button class="login-continue-btn" id="login-continue-btn">Continue</button>
+                            <button type="button" class="login-continue-btn" id="login-continue-btn" tabindex="-1" aria-disabled="true">Continue</button>
                             
                             <div class="login-or-divider">
                                 <div class="login-or-line"></div>
@@ -2899,7 +3127,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="login-or-line"></div>
                             </div>
                             
-                            <button class="login-whatsapp-btn" id="login-whatsapp-btn">
+                            <button type="button" class="login-whatsapp-btn" id="login-whatsapp-btn" tabindex="-1" aria-disabled="true">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#5e23dc" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                                 </svg>
@@ -2942,6 +3170,13 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.appendChild(loginSheet);
             document.body.style.overflow = 'hidden';
             
+            // Smooth slide-up: force initial state to be painted, then add .active on next frame
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    loginSheet.classList.add('active');
+                });
+            });
+            
             // Get references to elements
             const phoneInput = document.getElementById('login-phone-input');
             const phoneContainer = document.getElementById('login-phone-container');
@@ -2961,80 +3196,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const otpInputs = otpContainer.querySelectorAll('.login-otp-input');
             const resendBtn = document.getElementById('login-resend-otp');
             
-            // Phone input handler
-            phoneInput.addEventListener('input', function(e) {
-                // Only allow numbers
-                const value = e.target.value.replace(/\D/g, '');
-                phoneNumber = value;
-                e.target.value = value;
-                
-                // Show/hide clear button
-                if (phoneNumber.length > 0) {
-                    clearBtn.style.display = 'flex';
-                } else {
-                    clearBtn.style.display = 'none';
-                }
-            });
+            // No typing: input is readonly; no input/focus/clear handlers attached.
             
-            // Cursor blink animation
-            let cursorBlinkInterval;
-            function startCursorBlink() {
-                if (cursorBlinkInterval) clearInterval(cursorBlinkInterval);
-                cursorBlinkInterval = setInterval(() => {
-                    if (cursorVisible && inputFocused) {
-                        cursor.style.opacity = cursor.style.opacity === '0' ? '1' : '0';
-                    }
-                }, 500);
-            }
-            function stopCursorBlink() {
-                if (cursorBlinkInterval) {
-                    clearInterval(cursorBlinkInterval);
-                    cursorBlinkInterval = null;
-                }
-            }
-            
-            // Phone input focus handler
-            phoneInput.addEventListener('focus', function() {
-                inputFocused = true;
-                cursorVisible = true;
-                cursor.style.display = 'block';
-                cursor.style.opacity = '1';
-                phoneContainer.classList.add('login-input-focused');
-                startCursorBlink();
-            });
-            
-            phoneInput.addEventListener('blur', function() {
-                inputFocused = false;
-                cursorVisible = false;
-                cursor.style.display = 'none';
-                phoneContainer.classList.remove('login-input-focused');
-                if (!showError) {
-                    phoneContainer.classList.remove('login-input-error');
-                }
-                stopCursorBlink();
-                
-                // Reset keyboard offset on blur (delay to allow for focus transfer)
-                setTimeout(() => {
-                    // Only reset if no other input is focused
-                    if (!document.activeElement || 
-                        !loginSheet.contains(document.activeElement) || 
-                        document.activeElement.tagName !== 'INPUT') {
-                        if (window.__CHAT_DEBUG__) {
-                            console.log('[Login Keyboard] Blur - resetting offset');
-                        }
-                        sheetContent.style.transform = 'translateY(0)';
-                    }
-                }, 100);
-            });
-            
-            // Clear button handler
-            clearBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                phoneNumber = '';
-                phoneInput.value = '';
-                clearBtn.style.display = 'none';
-                phoneInput.focus();
-            });
+            function stopCursorBlink() { /* no-op */ }
             
             // Switch to step function
             function switchToStep(step) {
@@ -3156,46 +3320,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 1000);
             });
             
-            // Continue button handler - now goes to OTP step
-            continueBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Validate phone number (should be 10 digits)
-                if (phoneNumber.length !== 10) {
-                    showError = true;
-                    phoneContainer.classList.add('login-input-error');
-                    phoneContainer.classList.add('login-shake');
-                    setTimeout(() => {
-                        phoneContainer.classList.remove('login-shake');
-                    }, 500);
-                    return;
-                }
-                
-                // Update OTP subtitle with phone number (masked)
-                const maskedPhone = phoneNumber.slice(0, 2) + 'XXXXXX' + phoneNumber.slice(-2);
-                otpSubtitle.textContent = `Enter the 4-digit code sent to +91 ${maskedPhone}`;
-                
-                // Switch to OTP step
-                switchToStep('otp');
-                
-                // Generate and auto-fill dummy OTP after delay
-                const dummyOTP = generateDummyOTP();
-                setTimeout(() => {
-                    autoFillOTP(dummyOTP);
-                }, 800);
-            });
-            
-            // WhatsApp button handler - also goes through success flow
-            whatsappBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                switchToStep('success');
-                
-                setTimeout(() => {
-                    closeLoginBottomSheet();
-                }, 1200);
-            });
+            // Continue / WhatsApp: no login flow – close only via X or overlay
+            continueBtn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); });
+            whatsappBtn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); });
             
             // Close button handler
             closeBtn.addEventListener('click', function(e) {
@@ -3207,11 +3334,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Overlay click handler
             overlay.addEventListener('click', function() {
                 closeLoginBottomSheet();
-            });
-            
-            // Animate in
-            requestAnimationFrame(() => {
-                loginSheet.classList.add('active');
             });
             
             // ========== KEYBOARD HANDLING FOR iOS ==========
@@ -3371,8 +3493,67 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     loginSheet.remove();
                     document.body.style.overflow = '';
+                    showLoginClosedToast();
                 }, 300);
             }
+        }
+        
+        // Toast after closing login sheet – Figma Toast component: black, 328×44, 12px radius, white text, close.
+        function showLoginClosedToast() {
+            const existing = document.getElementById('login-closed-toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.id = 'login-closed-toast';
+            toast.className = 'login-closed-toast';
+            toast.setAttribute('role', 'status');
+            const tickSvg = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10 1.5C12.2543 1.5 14.4167 2.3952 16.0107 3.98926C17.6048 5.58332 18.5 7.74566 18.5 10C18.5 11.6811 18.0014 13.3248 17.0674 14.7227C16.1335 16.1203 14.8059 17.2092 13.2529 17.8525C11.6998 18.4959 9.9906 18.6649 8.3418 18.3369C6.69296 18.0089 5.178 17.1995 3.98926 16.0107C2.80051 14.822 1.99106 13.307 1.66309 11.6582C1.33514 10.0094 1.50413 8.30021 2.14746 6.74707C2.79078 5.19411 3.87973 3.86655 5.27734 2.93262C6.67516 1.99863 8.31886 1.5 10 1.5Z" fill="#0F8458" stroke="black"/><path d="M13.8045 7.50776C13.8665 7.56967 13.9156 7.64318 13.9492 7.72411C13.9827 7.80503 14 7.89177 14 7.97937C14 8.06697 13.9827 8.15371 13.9492 8.23464C13.9156 8.31556 13.8665 8.38908 13.8045 8.45099L9.13835 13.1171C9.07644 13.1791 9.00293 13.2283 8.922 13.2618C8.84108 13.2954 8.75434 13.3126 8.66674 13.3126C8.57914 13.3126 8.4924 13.2954 8.41147 13.2618C8.33055 13.2283 8.25703 13.1791 8.19512 13.1171L6.19535 11.1174C6.07027 10.9923 6 10.8226 6 10.6457C6 10.4689 6.07027 10.2992 6.19535 10.1741C6.32043 10.049 6.49007 9.97878 6.66696 9.97878C6.84385 9.97878 7.0135 10.049 7.13858 10.1741L8.66674 11.7031L12.8613 7.50776C12.9232 7.44578 12.9967 7.39661 13.0776 7.36307C13.1585 7.32952 13.2453 7.31226 13.3329 7.31226C13.4205 7.31226 13.5072 7.32952 13.5881 7.36307C13.6691 7.39661 13.7426 7.44578 13.8045 7.50776Z" fill="white"/></svg>';
+            toast.innerHTML = `
+                <div class="login-toast-content">
+                    <span class="login-toast-icon" aria-hidden="true">${tickSvg}</span>
+                    <span class="login-toast-text">You have been logged in</span>
+                </div>
+                <div class="login-toast-right">
+                    <div class="login-toast-divider"></div>
+                    <button type="button" class="login-toast-close" aria-label="Close">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            const inputBar = document.querySelector('.chat-input-bar');
+            const positionToast = () => {
+                if (!inputBar) {
+                    toast.style.bottom = 'calc(16px + 48px + env(safe-area-inset-bottom, 0px))';
+                    return;
+                }
+                const rect = inputBar.getBoundingClientRect();
+                toast.style.bottom = (window.innerHeight - rect.top + 16) + 'px';
+            };
+            positionToast();
+            const onResize = () => positionToast();
+            window.addEventListener('resize', onResize);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => toast.classList.add('login-closed-toast-visible'));
+            });
+            const removeToast = () => {
+                window.removeEventListener('resize', onResize);
+                toast.remove();
+            };
+            const dismiss = () => {
+                window.removeEventListener('resize', onResize);
+                toast.classList.add('login-closed-toast-out');
+                toast.addEventListener('transitionend', function onOutEnd(e) {
+                    if (e.propertyName !== 'opacity') return;
+                    toast.removeEventListener('transitionend', onOutEnd);
+                    removeToast();
+                }, { once: true });
+            };
+            const t = setTimeout(dismiss, 3000);
+            toast.querySelector('.login-toast-close').addEventListener('click', (e) => {
+                e.preventDefault();
+                clearTimeout(t);
+                dismiss();
+            });
         }
         
         // Shuffle array to randomize order
@@ -4240,17 +4421,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.addEventListener('mouseup', handleMouseUp);
             });
             
+            /* Icons from local folder: address.svg and Area.svg (size) */
+            const ADDRESS_ICON = 'assets/cards/address.svg';
+            const SIZE_ICON = 'assets/cards/Area.svg';
+
             displayCards.forEach(card => {
                 const cardElement = document.createElement('div');
                 cardElement.className = 'property-card';
                 cardElement.setAttribute('data-property-id', card.id);
                 cardElement.style.pointerEvents = 'auto';
                 
-                // Card image wrapper
+                // ----- Image block (262×160) + Shortlist overlay -----
                 const imageWrapper = document.createElement('div');
                 imageWrapper.className = 'property-card__imgwrap';
                 
-                // Skeleton loader
                 const skeleton = document.createElement('div');
                 skeleton.className = 'property-card__skeleton';
                 imageWrapper.appendChild(skeleton);
@@ -4259,29 +4443,47 @@ document.addEventListener('DOMContentLoaded', function() {
                 image.src = card.image;
                 image.alt = card.name;
                 image.className = 'property-card__img property-card__img--loading';
-                image.loading = 'eager'; // Eager loading for visible property cards (better UX)
-                image.decoding = 'async'; // Async decoding for better performance
+                image.loading = 'eager';
+                image.decoding = 'async';
                 image.style.cursor = 'pointer';
                 image.style.pointerEvents = 'auto';
                 image.style.position = 'relative';
                 image.style.zIndex = '1';
                 
-                // Handle image load - fade in and remove skeleton
                 image.onload = function() {
                     this.classList.remove('property-card__img--loading');
                     this.classList.add('property-card__img--loaded');
                     skeleton.classList.add('property-card__skeleton--hidden');
                 };
-                
-                // Handle image loading errors with fallback
                 image.onerror = function() {
                     if (!this.dataset.failed) {
                         this.dataset.failed = '1';
-                        // Fallback to high-quality reliable image
                         this.src = PROPERTY_IMAGE_POOL[0];
-                        this.onerror = null; // Prevent infinite loop
+                        this.onerror = null;
                     }
                 };
+                
+                // Shortlist button – local SVGs: unfilled by default, filled when active
+                const SHORTLIST_UNFILLED = 'assets/cards/shortlist-unfilled.svg';
+                const SHORTLIST_FILLED = 'assets/cards/shortlist-filled.svg';
+                const favoriteBtn = document.createElement('button');
+                favoriteBtn.className = 'property-card-favorite';
+                favoriteBtn.setAttribute('aria-label', 'Shortlist');
+                const shortlistImg = document.createElement('img');
+                shortlistImg.src = SHORTLIST_UNFILLED;
+                shortlistImg.alt = '';
+                shortlistImg.setAttribute('aria-hidden', 'true');
+                shortlistImg.width = 32;
+                shortlistImg.height = 32;
+                favoriteBtn.appendChild(shortlistImg);
+                favoriteBtn.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    favoriteBtn.classList.toggle('active');
+                    shortlistImg.src = favoriteBtn.classList.contains('active') ? SHORTLIST_FILLED : SHORTLIST_UNFILLED;
+                    return false;
+                };
+                imageWrapper.appendChild(favoriteBtn);
                 
                 // GALLERY CREATION FUNCTION - DEFINED ONCE
                 function createGallery() {
@@ -4401,111 +4603,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 image.setAttribute('data-gallery-images', JSON.stringify(card.gallery || [card.image]));
                 image.setAttribute('data-card-image', card.image);
                 
-                // CLICK HANDLER
+                // Image click → open gallery (fullscreen)
                 function handleImageClick(e) {
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
-                    
-                    // Remove existing
-                    removeElementById('property-gallery-overlay');
-                    
-                    // Create gallery with white background
-                    const overlay = document.createElement('div');
-                    overlay.id = 'property-gallery-overlay';
-                    overlay.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; background: #ffffff !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
-                    
-                    const closeBtn = document.createElement('button');
-                    closeBtn.className = 'property-gallery-close';
-                    closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-                    closeBtn.style.cssText = 'position: absolute !important; top: 20px !important; right: 20px !important; width: 44px !important; height: 44px !important; background: transparent !important; border: none !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
-                    closeBtn.onclick = function() {
-                        overlay.remove();
-                        document.body.style.overflow = '';
-                    };
-                    
-                    const container = document.createElement('div');
-                    container.className = 'property-gallery-container';
-                    
-                    const imgContainer = document.createElement('div');
-                    imgContainer.className = 'property-gallery-images';
-                    const images = (card.gallery && card.gallery.length > 0) ? card.gallery : [card.image];
-                    
-                    images.forEach(function(url, idx) {
-                        const img = document.createElement('img');
-                        img.src = url;
-                        img.className = 'property-gallery-image';
-                        img.style.display = idx === 0 ? 'block' : 'none';
-                        img.loading = 'eager';
-                        img.onerror = function() {
-                            // Fallback to a reliable image if gallery image fails
-                            this.src = PROPERTY_IMAGE_POOL[0];
-                            this.onerror = null; // Prevent infinite loop
-                        };
-                        img.onload = function() {
-                            // Image loaded successfully
-                            this.style.opacity = '1';
-                        };
-                        img.style.opacity = '0';
-                        img.style.transition = 'opacity 0.3s ease';
-                        imgContainer.appendChild(img);
-                    });
-                    
-                    let currentIdx = 0;
-                    const prev = document.createElement('button');
-                    prev.className = 'property-gallery-nav property-gallery-prev';
-                    prev.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
-                    prev.style.cssText = 'position: absolute !important; top: 50% !important; left: 20px !important; right: auto !important; transform: translateY(-50%) !important; width: 50px !important; height: 50px !important; background: #ffffff !important; border: none !important; border-radius: 50% !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
-                    prev.onclick = function() {
-                        currentIdx = (currentIdx - 1 + images.length) % images.length;
-                        imgContainer.querySelectorAll('.property-gallery-image').forEach(function(img, i) {
-                            img.style.display = i === currentIdx ? 'block' : 'none';
-                        });
-                    };
-                    
-                    const next = document.createElement('button');
-                    next.className = 'property-gallery-nav property-gallery-next';
-                    next.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
-                    next.style.cssText = 'position: absolute !important; top: 50% !important; right: 20px !important; left: auto !important; transform: translateY(-50%) !important; width: 50px !important; height: 50px !important; background: #ffffff !important; border: none !important; border-radius: 50% !important; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
-                    next.onclick = function() {
-                        currentIdx = (currentIdx + 1) % images.length;
-                        imgContainer.querySelectorAll('.property-gallery-image').forEach(function(img, i) {
-                            img.style.display = i === currentIdx ? 'block' : 'none';
-                        });
-                    };
-                    
-                    container.appendChild(imgContainer);
-                    if (images.length > 1) {
-                        container.appendChild(prev);
-                        container.appendChild(next);
-                    }
-                    
-                    // View Property button
-                    const viewPropertyBtn = document.createElement('button');
-                    viewPropertyBtn.className = 'property-gallery-view-btn';
-                    viewPropertyBtn.textContent = 'View Property';
-                    viewPropertyBtn.onclick = function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        // Close gallery first
-                        overlay.remove();
-                        document.body.style.overflow = '';
-                        // Open PDP
-                        openPropertyDetailPage(card);
-                    };
-                    
-                    overlay.appendChild(closeBtn);
-                    overlay.appendChild(container);
-                    overlay.appendChild(viewPropertyBtn);
-                    overlay.onclick = function(e) {
-                        if (e.target === overlay) {
-                            overlay.remove();
-                            document.body.style.overflow = '';
-                        }
-                    };
-                    
-                    document.body.appendChild(overlay);
-                    document.body.style.overflow = 'hidden';
+                    openPropertyGallery(card);
                     return false;
                 }
                 
@@ -4539,107 +4642,105 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 imageWrapper.appendChild(image);
                 
-                // Card body
+                // ----- Card body (Figma: badges, title, area, divider, location, price, CTA) -----
                 const body = document.createElement('div');
                 body.className = 'property-card__body';
                 
-                // Property type and status
-                const typeStatus = document.createElement('div');
-                typeStatus.className = 'property-card__type-status';
-                typeStatus.textContent = `${card.propertyType} • ${card.status}`;
+                // Badges row: RERA + status
+                const badges = document.createElement('div');
+                badges.className = 'property-card__badges';
+                const reraBadge = document.createElement('span');
+                reraBadge.className = 'property-card__badge property-card__badge--rera';
+                reraBadge.textContent = 'RERA';
+                const statusBadge = document.createElement('span');
+                statusBadge.className = 'property-card__badge property-card__badge--status';
+                statusBadge.textContent = card.status || 'Ready to move';
+                badges.appendChild(reraBadge);
+                badges.appendChild(statusBadge);
+                body.appendChild(badges);
                 
-                // Built-up area
-                const builtUpArea = document.createElement('div');
-                builtUpArea.className = 'property-card__area';
-                builtUpArea.textContent = `Built up area: ${card.builtUpArea.toLocaleString()} sq.ft`;
+                // Title block: "X BHK flat" + name
+                const titleBlock = document.createElement('div');
+                titleBlock.className = 'property-card__title-block';
+                const titleLine1 = document.createElement('div');
+                titleLine1.className = 'property-card__title-line1';
+                titleLine1.textContent = `${card.bhk} BHK ${(card.propertyType || 'flat').toLowerCase()}`;
+                const titleLine2 = document.createElement('div');
+                titleLine2.className = 'property-card__title-line2';
+                titleLine2.textContent = card.name || '';
+                titleBlock.appendChild(titleLine1);
+                titleBlock.appendChild(titleLine2);
+                body.appendChild(titleBlock);
                 
-                // Location with pin icon
-                const location = document.createElement('div');
-                location.className = 'property-card__location';
-                let locationText = card.locality;
-                if (card.distance !== null && card.distance !== undefined) {
-                    const distanceText = card.distance < 1 
-                        ? `${Math.round(card.distance * 1000)}m away`
-                        : `${card.distance.toFixed(1)} km away`;
+                // Area row – size icon + "Built up area: X sq.ft"
+                const areaRow = document.createElement('div');
+                areaRow.className = 'property-card__area-row';
+                const areaIcon = document.createElement('img');
+                areaIcon.src = SIZE_ICON;
+                areaIcon.alt = '';
+                areaIcon.setAttribute('aria-hidden', 'true');
+                const areaText = document.createElement('span');
+                areaText.textContent = `Built up area: ${(card.builtUpArea || 0).toLocaleString()} sq.ft`;
+                areaRow.appendChild(areaIcon);
+                areaRow.appendChild(areaText);
+                body.appendChild(areaRow);
+                
+                // Divider
+                const divider = document.createElement('div');
+                divider.className = 'property-card__divider';
+                body.appendChild(divider);
+                
+                // Location row – address icon + locality
+                const locationRow = document.createElement('div');
+                locationRow.className = 'property-card__location-row';
+                let locationText = card.locality || 'Location';
+                if (card.distance != null) {
+                    const distanceText = card.distance < 1 ? `${Math.round(card.distance * 1000)}m away` : `${card.distance.toFixed(1)} km away`;
                     locationText = `${card.locality} • ${distanceText}`;
                 }
-                location.innerHTML = `
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                        <circle cx="12" cy="10" r="3"></circle>
-                    </svg>
-                    <span>${locationText}</span>
-                `;
+                const locationIcon = document.createElement('img');
+                locationIcon.src = ADDRESS_ICON;
+                locationIcon.alt = '';
+                locationIcon.setAttribute('aria-hidden', 'true');
+                const locationSpan = document.createElement('span');
+                locationSpan.textContent = locationText;
+                locationRow.appendChild(locationIcon);
+                locationRow.appendChild(locationSpan);
+                body.appendChild(locationRow);
                 
                 // Price
                 const price = document.createElement('div');
                 price.className = 'property-card__price';
-                // Format price with appropriate unit (k, L, or Cr)
                 const priceUnit = card.priceUnit || 'Cr';
                 if (priceUnit === 'k') {
-                    // Format thousands: 50k, 1.2L (if > 100k)
                     const priceNum = parseFloat(card.price);
-                    if (priceNum >= 100000) {
-                        price.textContent = `₹${(priceNum / 100000).toFixed(1)}L`;
-                } else {
-                        price.textContent = `₹${(priceNum / 1000).toFixed(0)}k`;
-                    }
+                    price.textContent = priceNum >= 100000 ? `₹${(priceNum / 100000).toFixed(1)}L` : `₹${(priceNum / 1000).toFixed(0)}k`;
                 } else {
                     price.textContent = `₹${card.price} ${priceUnit}`;
                 }
+                body.appendChild(price);
                 
-                // Property details (BHK)
-                const chips = document.createElement('div');
-                chips.className = 'property-card__chips';
-                const bhkChip = document.createElement('span');
-                bhkChip.className = 'property-chip';
-                bhkChip.textContent = `${card.bhk} BHK`;
-                chips.appendChild(bhkChip);
-                
-                // CTA Section with View button and Favorite button
+                // CTA row: Learn more (outline) + Contact (primary)
                 const ctaSection = document.createElement('div');
                 ctaSection.className = 'property-card__cta-section';
-                
-                // Contact CTA button
-                const viewBtn = document.createElement('button');
-                viewBtn.className = 'property-card__view-btn';
-                viewBtn.textContent = 'Contact';
-                viewBtn.addEventListener('click', (e) => {
+                const learnMoreBtn = document.createElement('button');
+                learnMoreBtn.className = 'property-card__view-btn';
+                learnMoreBtn.textContent = 'Learn more';
+                learnMoreBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openPropertyDetailPage(card);
+                });
+                const contactBtn = document.createElement('button');
+                contactBtn.className = 'property-card__view-btn property-card__view-btn--primary';
+                contactBtn.textContent = 'Contact';
+                contactBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     showLoginBottomSheet();
                 });
-                
-                // Favorite button (next to CTA)
-                const favoriteBtn = document.createElement('button');
-                favoriteBtn.className = 'property-card-favorite';
-                favoriteBtn.setAttribute('aria-label', 'Save property');
-                favoriteBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
-                favoriteBtn.onclick = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    favoriteBtn.classList.toggle('active');
-                    // Update SVG to filled when active
-                    const svg = favoriteBtn.querySelector('svg path');
-                    if (favoriteBtn.classList.contains('active')) {
-                        svg.setAttribute('fill', 'currentColor');
-                        svg.setAttribute('stroke', 'none');
-                } else {
-                        svg.setAttribute('fill', 'none');
-                        svg.setAttribute('stroke', 'currentColor');
-                    }
-                    return false;
-                };
-                
-                ctaSection.appendChild(viewBtn);
-                ctaSection.appendChild(favoriteBtn);
-                
-                // Order: typeStatus -> builtUpArea -> location -> BHK (chips) -> price -> CTA
-                body.appendChild(typeStatus);
-                body.appendChild(builtUpArea);
-                body.appendChild(location);
-                body.appendChild(chips); // BHK - last option before price
-                body.appendChild(price); // Price - selling point, comes before CTA
+                ctaSection.appendChild(learnMoreBtn);
+                ctaSection.appendChild(contactBtn);
                 body.appendChild(ctaSection);
                 
                 // Make entire card clickable (except image) to open PDP
@@ -4669,370 +4770,42 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add reveal zone inside carousel (after all cards, width 0 at rest)
             carousel.appendChild(revealZone);
             
-            // Add carousel to wrapper
+            // Add carousel to wrapper (no View all CTA)
             wrapper.appendChild(carousel);
-            
-            // Add full-width "View all" secondary CTA button below carousel
-            const viewAllBtn = document.createElement('button');
-            viewAllBtn.className = 'carousel-view-all-btn';
-            viewAllBtn.textContent = 'View all';
-            viewAllBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                showViewAllPage(allCards || cards);
-            });
-            
-            wrapper.appendChild(viewAllBtn);
             
             return wrapper;
         }
         
-        // Open Property Detail Page (PDP) in bottom sheet
+        // Open Property Detail Page (PDP) as full page (no bottom sheet)
         function openPropertyDetailPage(card) {
-            // Remove existing PDP if any
             removeElementById('property-detail-bottom-sheet');
+            removeElementById('property-detail-fullpage');
             
-            // Create bottom sheet overlay
-            const bottomSheetOverlay = document.createElement('div');
-            bottomSheetOverlay.id = 'property-detail-bottom-sheet';
-            bottomSheetOverlay.className = 'pdp-bottom-sheet-overlay';
-            
-            // Create bottom sheet
-            const bottomSheet = document.createElement('div');
-            bottomSheet.className = 'pdp-bottom-sheet';
-            bottomSheet.id = 'pdp-bottom-sheet';
-            
-            // Progressive expansion system
-            const initialHeight = Math.min(window.innerHeight * 0.7, 600); // Start at 70vh or 600px
-            const maxHeight = window.innerHeight; // Full viewport height
-            const heightRange = maxHeight - initialHeight;
-            const initialRadius = 24; // Initial border radius
-            
-            // Progress value: 0 = collapsed, 1 = fully expanded
-            let progress = 0;
-            let currentHeight = initialHeight;
-            let isFullyExpanded = false;
-            let isDragging = false;
-            let lastScrollTop = 0;
-            let isAnimating = false;
-            
-            // Hysteresis thresholds to prevent flickering
-            const EXPAND_THRESHOLD = 0.85;
-            const COLLAPSE_THRESHOLD = 0.15;
-            
-            // Throttle for scroll updates (16ms = ~60fps)
-            let lastUpdateTime = 0;
-            const THROTTLE_MS = 16;
-            
-            // Set initial styles
-            bottomSheet.style.height = `${initialHeight}px`;
-            bottomSheet.style.maxHeight = `${initialHeight}px`;
-            bottomSheet.style.borderRadius = `${initialRadius}px ${initialRadius}px 0 0`;
-            
-            // Interpolation helper
-            const interpolate = (value, inputRange, outputRange) => {
-                const [inMin, inMax] = inputRange;
-                const [outMin, outMax] = outputRange;
-                const clamped = Math.max(inMin, Math.min(inMax, value));
-                return outMin + ((clamped - inMin) / (inMax - inMin)) * (outMax - outMin);
-            };
-            
-            // Apply styles based on progress (0-1)
-            const applyProgress = (newProgress) => {
-                progress = Math.max(0, Math.min(1, newProgress));
-                
-                // Interpolate height
-                currentHeight = interpolate(progress, [0, 1], [initialHeight, maxHeight]);
-                
-                // Interpolate border radius
-                const radius = interpolate(progress, [0, 1], [initialRadius, 0]);
-                
-                // Interpolate handle opacity
-                const handleOpacity = interpolate(progress, [0.5, 1], [1, 0]);
-                
-                // Apply styles directly (no transition during drag)
-                bottomSheet.style.height = `${currentHeight}px`;
-                bottomSheet.style.maxHeight = `${currentHeight}px`;
-                bottomSheet.style.borderRadius = `${radius}px ${radius}px 0 0`;
-                
-                // Update handle opacity
-                const handle = bottomSheet.querySelector('.pdp-bottom-sheet-handle');
-                if (handle) {
-                    handle.style.opacity = handleOpacity;
+            function closePDPFullPage() {
+                const el = document.getElementById('property-detail-fullpage');
+                if (el) {
+                    el.remove();
+                    document.body.style.overflow = '';
                 }
-                
-                // Check hysteresis thresholds
-                if (progress >= EXPAND_THRESHOLD && !isFullyExpanded) {
-                    isFullyExpanded = true;
-                    bottomSheet.classList.add('fully-expanded');
-                } else if (progress <= COLLAPSE_THRESHOLD && isFullyExpanded) {
-                    isFullyExpanded = false;
-                    bottomSheet.classList.remove('fully-expanded');
-                }
-            };
+            }
             
-            // Animate to target progress with spring-like easing
-            const animateToProgress = (targetProgress, duration = 300) => {
-                if (isAnimating) return;
-                isAnimating = true;
-                
-                const startProgress = progress;
-                const startTime = performance.now();
-                
-                const animate = (currentTime) => {
-                    const elapsed = currentTime - startTime;
-                    const t = Math.min(elapsed / duration, 1);
-                    
-                    // Spring-like easing
-                    const eased = 1 - Math.pow(1 - t, 3);
-                    
-                    const newProgress = startProgress + (targetProgress - startProgress) * eased;
-                    applyProgress(newProgress);
-                    
-                    if (t < 1) {
-                        requestAnimationFrame(animate);
-                    } else {
-                        isAnimating = false;
-                        applyProgress(targetProgress);
-                    }
-                };
-                
-                requestAnimationFrame(animate);
-            };
+            const overlay = document.createElement('div');
+            overlay.id = 'property-detail-fullpage';
+            overlay.className = 'pdp-fullpage-overlay';
             
-            // Expand to full screen
-            const expandToFull = () => {
-                if (isFullyExpanded || isAnimating) return;
-                animateToProgress(1, 300);
-            };
-            
-            // Collapse to bottom sheet
-            const collapseToSheet = () => {
-                if (!isFullyExpanded || isAnimating) return;
-                animateToProgress(0, 300);
-            };
-            
-            // Snap to nearest state based on current progress
-            const snapToNearestState = () => {
-                if (isAnimating) return;
-                if (progress > 0.5) {
-                    animateToProgress(1, 250);
-                } else {
-                    animateToProgress(0, 250);
-                }
-            };
-            
-            // Handle scroll - progressive expansion based on content scroll
-            const handleScroll = (e) => {
-                if (isAnimating || isDragging) return;
-                
-                // Throttle updates
-                const now = performance.now();
-                if (now - lastUpdateTime < THROTTLE_MS) return;
-                lastUpdateTime = now;
-                
-                const scrollTop = pdpContent.scrollTop;
-                
-                // If fully expanded and at top, don't do anything special
-                // Pull-down to collapse is handled separately
-                if (isFullyExpanded) {
-                    lastScrollTop = scrollTop;
-                    return;
-                }
-                
-                // Calculate progress based on scroll (first 100px of scroll drives expansion)
-                const scrollDriveRange = 100;
-                if (scrollTop > 0 && progress < 1) {
-                    const scrollProgress = Math.min(scrollTop / scrollDriveRange, 1);
-                    
-                    // Only expand, don't collapse via scroll
-                    if (scrollProgress > progress) {
-                        applyProgress(scrollProgress);
-                        
-                        // Once we pass threshold, animate to full
-                        if (progress >= EXPAND_THRESHOLD) {
-                            animateToProgress(1, 200);
-                        }
-                    }
-                }
-                
-                lastScrollTop = scrollTop;
-            };
-            
-            // Track scroll start for pull-down detection
-            let scrollStartY = 0;
-            let isScrolling = false;
-            
-            const handleScrollStart = (e) => {
-                isScrolling = true;
-                const touch = e.touches ? e.touches[0] : null;
-                if (touch) {
-                    scrollStartY = touch.clientY;
-                }
-            };
-            
-            const handleScrollEnd = () => {
-                isScrolling = false;
-                // If we're in a mid-state after scroll ends, snap to nearest
-                if (!isDragging && !isAnimating && progress > 0.1 && progress < 0.9) {
-                    snapToNearestState();
-                }
-            };
-            
-            // Touch/mouse drag to expand (header drag)
-            let startY = 0;
-            let startProgress = 0;
-            
-            const handleStart = (e) => {
-                if (isAnimating) return;
-                const touch = e.touches ? e.touches[0] : e;
-                startY = touch.clientY;
-                startProgress = progress;
-                isDragging = true;
-            };
-            
-            const handleMove = (e) => {
-                if (!isDragging || isAnimating) return;
-                const touch = e.touches ? e.touches[0] : e;
-                const deltaY = startY - touch.clientY; // Positive when dragging up
-                
-                // Calculate progress change based on drag distance
-                const dragSensitivity = heightRange; // Full drag range
-                const progressDelta = deltaY / dragSensitivity;
-                const newProgress = startProgress + progressDelta;
-                
-                applyProgress(newProgress);
-            };
-            
-            const handleEnd = () => {
-                if (!isDragging) return;
-                isDragging = false;
-                
-                // Snap to nearest state
-                snapToNearestState();
-            };
-            
-            // Back button (only on Chat screen PDP)
             const backBtn = document.createElement('button');
             backBtn.className = 'pdp-bottom-sheet-back';
-            backBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
-            backBtn.onclick = function() {
-                closePDPBottomSheet();
-            };
+            backBtn.setAttribute('aria-label', 'Back');
+            backBtn.innerHTML = '<img src="back.svg" alt="" class="pdp-back-icon" width="40" height="40">';
+            backBtn.onclick = closePDPFullPage;
             
-            // Drag handle - make it draggable
-            const dragHandle = document.createElement('div');
-            dragHandle.className = 'pdp-bottom-sheet-handle';
-            dragHandle.addEventListener('touchstart', handleStart, { passive: true });
-            dragHandle.addEventListener('touchmove', handleMove, { passive: true });
-            dragHandle.addEventListener('touchend', handleEnd, { passive: true });
-            dragHandle.addEventListener('mousedown', handleStart);
+            const scrollContent = document.createElement('div');
+            scrollContent.className = 'pdp-fullpage-scroll';
             
-            // Mouse move/up handlers (scoped to prevent conflicts)
-            const mouseMoveHandler = (e) => {
-                if (isDragging) {
-                    handleMove(e);
-                }
-            };
-            const mouseUpHandler = () => {
-                if (isDragging) {
-                    handleEnd();
-                }
-            };
-            document.addEventListener('mousemove', mouseMoveHandler);
-            document.addEventListener('mouseup', mouseUpHandler);
-            
-            // Store cleanup function on overlay for proper cleanup on close
-            bottomSheetOverlay._cleanupMouseEvents = () => {
-                document.removeEventListener('mousemove', mouseMoveHandler);
-                document.removeEventListener('mouseup', mouseUpHandler);
-            };
-            
-            // PDP Content Container (scrollable)
-            const pdpContent = document.createElement('div');
-            pdpContent.className = 'pdp-bottom-sheet-content';
-            pdpContent.addEventListener('scroll', handleScroll, { passive: true });
-            pdpContent.addEventListener('touchstart', handleScrollStart, { passive: true });
-            pdpContent.addEventListener('touchend', handleScrollEnd, { passive: true });
-            pdpContent.addEventListener('touchcancel', handleScrollEnd, { passive: true });
-            
-            // Also allow dragging from anywhere in the header area
-            const headerArea = document.createElement('div');
-            headerArea.className = 'pdp-bottom-sheet-header';
-            headerArea.addEventListener('touchstart', handleStart, { passive: true });
-            headerArea.addEventListener('touchmove', handleMove, { passive: true });
-            headerArea.addEventListener('touchend', handleEnd, { passive: true });
-            headerArea.addEventListener('mousedown', handleStart);
-            
-            // Enhanced pull-down detection for collapse (works on both touch and mouse)
-            let pullDownStartY = 0;
-            let isPullingDown = false;
-            let pullDownStartScroll = 0;
-            
-            const handlePullDownStart = (e) => {
-                if (isFullyExpanded && pdpContent.scrollTop === 0) {
-                    const touch = e.touches ? e.touches[0] : e;
-                    pullDownStartY = touch.clientY;
-                    pullDownStartScroll = pdpContent.scrollTop;
-                    isPullingDown = true;
-                }
-            };
-            
-            const handlePullDownMove = (e) => {
-                if (!isPullingDown || !isFullyExpanded) return;
-                if (pdpContent.scrollTop > 0) {
-                    // User scrolled away from top, cancel pull-down
-                    isPullingDown = false;
-                    return;
-                }
-                
-                const touch = e.touches ? e.touches[0] : e;
-                const deltaY = touch.clientY - pullDownStartY;
-                
-                // If dragging down more than 30px at the top, collapse
-                if (deltaY > 30) {
-                    collapseToSheet();
-                    isPullingDown = false;
-                    e.preventDefault();
-                }
-            };
-            
-            const handlePullDownEnd = () => {
-                isPullingDown = false;
-            };
-            
-            // Add pull-down detection to header and content area
-            headerArea.addEventListener('touchstart', handlePullDownStart, { passive: true });
-            headerArea.addEventListener('touchmove', handlePullDownMove, { passive: false });
-            headerArea.addEventListener('touchend', handlePullDownEnd, { passive: true });
-            headerArea.addEventListener('mousedown', handlePullDownStart);
-            
-            // Also detect pull-down in content area when at top
-            pdpContent.addEventListener('touchstart', (e) => {
-                if (isFullyExpanded && pdpContent.scrollTop === 0) {
-                    handlePullDownStart(e);
-                }
-            }, { passive: true });
-            
-            pdpContent.addEventListener('touchmove', (e) => {
-                if (isPullingDown) {
-                    handlePullDownMove(e);
-                }
-            }, { passive: false });
-            
-            pdpContent.addEventListener('touchend', handlePullDownEnd, { passive: true });
-            
-            // Mouse events for desktop
-            document.addEventListener('mousemove', (e) => {
-                if (isPullingDown) {
-                    handlePullDownMove(e);
-                }
-            });
-            document.addEventListener('mouseup', handlePullDownEnd);
-            
-            // Hero Image
+            // Hero Image (click opens gallery)
             const heroImage = document.createElement('div');
             heroImage.className = 'pdp-hero-image';
+            heroImage.style.cursor = 'pointer';
             const heroImg = document.createElement('img');
             heroImg.src = card.image;
             heroImg.alt = card.name;
@@ -5045,6 +4818,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             };
             heroImage.appendChild(heroImg);
+            heroImage.onclick = function() { openPropertyGallery(card); };
             
             // Content Wrapper
             const contentWrapper = document.createElement('div');
@@ -5133,17 +4907,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 };
                 galleryItem.appendChild(galleryImg);
-                galleryItem.onclick = function() {
-                    // Open gallery from PDP
-                    removeElementById('property-gallery-overlay');
-                    // Trigger gallery opening - we can reuse the createGallery logic
-                    // For simplicity, just open the first image in gallery
-                };
+                galleryItem.style.cursor = 'pointer';
+                galleryItem.onclick = function() { openPropertyGallery(card); };
                 galleryGrid.appendChild(galleryItem);
             });
             gallerySection.appendChild(galleryGrid);
             
-            // Sticky CTA Section
+            // CTA Section
             const ctaSection = document.createElement('div');
             ctaSection.className = 'pdp-bottom-sheet-cta';
             const contactBtn = document.createElement('button');
@@ -5155,7 +4925,6 @@ document.addEventListener('DOMContentLoaded', function() {
             ctaSection.appendChild(contactBtn);
             ctaSection.appendChild(scheduleBtn);
             
-            // Assemble content
             contentWrapper.appendChild(propertyName);
             contentWrapper.appendChild(location);
             contentWrapper.appendChild(price);
@@ -5163,62 +4932,17 @@ document.addEventListener('DOMContentLoaded', function() {
             contentWrapper.appendChild(description);
             contentWrapper.appendChild(gallerySection);
             
-            pdpContent.appendChild(heroImage);
-            pdpContent.appendChild(contentWrapper);
-            
-            // Add back button inside pdpContent, overlaying hero image
-            pdpContent.appendChild(backBtn);
-            
-            // Assemble header with drag handle only
-            headerArea.appendChild(dragHandle);
-            
-            bottomSheet.appendChild(headerArea);
-            bottomSheet.appendChild(pdpContent);
-            bottomSheet.appendChild(ctaSection);
-            
-            bottomSheetOverlay.appendChild(bottomSheet);
-            document.body.appendChild(bottomSheetOverlay);
-            
-            // Prevent body scroll
+            scrollContent.appendChild(heroImage);
+            scrollContent.appendChild(contentWrapper);
+            overlay.appendChild(backBtn);
+            overlay.appendChild(scrollContent);
+            overlay.appendChild(ctaSection);
+            document.body.appendChild(overlay);
             document.body.style.overflow = 'hidden';
-            
-            // Animate in
-            requestAnimationFrame(() => {
-                bottomSheetOverlay.classList.add('show');
-                bottomSheet.classList.add('show');
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) closePDPFullPage();
             });
-            
-            // Close on overlay click
-            bottomSheetOverlay.addEventListener('click', (e) => {
-                if (e.target === bottomSheetOverlay) {
-                    closePDPBottomSheet();
-                }
-            });
-            
-            // Smooth scroll to top
-            pdpContent.scrollTop = 0;
-        }
-        
-        // Close PDP bottom sheet
-        function closePDPBottomSheet() {
-            const bottomSheetOverlay = document.getElementById('property-detail-bottom-sheet');
-            if (!bottomSheetOverlay) return;
-            
-            // Cleanup mouse event listeners if they exist
-            if (bottomSheetOverlay._cleanupMouseEvents) {
-                bottomSheetOverlay._cleanupMouseEvents();
-            }
-            
-            const bottomSheet = bottomSheetOverlay.querySelector('.pdp-bottom-sheet');
-            if (bottomSheet) {
-                bottomSheet.classList.remove('show');
-            }
-            bottomSheetOverlay.classList.remove('show');
-            
-            setTimeout(() => {
-                bottomSheetOverlay.remove();
-                document.body.style.overflow = '';
-            }, 300);
+            scrollContent.scrollTop = 0;
         }
         
         // Open property gallery in fullscreen
@@ -5377,7 +5101,7 @@ document.addEventListener('DOMContentLoaded', function() {
         function showBrochureMessage() {
             showTypingIndicator();
             
-            const delay = 1800 + Math.random() * 1000; // 1800-2800ms delay
+            const delay = 3000; // 3 second loading per bot reply
             
             setTimeout(() => {
                 hideTypingIndicator();
@@ -5403,7 +5127,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const botContent = document.createElement('div');
                 botContent.className = 'bot-message-content';
                 
-                // Add text
+                // Add text (no bubble – ChatGPT-style)
                 const botText = document.createElement('div');
                 botText.className = 'bot-text';
                 botText.textContent = message.text;
@@ -5836,7 +5560,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const botContent = document.createElement('div');
                 botContent.className = 'bot-message-content';
                 
-                // Add text
+                // Add text (no bubble – ChatGPT-style)
                 const botText = document.createElement('div');
                 botText.className = 'bot-text';
                 botText.textContent = message.text;
@@ -5844,8 +5568,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 botContent.appendChild(botText);
                 botContent.appendChild(carousel);
                 
-                // Add feedback buttons
-                const feedbackButtons = createFeedbackButtons(msgId);
+                // Thumbs up, thumbs down, share (no copy, no View all)
+                const feedbackButtons = createPropertyCardsFeedbackRow();
                 botContent.appendChild(feedbackButtons);
                 
                 msgDiv.appendChild(botContent);
@@ -5866,116 +5590,135 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'loading';
         }
         
-        // Create feedback buttons (thumbs up/down) for property cards and brochures
+        // Create feedback row: thumbs up, thumbs down, copy (assets/feedback/*.svg – active state = fill black)
         function createFeedbackButtons(messageId) {
             const feedbackContainer = document.createElement('div');
             feedbackContainer.className = 'feedback-buttons';
             feedbackContainer.dataset.messageId = messageId;
             
-            // Add text before buttons
-            const feedbackText = document.createElement('span');
-            feedbackText.className = 'feedback-text';
-            feedbackText.textContent = 'Was this helpful?';
+            const thumbUpPath = 'M30.625 5.0075C30.4842 4.84795 30.3111 4.72019 30.1171 4.63269C29.9231 4.54519 29.7128 4.49996 29.5 4.5H26V3.5C26 2.83696 25.7366 2.20107 25.2678 1.73223C24.7989 1.26339 24.163 1 23.5 1C23.4071 0.999934 23.316 1.02574 23.237 1.07454C23.158 1.12333 23.0941 1.19318 23.0525 1.27625L20.6912 6H18C17.7348 6 17.4804 6.10536 17.2929 6.29289C17.1054 6.48043 17 6.73478 17 7V12.5C17 12.7652 17.1054 13.0196 17.2929 13.2071C17.4804 13.3946 17.7348 13.5 18 13.5H28.75C29.1154 13.5001 29.4684 13.3668 29.7425 13.1252C30.0166 12.8835 30.1931 12.5501 30.2388 12.1875L30.9888 6.1875C31.0153 5.97626 30.9966 5.76179 30.9339 5.55833C30.8712 5.35488 30.7659 5.16711 30.625 5.0075ZM18 7H20.5V12.5H18V7ZM29.9963 6.0625L29.2463 12.0625C29.231 12.1834 29.1722 12.2945 29.0808 12.3751C28.9895 12.4556 28.8718 12.5 28.75 12.5H21.5V6.61812L23.7944 2.02875C24.1344 2.09681 24.4404 2.2806 24.6602 2.54884C24.88 2.81708 25.0001 3.1532 25 3.5V5C25 5.13261 25.0527 5.25979 25.1464 5.35355C25.2402 5.44732 25.3674 5.5 25.5 5.5H29.5C29.571 5.49998 29.6411 5.51505 29.7058 5.54423C29.7704 5.5734 29.8282 5.61601 29.8751 5.66922C29.9221 5.72242 29.9571 5.78501 29.978 5.85282C29.9989 5.92063 30.0051 5.9921 29.9963 6.0625Z';
+            const thumbDownPath = 'M58.9888 9.8125L58.2388 3.8125C58.1931 3.44993 58.0166 3.1165 57.7425 2.87483C57.4684 2.63316 57.1154 2.49987 56.75 2.5H46C45.7348 2.5 45.4804 2.60536 45.2929 2.79289C45.1054 2.98043 45 3.23478 45 3.5V9C45 9.26522 45.1054 9.51957 45.2929 9.70711C45.4804 9.89464 45.7348 10 46 10H48.6912L51.0525 14.7238C51.0941 14.8068 51.158 14.8767 51.237 14.9255C51.316 14.9743 51.4071 15.0001 51.5 15C52.163 15 52.7989 14.7366 53.2678 14.2678C53.7366 13.7989 54 13.163 54 12.5V11.5H57.5C57.7129 11.5001 57.9233 11.4548 58.1173 11.3673C58.3113 11.2798 58.4845 11.152 58.6253 10.9923C58.7662 10.8327 58.8714 10.645 58.9341 10.4415C58.9967 10.2381 59.0154 10.0237 58.9888 9.8125ZM48.5 9H46V3.5H48.5V9ZM57.875 10.3306C57.8284 10.3842 57.7708 10.4271 57.706 10.4564C57.6413 10.4856 57.571 10.5005 57.5 10.5H53.5C53.3674 10.5 53.2402 10.5527 53.1464 10.6464C53.0527 10.7402 53 10.8674 53 11V12.5C53.0001 12.8468 52.88 13.1829 52.6602 13.4512C52.4404 13.7194 52.1344 13.9032 51.7944 13.9712L49.5 9.38188V3.5H56.75C56.8718 3.49996 56.9895 3.54439 57.0808 3.62494C57.1722 3.7055 57.231 3.81664 57.2463 3.9375L57.9963 9.9375C58.0056 10.0079 57.9996 10.0795 57.9787 10.1473C57.9578 10.2152 57.9224 10.2777 57.875 10.3306Z';
+            const copyPath = 'M85.5 2H77.5C77.3674 2 77.2402 2.05268 77.1464 2.14645C77.0527 2.24021 77 2.36739 77 2.5V5H74.5C74.3674 5 74.2402 5.05268 74.1464 5.14645C74.0527 5.24021 74 5.36739 74 5.5V13.5C74 13.6326 74.0527 13.7598 74.1464 13.8536C74.2402 13.9473 74.3674 14 74.5 14H82.5C82.6326 14 82.7598 13.9473 82.8536 13.8536C82.9473 13.7598 83 13.6326 83 13.5V11H85.5C85.6326 11 85.7598 10.9473 85.8536 10.8536C85.9473 10.7598 86 10.6326 86 10.5V2.5C86 2.36739 85.9473 2.24021 85.8536 2.14645C85.7598 2.05268 85.6326 2 85.5 2ZM82 13H75V6H82V13ZM85 10H83V5.5C83 5.36739 82.9473 5.24021 82.8536 5.14645C82.7598 5.05268 82.6326 5 82.5 5H78V3H85V10Z';
             
             const thumbsUpBtn = document.createElement('button');
             thumbsUpBtn.className = 'feedback-btn feedback-btn-up';
             thumbsUpBtn.setAttribute('aria-label', 'Thumbs up');
-            // Thumbs up - outline version (default)
-            const thumbsUpOutline = `<path fill="currentColor" d="M234,80.12A24,24,0,0,0,216,72H160V56a40,40,0,0,0-40-40,8,8,0,0,0-7.16,4.42L75.06,96H32a16,16,0,0,0-16,16v88a16,16,0,0,0,16,16H204a24,24,0,0,0,23.82-21l12-96A24,24,0,0,0,234,80.12ZM32,112H72v88H32ZM223.94,97l-12,96a8,8,0,0,1-7.94,7H88V105.89l36.71-73.43A24,24,0,0,1,144,56V80a8,8,0,0,0,8,8h64a8,8,0,0,1,7.94,9Z"></path>`;
-            // Thumbs up - filled version (active)
-            const thumbsUpFilled = `<path fill="currentColor" d="M234,80.12A24,24,0,0,0,216,72H160V56a40,40,0,0,0-40-40,8,8,0,0,0-7.16,4.42L75.06,96H32a16,16,0,0,0-16,16v88a16,16,0,0,0,16,16H204a24,24,0,0,0,23.82-21l12-96A24,24,0,0,0,234,80.12ZM32,112H72v88H32Z"></path>`;
-            
-            thumbsUpBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" class="feedback-icon-svg">
-                    ${thumbsUpOutline}
-                </svg>
-            `;
-            thumbsUpBtn._outlinePath = thumbsUpOutline;
-            thumbsUpBtn._filledPath = thumbsUpFilled;
-            
-            // Thumbs down - outline version (default)
-            const thumbsDownOutline = `<path fill="currentColor" d="M239.82,157l-12-96A24,24,0,0,0,204,40H32A16,16,0,0,0,16,56v88a16,16,0,0,0,16,16H75.06l37.78,75.58A8,8,0,0,0,120,240a40,40,0,0,0,40-40V184h56a24,24,0,0,0,23.82-27ZM72,144H32V56H72Zm150,21.29a7.88,7.88,0,0,1-6,2.71H152a8,8,0,0,0-8,8v24a24,24,0,0,1-19.29,23.54L88,150.11V56H204a8,8,0,0,1,7.94,7l12,96A7.87,7.87,0,0,1,222,165.29Z"></path>`;
-            // Thumbs down - filled version (active)
-            const thumbsDownFilled = `<path fill="currentColor" d="M239.82,157l-12-96A24,24,0,0,0,204,40H32A16,16,0,0,0,16,56v88a16,16,0,0,0,16,16H75.06l37.78,75.58A8,8,0,0,0,120,240a40,40,0,0,0,40-40V184h56a24,24,0,0,0,23.82-27ZM72,144H32V56H72Z"></path>`;
+            thumbsUpBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="17 1 15 13"><path fill="currentColor" d="${thumbUpPath}"/></svg>`;
             
             const thumbsDownBtn = document.createElement('button');
             thumbsDownBtn.className = 'feedback-btn feedback-btn-down';
             thumbsDownBtn.setAttribute('aria-label', 'Thumbs down');
+            thumbsDownBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="45 2 15 13"><path fill="currentColor" d="${thumbDownPath}"/></svg>`;
             
-            thumbsDownBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 256 256" class="feedback-icon-svg">
-                    ${thumbsDownOutline}
-                </svg>
-            `;
-            thumbsDownBtn._outlinePath = thumbsDownOutline;
-            thumbsDownBtn._filledPath = thumbsDownFilled;
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'feedback-btn feedback-btn-copy';
+            copyBtn.setAttribute('aria-label', 'Copy');
+            copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="74 2 14 12"><path fill="currentColor" d="${copyPath}"/></svg>`;
             
-            // Track selected state
             let selectedFeedback = null;
-            
-            const updateIconState = (btn, isActive) => {
-                const svg = btn.querySelector('svg');
-                if (svg) {
-                    svg.innerHTML = isActive ? btn._filledPath : btn._outlinePath;
-                }
-            };
-            
             const handleFeedback = (type) => {
                 if (selectedFeedback === type) {
-                    // Deselect if clicking the same button
                     selectedFeedback = null;
                     thumbsUpBtn.classList.remove('active');
                     thumbsDownBtn.classList.remove('active');
-                    updateIconState(thumbsUpBtn, false);
-                    updateIconState(thumbsDownBtn, false);
                 } else {
-                    // Select new feedback - mutually exclusive
                     selectedFeedback = type;
-                    if (type === 'up') {
-                        thumbsUpBtn.classList.add('active');
-                        thumbsDownBtn.classList.remove('active');
-                        updateIconState(thumbsUpBtn, true);
-                        updateIconState(thumbsDownBtn, false);
-                    } else {
-                        thumbsDownBtn.classList.add('active');
-                        thumbsUpBtn.classList.remove('active');
-                        updateIconState(thumbsDownBtn, true);
-                        updateIconState(thumbsUpBtn, false);
-                    }
-                    
-                    // Show toast notification
+                    thumbsUpBtn.classList.toggle('active', type === 'up');
+                    thumbsDownBtn.classList.toggle('active', type === 'down');
                     showFeedbackToast();
                 }
             };
             
-            thumbsUpBtn.addEventListener('click', (e) => {
+            thumbsUpBtn.addEventListener('click', (e) => { e.stopPropagation(); handleFeedback('up'); });
+            thumbsDownBtn.addEventListener('click', (e) => { e.stopPropagation(); handleFeedback('down'); });
+            
+            copyBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                handleFeedback('up');
+                const msgEl = document.getElementById(messageId);
+                const content = msgEl && msgEl.querySelector('.bot-message-content');
+                if (!content) return;
+                const clone = content.cloneNode(true);
+                const fb = clone.querySelector('.feedback-buttons');
+                if (fb) fb.remove();
+                const text = clone.textContent.trim();
+                if (text && navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => showFeedbackToast('Copied to clipboard')).catch(() => {});
+                }
             });
             
-            thumbsDownBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                handleFeedback('down');
-            });
-            
-            feedbackContainer.appendChild(feedbackText);
             feedbackContainer.appendChild(thumbsUpBtn);
             feedbackContainer.appendChild(thumbsDownBtn);
+            feedbackContainer.appendChild(copyBtn);
+            return feedbackContainer;
+        }
+        
+        // Feedback row for property cards: thumbs up, thumbs down, share (same thumb icons, share instead of copy)
+        function createPropertyCardsFeedbackRow() {
+            const feedbackContainer = document.createElement('div');
+            feedbackContainer.className = 'feedback-buttons';
             
+            const thumbUpPath = 'M30.625 5.0075C30.4842 4.84795 30.3111 4.72019 30.1171 4.63269C29.9231 4.54519 29.7128 4.49996 29.5 4.5H26V3.5C26 2.83696 25.7366 2.20107 25.2678 1.73223C24.7989 1.26339 24.163 1 23.5 1C23.4071 0.999934 23.316 1.02574 23.237 1.07454C23.158 1.12333 23.0941 1.19318 23.0525 1.27625L20.6912 6H18C17.7348 6 17.4804 6.10536 17.2929 6.29289C17.1054 6.48043 17 6.73478 17 7V12.5C17 12.7652 17.1054 13.0196 17.2929 13.2071C17.4804 13.3946 17.7348 13.5 18 13.5H28.75C29.1154 13.5001 29.4684 13.3668 29.7425 13.1252C30.0166 12.8835 30.1931 12.5501 30.2388 12.1875L30.9888 6.1875C31.0153 5.97626 30.9966 5.76179 30.9339 5.55833C30.8712 5.35488 30.7659 5.16711 30.625 5.0075ZM18 7H20.5V12.5H18V7ZM29.9963 6.0625L29.2463 12.0625C29.231 12.1834 29.1722 12.2945 29.0808 12.3751C28.9895 12.4556 28.8718 12.5 28.75 12.5H21.5V6.61812L23.7944 2.02875C24.1344 2.09681 24.4404 2.2806 24.6602 2.54884C24.88 2.81708 25.0001 3.1532 25 3.5V5C25 5.13261 25.0527 5.25979 25.1464 5.35355C25.2402 5.44732 25.3674 5.5 25.5 5.5H29.5C29.571 5.49998 29.6411 5.51505 29.7058 5.54423C29.7704 5.5734 29.8282 5.61601 29.8751 5.66922C29.9221 5.72242 29.9571 5.78501 29.978 5.85282C29.9989 5.92063 30.0051 5.9921 29.9963 6.0625Z';
+            const thumbDownPath = 'M58.9888 9.8125L58.2388 3.8125C58.1931 3.44993 58.0166 3.1165 57.7425 2.87483C57.4684 2.63316 57.1154 2.49987 56.75 2.5H46C45.7348 2.5 45.4804 2.60536 45.2929 2.79289C45.1054 2.98043 45 3.23478 45 3.5V9C45 9.26522 45.1054 9.51957 45.2929 9.70711C45.4804 9.89464 45.7348 10 46 10H48.6912L51.0525 14.7238C51.0941 14.8068 51.158 14.8767 51.237 14.9255C51.316 14.9743 51.4071 15.0001 51.5 15C52.163 15 52.7989 14.7366 53.2678 14.2678C53.7366 13.7989 54 13.163 54 12.5V11.5H57.5C57.7129 11.5001 57.9233 11.4548 58.1173 11.3673C58.3113 11.2798 58.4845 11.152 58.6253 10.9923C58.7662 10.8327 58.8714 10.645 58.9341 10.4415C58.9967 10.2381 59.0154 10.0237 58.9888 9.8125ZM48.5 9H46V3.5H48.5V9ZM57.875 10.3306C57.8284 10.3842 57.7708 10.4271 57.706 10.4564C57.6413 10.4856 57.571 10.5005 57.5 10.5H53.5C53.3674 10.5 53.2402 10.5527 53.1464 10.6464C53.0527 10.7402 53 10.8674 53 11V12.5C53.0001 12.8468 52.88 13.1829 52.6602 13.4512C52.4404 13.7194 52.1344 13.9032 51.7944 13.9712L49.5 9.38188V3.5H56.75C56.8718 3.49996 56.9895 3.54439 57.0808 3.62494C57.1722 3.7055 57.231 3.81664 57.2463 3.9375L57.9963 9.9375C58.0056 10.0079 57.9996 10.0795 57.9787 10.1473C57.9578 10.2152 57.9224 10.2777 57.875 10.3306Z';
+            const shareSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+            
+            const thumbsUpBtn = document.createElement('button');
+            thumbsUpBtn.className = 'feedback-btn feedback-btn-up';
+            thumbsUpBtn.setAttribute('aria-label', 'Thumbs up');
+            thumbsUpBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="17 1 15 13"><path fill="currentColor" d="${thumbUpPath}"/></svg>`;
+            
+            const thumbsDownBtn = document.createElement('button');
+            thumbsDownBtn.className = 'feedback-btn feedback-btn-down';
+            thumbsDownBtn.setAttribute('aria-label', 'Thumbs down');
+            thumbsDownBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="45 2 15 13"><path fill="currentColor" d="${thumbDownPath}"/></svg>`;
+            
+            const shareBtn = document.createElement('button');
+            shareBtn.className = 'feedback-btn feedback-btn-share';
+            shareBtn.setAttribute('aria-label', 'Share');
+            shareBtn.innerHTML = shareSvg;
+            
+            let selectedFeedback = null;
+            const handleFeedback = (type) => {
+                if (selectedFeedback === type) {
+                    selectedFeedback = null;
+                    thumbsUpBtn.classList.remove('active');
+                    thumbsDownBtn.classList.remove('active');
+                } else {
+                    selectedFeedback = type;
+                    thumbsUpBtn.classList.toggle('active', type === 'up');
+                    thumbsDownBtn.classList.toggle('active', type === 'down');
+                    showFeedbackToast();
+                }
+            };
+            
+            thumbsUpBtn.addEventListener('click', (e) => { e.stopPropagation(); handleFeedback('up'); });
+            thumbsDownBtn.addEventListener('click', (e) => { e.stopPropagation(); handleFeedback('down'); });
+            shareBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Properties',
+                        text: 'Check out these properties',
+                        url: window.location.href
+                    }).then(() => showFeedbackToast('Link shared')).catch(() => {});
+                } else if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(window.location.href);
+                    showFeedbackToast('Link copied');
+                }
+            });
+            
+            feedbackContainer.appendChild(thumbsUpBtn);
+            feedbackContainer.appendChild(thumbsDownBtn);
+            feedbackContainer.appendChild(shareBtn);
             return feedbackContainer;
         }
         
         // Show minimal toast notification for feedback
-        function showFeedbackToast() {
-            // Remove existing toast if any
+        function showFeedbackToast(message) {
             const existingToast = document.querySelector('.feedback-toast');
-            if (existingToast) {
-                existingToast.remove();
-            }
-            
+            if (existingToast) existingToast.remove();
             const toast = document.createElement('div');
             toast.className = 'feedback-toast';
-            toast.textContent = 'Thanks for sharing feedback';
+            toast.textContent = message || 'Thanks for sharing feedback';
             
             document.body.appendChild(toast);
             
@@ -6199,6 +5942,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
+        // Clear property-search pattern: message obviously asks for properties (e.g. "3bhk rohini 30k rent")
+        // When true, always treat as handled so we never show fallback/out-of-scope for repeat or similar queries
+        function isClearPropertySearch(normalized) {
+            const hasBhk = /\b(\d+)\s*(bhk|bhks|bedroom|bedrooms|bed room|br|beds?|room)\b|\b(bhk|bedroom)\s*(\d+)\b/i.test(normalized);
+            const hasRentBuy = /\b(rent|rental|buy|purchase|sale)\b/i.test(normalized);
+            const hasPriceLike = /\b\d+\s*(k|thousand|lakh|lac|cr|crore|lak)\b|\b\d{4,6}\b/i.test(normalized);
+            const hasLocalityLike = /\b(rohini|andheri|koramangala|indiranagar|malad|gurgaon|noida|delhi|mumbai|bangalore|pune|hyderabad|chennai|locality|area|sector|phase)\b/i.test(normalized) ||
+                (/\b[a-z]{4,}\b/i.test(normalized) && (hasBhk || hasRentBuy)); // word that could be locality + property context
+            if (hasBhk && (hasRentBuy || hasPriceLike || hasLocalityLike)) return true;
+            if (hasRentBuy && (hasPriceLike || hasLocalityLike)) return true;
+            if (hasPriceLike && hasLocalityLike) return true;
+            return false;
+        }
+        
         // Check if message is clearly housing-related (strict check)
         // Only returns true if message is explicitly about properties/homes
         function isHousingRelated(text, normalized, updates) {
@@ -6252,6 +6009,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
                 return false; // Not handled - will trigger fallback
+            }
+            
+            // INTENT CHECK 0b: Clear property search (e.g. "3bhk rohini 30k rent") – always handled, never fallback
+            // Ensures repeat or similar messages always show properties, not out-of-scope
+            if (isClearPropertySearch(normalized)) {
+                if (window.__CHAT_DEBUG__) console.log('[Intent] Handled: Clear property search – will show properties');
+                return true;
             }
             
             // INTENT CHECK 1: Greeting (handled)
@@ -6357,6 +6121,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
+                    // "Tell me about [place]" – show locality info card (Figma Case 1 structure)
+                    const tellMeAboutMatch = normalized.match(/tell me about\s+(.+)/i);
+                    if (tellMeAboutMatch && tellMeAboutMatch[1]) {
+                        const placeName = tellMeAboutMatch[1].trim();
+                        if (placeName.length >= 2) {
+                            if (window.__CHAT_DEBUG__) console.log('[Intent] Routing to locality info card', { placeName });
+                            showLocalityInfoCard(placeName);
+                            return;
+                        }
+                    }
+                
                     // Extract information from user message (with smart extraction for typos)
                     const updates = smartExtract(text);
                     
@@ -6427,6 +6202,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 300);
         }
         
+        // Update send button filled/unfilled state (Figma: Input field Default vs Fill)
+        function updateSendButtonState() {
+            const icon = document.getElementById('chat-send-btn-icon');
+            const hasText = (chatInput.value || '').trim().length > 0;
+            if (icon) {
+                icon.src = hasText ? 'assets/input/send-enabled.svg' : 'assets/input/send-disabled.svg';
+            }
+            chatSendBtn.disabled = !hasText;
+        }
+
+        updateSendButtonState();
+        chatInput.addEventListener('input', updateSendButtonState);
+        chatInput.addEventListener('change', updateSendButtonState);
+
         // Basic send button handler
         chatSendBtn.addEventListener('click', () => {
             const text = chatInput.value.trim();
@@ -6434,10 +6223,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Clear input
             chatInput.value = '';
+            updateSendButtonState();
             
             // Hide intro on first message
             if (messages.length === 0 && chatScreen) {
                 chatScreen.classList.add('chat-started');
+                if (typeof setChatOffsets === 'function') setChatOffsets();
             }
             
             // Handle the message
@@ -6460,6 +6251,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Hide intro on first message
                 if (messages.length === 0 && chatScreen) {
                     chatScreen.classList.add('chat-started');
+                    if (typeof setChatOffsets === 'function') setChatOffsets();
                 }
                 
                 // Handle the message directly

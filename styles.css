@@ -73,6 +73,18 @@ body {
     overscroll-behavior: contain;
 }
 
+/* Hide all scrollbars across the UI */
+html, body, * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+    background: transparent;
+}
+
 /* ============================================================================
    WIREFRAME MODE (non-destructive)
    Toggle by adding `wireframe-mode` class on <body>
@@ -192,6 +204,12 @@ body.wireframe-mode .bottom-sheet-close {
 }
 
 /* Step 1: Hard lock page scroll when chat screen is active (critical for Android) */
+/* When link opens, chat is the only screen: hide homepage and bottom nav */
+body:has(.chat-screen.active) .mobile-container,
+body:has(.chat-screen.active) .bottom-nav {
+    display: none !important;
+}
+
 .chat-screen.active ~ *,
 body:has(.chat-screen.active) {
     overflow: hidden !important;
@@ -207,12 +225,15 @@ body:has(.chat-screen.active) {
 
 @media (min-width: 768px) {
     .desktop-blocker {
-        display: flex;
+        display: flex !important;
         align-items: center;
         justify-content: center;
         min-height: 100vh;
         background-color: var(--bg-light);
         padding: 20px;
+        z-index: 99999;
+        position: fixed;
+        inset: 0;
     }
 
     .desktop-message {
@@ -229,7 +250,11 @@ body:has(.chat-screen.active) {
     .mobile-container {
         display: none !important;
     }
-    
+
+    .chat-screen {
+        display: none !important;
+    }
+
     .bottom-nav {
         display: none !important;
     }
@@ -1229,6 +1254,70 @@ button, .property-type-card {
     }
 }
 
+/* Up to 500px: full-width header, input, and intro – responsive frame */
+@media (max-width: 500px) {
+    .mobile-container {
+        max-width: 100%;
+    }
+
+    .chat-screen {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        left: 0 !important;
+        right: 0 !important;
+    }
+
+    .chat-header.chat-top-bar {
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+
+    /* Header row uses full width so bar is responsive till 500px */
+    .chat-header-row {
+        max-width: 100% !important;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Input field stretches with screen up to 500px */
+    .chat-input-bar {
+        padding-left: 16px;
+        padding-right: 16px;
+        box-sizing: border-box;
+    }
+
+    .chat-input-wrapper {
+        max-width: none !important;
+        width: 100% !important;
+    }
+
+    /* Intro / “Hey how are you” + pills stay full width and stretch */
+    .chat-messages {
+        padding-left: 16px;
+        padding-right: 16px;
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .chat-intro {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .chat-hero-title {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .chips-marquee {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
 /* Bottom Sheet */
 .bottom-sheet {
     position: fixed;
@@ -1312,6 +1401,137 @@ button, .property-type-card {
 
 .bottom-sheet:not(.active) .bottom-sheet-content {
     transform: translateY(100%);
+}
+
+/* ========== Info bottom sheet (Figma: About the responses) ========== */
+.info-bottom-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 10100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    overflow: hidden;
+}
+
+.info-bottom-sheet.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.info-bottom-sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.info-bottom-sheet.active .info-bottom-sheet-overlay {
+    opacity: 1;
+}
+
+.info-bottom-sheet-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    transform: translateY(100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+    max-height: 90vh;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.info-bottom-sheet.active .info-bottom-sheet-content {
+    transform: translateY(0);
+}
+
+.info-bottom-sheet-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #323232;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.info-bottom-sheet-handle {
+    width: 44px;
+    height: 4px;
+    background: #e1e2e8;
+    border-radius: 100px;
+    margin: 12px auto 20px;
+    flex-shrink: 0;
+}
+
+.info-bottom-sheet-body {
+    padding: 0 16px 16px;
+    box-sizing: border-box;
+}
+
+.info-bottom-sheet-title {
+    font-family: 'Rubik', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+    color: #222222;
+    text-align: left;
+    margin: 0 0 24px;
+}
+
+.info-bottom-sheet-text {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 20px;
+    color: #656565;
+    margin: 0 0 24px;
+    text-align: left;
+}
+
+.info-bottom-sheet-divider {
+    height: 1px;
+    background: #f2f3f8;
+    border-radius: 100px;
+    margin: 0 0 24px;
+}
+
+.info-bottom-sheet-cta {
+    width: 100%;
+    max-width: 328px;
+    margin: 0 auto;
+    display: block;
+    height: 48px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 8px;
+    background: #5e23dc;
+    color: #ffffff;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 16px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.2s ease;
+}
+
+.info-bottom-sheet-cta:active {
+    opacity: 0.9;
 }
 
 .bottom-sheet-gradient-bg {
@@ -1703,205 +1923,232 @@ html, body {
     animation: none !important;
 }
 
-/* Chat Screen - Container only, no scrolling */
-/* Step 2: Transform is on this element - header is OUTSIDE, so it's OK */
-/* Chat layout: stack from top, scroll behind header, stick-to-bottom auto-scroll */
+/* Chat Screen - no page animation; already in place on load */
 .chat-screen {
-    --chat-bg: #F7F2EC;
-    --chat-bg-rgb: 247, 242, 236;
+    --chat-bg: #FAFAFA;
+    --chat-bg-rgb: 250, 250, 250;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(to bottom, #F5F5F5 0%, #EBEBEB 100%);
+    background: #FAFAFA;
     z-index: 10002;
     width: 100%;
     max-width: 100%;
     overflow: hidden;
-    transform: translateX(100%);
+    transform: translateX(0);
     opacity: 0;
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
     display: flex;
     flex-direction: column;
-    height: 100dvh; /* Use 100dvh for proper mobile viewport */
+    height: 100dvh;
 }
 
 .chat-screen.active {
-    transform: translateX(0);
     opacity: 1;
     pointer-events: all;
 }
 
-/* Step 3: Header - Sticky at top, content scrolls behind it */
-.chat-top-bar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 16px;
-    padding-top: calc(12px + env(safe-area-inset-top));
-    padding-bottom: 16px;
+/* Step 3: Header - full width on mobile, responsive padding, middle-aligned */
+.chat-header.chat-top-bar {
     position: absolute;
     top: 0;
-    left: 0;
-    right: 0;
+    left: 50%;
+    right: auto;
+    width: 100vw;
+    margin-left: -50vw;
+    min-height: 56px;
+    height: 56px;
+    padding: 0 clamp(16px, 4.44vw, 24px);
+    padding-top: env(safe-area-inset-top);
     z-index: 50;
-    
-    /* 40% opacity header background - single flat color */
-    background: rgba(var(--chat-bg-rgb, 247, 242, 236), 0.4) !important;
-    
-    /* Remove all effects */
-    background-color: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    filter: none !important;
-    
-    /* Must remain clickable */
-    pointer-events: auto;
-    
-    /* Keep existing layout */
     transform: translate3d(0, var(--vv-top), 0);
     -webkit-transform: translate3d(0, var(--vv-top), 0);
     will-change: transform;
-    margin: 0;
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: 0;
+    flex-shrink: 0;
+    pointer-events: auto;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+/* Gradient: full-width bar 80% opacity #ffffff → #ffffff1a */
+.chat-header-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 56px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.1) 100%);
+    pointer-events: none;
+}
+
+/* Content row: full width with sensible max so content doesn’t over-stretch on large phones */
+.chat-header-row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: min(328px, calc(100vw - 32px));
+    min-width: 0;
+    height: 40px;
     flex-shrink: 0;
 }
 
-/* Subtle fade overlay at top edge - positioned behind header elements */
-.chat-top-bar::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background: linear-gradient(
-        to bottom,
-        rgba(var(--chat-bg-rgb, 247, 242, 236), 0.85) 0%,
-        rgba(var(--chat-bg-rgb, 247, 242, 236), 0.6) 40%,
-        rgba(var(--chat-bg-rgb, 247, 242, 236), 0.3) 70%,
-        transparent 100%
-    );
-    pointer-events: none;
-    z-index: -1; /* Behind header content */
-    display: block;
-}
-
-/* Subtle fade overlay at top edge - positioned behind header elements */
-.chat-top-bar::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background: linear-gradient(
-        to bottom,
-        rgba(var(--chat-bg-rgb, 247, 242, 236), 0.85) 0%,
-        rgba(var(--chat-bg-rgb, 247, 242, 236), 0.6) 40%,
-        rgba(var(--chat-bg-rgb, 247, 242, 236), 0.3) 70%,
-        transparent 100%
-    );
-    pointer-events: none;
-    z-index: -1; /* Behind header content (back button, Houzy) */
-    display: block;
-}
-
-.chat-top-bar::after {
-    content: none !important;
-    display: none !important;
-}
-
+/* Back: same white circular fill as other header icons (40×40, radius 24, fill #ffffff) */
+.chat-header .chat-back-btn,
+.chat-top-bar .chat-back-btn,
+.chat-header-row .chat-back-btn,
 .chat-back-btn {
-    background-color: rgba(255, 255, 255, 0.9);
-    border: none;
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
+    position: relative;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
     padding: 0;
-    cursor: pointer;
+    border: none;
+    border-radius: 24px;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000;
+    cursor: default;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-dark);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    pointer-events: all;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    padding: 10px;
+    box-shadow: 0 1px 4px 1px rgba(100, 100, 100, 0.06);
 }
 
-.chat-back-btn svg {
+.chat-back-btn:disabled {
+    opacity: 1;
+    cursor: default;
+    pointer-events: none;
+}
+
+.chat-header-menu-btn .chat-header-icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+    object-fit: contain;
+}
+.chat-back-btn .chat-header-icon {
     width: 24px;
     height: 24px;
-    stroke: var(--text-dark);
-    stroke-width: 2.5;
+    display: block;
+    object-fit: contain;
+    filter: brightness(0);
+}
+
+.chat-header-info-icon {
+    width: 24px;
+    height: 24px;
+    filter: brightness(0) saturate(100%) opacity(0.6); /* medium grey */
 }
 
 .chat-title-btn {
-    background-color: rgba(255, 255, 255, 0.9);
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 0;
     border: none;
-    border-radius: 22px;
-    padding: 12px 16px;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Pill: Figma 147×40, radius 100, padding 8 12 8 8, gap 8, logo 24×24 */
+.chat-title-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 8px 12px 8px 8px;
+    box-sizing: border-box;
+    background: #ffffff;
+    border-radius: 100px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 4px 1px rgba(100, 100, 100, 0.06);
+}
+
+.chat-title-icon {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+    display: block;
+}
+
+.chat-title {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #222222;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.chat-title-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    background: #f1ebff;
+    border-radius: 100px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 1.5px;
+    line-height: 12px;
+    flex-shrink: 0;
+}
+
+.chat-title-badge-text {
+    background: linear-gradient(180deg, #5e23dc 0%, #22006b 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Menu: Figma 40×40, radius 24, fill #ffffff, icon #323232 20×20 */
+.chat-header-menu-btn {
+    flex-shrink: 0;
+    margin-left: auto;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 24px;
+    background: #ffffff;
+    color: #323232;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    color: var(--text-dark);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    pointer-events: all;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    font-family: 'Rubik', sans-serif;
+    box-shadow: 0 1px 4px 1px rgba(100, 100, 100, 0.06);
 }
 
-.chat-title-icon-wrapper {
-    position: relative;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.chat-title-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
-    position: relative;
-    z-index: 1;
-}
-
-.chat-title-face {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    object-fit: contain;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 2;
-    pointer-events: none;
-}
-
-.chat-title {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--text-dark);
-    font-family: 'Inter', sans-serif;
-}
 
 /* Chat layout: ChatGPT-style - messages start under header, scroll behind it */
-/* Messages Area - ONLY scrollable region, positioned between header and composer */
-/* Fills from top (0) to top edge of input bar */
+/* Messages Area - at least 40px from left edge, then content; pan-y so vertical scroll works everywhere including over property cards */
 .chat-messages {
-    flex: 1 1 auto; /* Take remaining space */
+    flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
@@ -1910,18 +2157,39 @@ html, body {
     overscroll-behavior-y: contain;
     -ms-overflow-style: none;
     overscroll-behavior: contain;
+    touch-action: pan-y;
     z-index: 1;
     background: transparent;
-    display: block; /* important - changed from flex */
-    padding: 0 16px; /* only side padding here */
+    display: block;
+    padding: 0 16px;
     box-sizing: border-box;
     width: 100%;
     max-width: 100%;
-    /* Fill from top to input bar - height is managed by flex and padding */
     position: relative;
 }
 
-/* Chat stack wrapper - controls top anchoring + safe padding */
+/* Before first message: centre "Hey, how can I help" + pills in the middle of the screen (below header, above input) */
+.chat-screen:not(.chat-started) .chat-messages {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* Keep content below header */
+    padding-top: calc(var(--header-height, 56px) + 16px + env(safe-area-inset-top, 0px));
+    padding-bottom: 16px;
+    box-sizing: border-box;
+    min-height: 0;
+}
+
+.chat-screen:not(.chat-started) .chat-stack {
+    min-height: 0 !important;
+    width: 100%;
+    flex-shrink: 0;
+    padding-bottom: 0;
+    justify-content: center;
+}
+
+/* Chat stack - after first message, messages stack from top */
 .chat-stack {
     display: flex;
     flex-direction: column;
@@ -1929,9 +2197,14 @@ html, body {
     justify-content: flex-start;
     gap: 16px;
     min-height: 100%;
-    /* padding-top and padding-bottom removed - set on #chat-messages instead */
-    padding-bottom: 50vh; /* Large space below last message - responsive to viewport height */
+    padding-bottom: 50vh;
     box-sizing: border-box;
+}
+
+/* Ample space below last message so content doesn’t stack against input (ChatGPT-style) */
+.chat-screen.chat-started .chat-stack {
+    min-height: 100%;
+    padding-bottom: 24px;
 }
 
 /* Remove spacer - messages should stack naturally from top */
@@ -1952,23 +2225,36 @@ html, body {
     flex-shrink: 0;
 }
 
-/* Hero Intro Block - wraps greeting + pills */
-/* Remove centering once chat starts - messages should stack from top */
+/* Hero Intro Block - wraps greeting + pills; centred by parent between header and input */
 .chat-intro {
     width: 100%;
-    padding: calc(var(--header-height, 68px) + 24px + env(safe-area-inset-top)) 0 12px;
+    max-width: 100%;
+    padding: 0 0 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     text-align: center;
     gap: 28px;
     opacity: 1;
     transform: translateY(0);
-    max-height: 500px; /* large enough */
-    transition: opacity 180ms ease, transform 180ms ease, max-height 220ms ease;
+    max-height: 500px;
+    transition: opacity 0.5s ease-out, filter 0.55s ease-out, transform 0.35s ease-out, max-height 0.4s ease-out;
     will-change: opacity, transform, max-height;
     overflow: hidden;
     box-sizing: border-box;
+    margin: 0 auto;
+}
+
+/* First load: intro starts blurred and hidden, then reveals after page appears */
+.chat-intro.initial-load {
+    opacity: 0;
+    filter: blur(10px);
+}
+
+.chat-intro.initial-load.revealed {
+    opacity: 1;
+    filter: blur(0);
 }
 
 /* When chat starts, remove intro centering - messages stack from top */
@@ -1989,38 +2275,43 @@ html, body {
     display: none !important;
 }
 
+/* Keyboard open on mobile: hey + pills disappear gently */
 .chat-intro.is-hidden {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-12px);
     max-height: 0;
     overflow: hidden;
     pointer-events: none;
     padding: 0;
+    transition: opacity 0.4s ease-out, transform 0.35s ease-out, max-height 0.4s ease-out;
 }
 
 .chat-hero-title {
-    font-family: 'Playfair Display', serif;
-    font-size: 32px;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    color: #4A4A4A;
-    margin: 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0;
+    color: #434343;
+    margin: 0 auto;
     width: 100%;
     max-width: 320px;
-    line-height: 1.4;
+    line-height: 28px;
     overflow-wrap: anywhere;
     text-align: center;
-    padding: 0 16px;
+    padding: 0;
     box-sizing: border-box;
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
 
-/* Transform-based marquee (GPU smooth on iOS + Android) */
+/* Transform-based marquee (GPU smooth on iOS + Android), centre-aligned */
 .chips-marquee {
     overflow: hidden;
     position: relative;
     width: 100%;
+    max-width: 100%;
+    display: flex;
+    justify-content: center;
     touch-action: pan-x;
     padding: 0;
     margin: 0;
@@ -2048,12 +2339,12 @@ html, body {
 
 .chips-marquee::before {
     left: 0;
-    background: linear-gradient(to right, var(--page-bg, #F5F5F5), rgba(245, 245, 245, 0));
+    background: linear-gradient(to right, #FAFAFA, rgba(250, 250, 250, 0));
 }
 
 .chips-marquee::after {
     right: 0;
-    background: linear-gradient(to left, var(--page-bg, #F5F5F5), rgba(245, 245, 245, 0));
+    background: linear-gradient(to left, #FAFAFA, rgba(250, 250, 250, 0));
 }
 
 .chips-track {
@@ -2061,7 +2352,7 @@ html, body {
     flex-direction: row;
     gap: 12px;
     padding: 0;
-    margin: 0;
+    margin: 0 auto;
     will-change: transform;
     transform: translate3d(0, 0, 0);
     -webkit-transform: translate3d(0, 0, 0);
@@ -2070,7 +2361,7 @@ html, body {
     pointer-events: auto;
 }
 
-/* Each chip set contains 2 rows */
+/* Each chip set contains 2 rows – stack tightly, no empty gap between rows */
 .chips-set {
     display: flex;
     flex-direction: column;
@@ -2078,15 +2369,19 @@ html, body {
     flex-shrink: 0;
     padding: 0;
     margin: 0;
+    align-items: flex-start;
 }
 
 .chat-starter-pills-row {
     display: flex;
-    gap: 12px;
+    flex-direction: row;
     flex-wrap: nowrap;
+    gap: 12px;
     width: max-content;
+    max-width: 100%;
     padding: 0;
     margin: 0;
+    flex-shrink: 0;
 }
 
 .chat-pill {
@@ -2094,95 +2389,58 @@ html, body {
     white-space: nowrap;
 }
 
-.chat-starter-pills-row {
-    display: flex;
-    gap: 12px;
-    flex-wrap: nowrap;
-    width: max-content;
-}
-
 /* Removed first-child/last-child padding - using consistent gap: 12px */
 
 /* Animation removed - using JavaScript for infinite scroll */
 
 .chat-pill {
-    background: linear-gradient(135deg, #FFFFFF 0%, #F8F8F8 100%);
-    border: 1px solid rgba(200, 200, 210, 0.5);
+    background: linear-gradient(to bottom, #ffffff 0%, #fafafa 100%);
+    border: 1px solid #e1e2e8;
     border-radius: 24px;
-    padding: 12px 18px;
-    font-family: 'Inter', sans-serif;
+    padding: 10px 16px;
+    font-family: 'Rubik', sans-serif;
     font-size: 14px;
     font-weight: 400;
-    color: var(--text-dark);
+    color: #656565;
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.1s ease, border-color 0.2s ease;
     white-space: nowrap;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
-    min-height: 44px;
+    min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8px;
     text-align: center;
     width: auto;
     flex-shrink: 0;
-    min-width: 140px;
+    min-width: 80px;
     margin: 0;
+    box-sizing: border-box;
 }
 
-/* Random colors with lighter stroke opacity */
-.chat-pill.pill-1 {
-    border-color: rgba(180, 100, 200, 0.3);
+.chat-pill-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #656565;
 }
 
-.chat-pill.pill-2 {
-    border-color: rgba(120, 200, 120, 0.3);
-}
-
-.chat-pill.pill-3 {
-    border-color: rgba(240, 140, 100, 0.3);
-}
-
-.chat-pill.pill-4 {
-    border-color: rgba(100, 170, 230, 0.3);
-}
-
-.chat-pill.pill-5 {
-    border-color: rgba(210, 120, 210, 0.3);
-}
-
-.chat-pill.pill-6 {
-    border-color: rgba(150, 180, 100, 0.3);
-}
-
-.chat-pill.pill-7 {
-    border-color: rgba(200, 150, 180, 0.3);
-}
-
-.chat-pill.pill-8 {
-    border-color: rgba(100, 200, 180, 0.3);
-}
-
-.chat-pill.pill-9 {
-    border-color: rgba(220, 160, 120, 0.3);
-}
-
-.chat-pill.pill-10 {
-    border-color: rgba(140, 120, 220, 0.3);
-}
-
-.chat-pill.pill-11 {
-    border-color: rgba(180, 200, 140, 0.3);
-}
-
-.chat-pill.pill-12 {
-    border-color: rgba(200, 100, 150, 0.3);
+.chat-pill-icon img,
+.chat-pill-icon svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+    object-fit: contain;
 }
 
 .chat-pill:active {
     transform: scale(0.98);
-    background-color: #EDE8E0;
+    background: #f0f0f0;
 }
 
 /* Keyboard open state handled by .chat-intro.is-hidden class */
@@ -2191,27 +2449,29 @@ html, body {
    STRICT LAYOUT CONTRACT - Response Hierarchy Rules
    ============================================================================ */
 
-/* Message row */
+/* Message row: user = right, bot = left */
 .msg {
     display: flex;
     width: 100%;
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    /* ChatGPT-style: scroll margin so messages appear under header when scrolled into view */
     scroll-margin-top: calc(var(--header-h, 68px) + env(safe-area-inset-top) + 8px);
 }
 
+/* User message: always on the right (sent) */
 .msg-user {
     justify-content: flex-end;
+    align-items: flex-end;
     margin: 0;
 }
 
+/* Bot message: always on the left (received) */
 .msg-bot {
     justify-content: flex-start;
     align-items: flex-start;
     margin: 0;
-    margin-top: 12px; /* Increased gap between user message and bot response */
+    margin-top: 12px;
 }
 
 /* Extra spacing after bot turn with cards or chips */
@@ -2225,41 +2485,42 @@ html, body {
     margin-top: 16px;
 }
 
-/* Bot message content - strict single column container */
+/* Bot message content – no bubble, ChatGPT-style block (left-aligned) */
 .bot-message-content {
     display: flex;
     flex-direction: column;
     align-self: flex-start;
+    align-items: flex-start;
     text-align: left;
-    max-width: 100%; /* Full width for property cards */
+    max-width: 100%;
     width: 100%;
     white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
-    line-height: 1.5; /* Better line-height for readability */
     padding: 0;
     background: none;
     box-sizing: border-box;
     gap: 0;
 }
 
-/* User bubble */
+/* User (sent) message – right side only, exact Figma "User message" bubble */
+.msg-user .bubble,
 .bubble {
-    background: #EDEDED; /* Solid light grey fill */
-    color: #111;
-    padding: 10px 14px;
-    border-radius: 18px;
-    max-width: 70%; /* ~70% max width */
+    background: #ffffff;
+    color: #222222;
+    padding: 12px 16px 12px 12px;
+    border-radius: 24px;
+    border: 1px solid #f5f5f5;
+    max-width: 75%;
     text-align: left;
-    line-height: 1.4;
+    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: 0;
     word-break: break-word;
     overflow-wrap: break-word;
     box-sizing: border-box;
-}
-
-.msg-user .bubble {
-    background: #E9E9E9;
-    color: #111;
 }
 
 /* Gentle appear animation */
@@ -2274,58 +2535,164 @@ html, body {
     transition: opacity 140ms ease, transform 140ms ease;
 }
 
-/* Bot text - full width, no narrow columns */
+/* Bot text – no bubble, same font size & line height as user message (Figma Case 1 base) */
 .bot-text {
     width: 100%;
     max-width: 100%;
-    color: #111;
-    line-height: 1.4;
+    color: #0a0a0a;
+    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.35;
+    letter-spacing: 0;
     box-sizing: border-box;
     padding: 0;
     margin: 0;
     word-wrap: break-word;
     overflow-wrap: anywhere;
     text-align: left;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'San Francisco', system-ui, sans-serif;
 }
 
-/* Feedback buttons - thumbs up/down */
+/* ========== Bot reply structure (Figma Case 1) – ChatGPT-style, no bubble ==========
+ * Design tokens: H1 22px/33px Rubik 600 #0a0a0a | H2 16px/24px Rubik 500 #0a0a0a
+ * Body 14px/21px Rubik 400 #333333 | Muted 14px #666666 | List 14px/21px Rubik 500 #0a0a0a
+ * Separator 1px solid #e5e7eb
+ */
+/* Heading 1 – main title (e.g. "🏠 3 BHK Apartment") */
+.bot-reply-h1,
+.bot-message-content h1 {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 600;
+    font-size: 22px;
+    line-height: 33px;
+    letter-spacing: 0;
+    color: #0a0a0a;
+    margin: 0 0 4px 0;
+    padding: 0;
+}
+
+/* Heading 2 – section title (e.g. "Property Overview", "Configuration") */
+.bot-reply-h2,
+.bot-message-content h2 {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: 0;
+    color: #0a0a0a;
+    margin: 24px 0 8px 0;
+    padding: 0;
+}
+
+.bot-message-content h2:first-child {
+    margin-top: 0;
+}
+
+/* Separator between sections */
+.bot-reply-separator,
+.bot-message-content hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 16px 0;
+    padding: 0;
+    width: 100%;
+}
+
+/* Paragraph / body text */
+.bot-reply-p,
+.bot-message-content p {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 21px;
+    letter-spacing: 0;
+    color: #333333;
+    margin: 0 0 8px 0;
+    padding: 0;
+}
+
+/* Muted line (e.g. location) */
+.bot-reply-muted {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 21px;
+    color: #666666;
+    margin: 0 0 4px 0;
+    padding: 0;
+}
+
+/* List and list items */
+.bot-reply-ul,
+.bot-message-content ul {
+    list-style: none;
+    margin: 8px 0 0 0;
+    padding: 0;
+}
+
+.bot-reply-li,
+.bot-message-content li {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 21px;
+    letter-spacing: 0;
+    color: #0a0a0a;
+    margin: 0 0 4px 0;
+    padding: 0;
+}
+
+/* Place/locality card lists: bullet points + regular font */
+.bot-message-content .place-card-list {
+    list-style: disc;
+    padding-left: 20px;
+    margin: 8px 0 0 0;
+}
+.bot-message-content .place-card-list li {
+    font-weight: 400;
+    margin: 0 0 6px 0;
+}
+
+/* Feedback row – thumbs up, thumbs down, copy (Figma Frame 2147261418) */
+/* Only show on the last bot message */
+.msg-bot .feedback-buttons {
+    display: none;
+}
+
+.chat-stack > .msg-bot:last-of-type .feedback-buttons {
+    display: flex;
+}
+
 .feedback-buttons {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-top: 16px;
+    gap: 12px;
+    margin-top: 12px;
     padding: 0;
 }
 
 .feedback-text {
-    font-size: 14px;
-    color: #666666;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'San Francisco', system-ui, sans-serif;
-    font-weight: 400;
-    line-height: 1.4;
-    margin-right: 0;
+    display: none;
 }
 
 .feedback-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
+    width: 16px;
+    height: 16px;
     border: none;
     border-radius: 0;
     background: transparent;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease, transform 0.1s ease;
     padding: 0;
-    color: #666666;
-    position: relative;
+    color: #767676;
     -webkit-tap-highlight-color: transparent;
 }
 
 .feedback-btn:hover {
-    opacity: 0.8;
+    color: #434343;
 }
 
 .feedback-btn:active {
@@ -2333,23 +2700,20 @@ html, body {
 }
 
 .feedback-btn.active {
-    color: #8B5CF6;
+    color: #000000;
 }
 
-.feedback-btn.active svg {
-    color: #8B5CF6;
-}
-
+.feedback-btn.active svg,
 .feedback-btn.active svg path {
-    fill: #8B5CF6 !important;
+    fill: #000000 !important;
 }
 
 .feedback-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     pointer-events: none;
     color: inherit;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease;
 }
 
 .feedback-btn svg path {
@@ -2357,9 +2721,17 @@ html, body {
     transition: fill 0.2s ease;
 }
 
-/* Ensure fill works on both active and inactive states */
 .feedback-btn:not(.active) svg path {
     fill: currentColor;
+}
+
+/* Share icon uses stroke – match feedback color */
+.feedback-btn-share svg {
+    stroke: currentColor;
+}
+
+.feedback-btn-share.active svg {
+    stroke: #000000;
 }
 
 /* Feedback toast notification */
@@ -2396,6 +2768,13 @@ html, body {
     padding: 10px 14px;
     border-radius: 18px;
     min-width: 50px;
+}
+
+.typing-indicator-rotating-text {
+    margin-left: 10px;
+    font-size: 14px;
+    color: var(--text-secondary, #666);
+    white-space: nowrap;
 }
 
 /* Loader 5 */
@@ -2729,7 +3108,7 @@ html, body {
     border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Property carousel - clean horizontal layout */
+/* Property carousel - clean horizontal layout; pan-x so vertical scroll goes to parent .chat-messages */
 .property-carousel {
     display: flex;
     align-items: center; /* Vertically center all items (cards + reveal zone) */
@@ -2741,6 +3120,7 @@ html, body {
     overscroll-behavior-y: none;
     -ms-overflow-style: none;
     pointer-events: auto !important;
+    touch-action: pan-x;
     scroll-snap-type: x mandatory;
     padding: 8px 0 12px; /* Vertical padding only */
     padding-left: 16px; /* Left padding to align with heading */
@@ -2956,47 +3336,47 @@ html, body {
     box-sizing: border-box;
 }
 
-/* Card sizing: never overflow viewport */
+/* Property card – Figma Frame 2147261405 / Cards: 262×436, 24px radius, #e1e2e8 border */
 .property-card {
-    flex: 0 0 78%;
-    max-width: 78%;
+    flex: 0 0 262px;
+    width: 262px;
     scroll-snap-align: start;
-    background: #fff;
-    border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    background: #ffffff;
+    border: 1px solid #e1e2e8;
+    border-radius: 24px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease;
     pointer-events: auto !important;
     -webkit-tap-highlight-color: transparent;
 }
 
 .property-card:active {
     transform: scale(0.98);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Image */
+/* Image block: 262×160, radius only on top */
 .property-card__imgwrap {
     width: 100%;
+    height: 160px;
     position: relative;
     overflow: hidden;
     pointer-events: auto;
     z-index: 1;
+    flex-shrink: 0;
 }
 
-/* Skeleton loader for property card images */
 .property-card__skeleton {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
-    height: 200px;
+    height: 160px;
     background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.5s ease-in-out infinite;
-    border-radius: 18px 18px 0 0;
+    border-radius: 24px 24px 0 0;
     z-index: 0;
 }
 
@@ -3006,21 +3386,17 @@ html, body {
 }
 
 @keyframes skeleton-shimmer {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .property-card__img {
     width: 100%;
-    height: 200px;
+    height: 160px;
     display: block;
     object-fit: cover;
     background: transparent;
-    border-radius: 18px 18px 0 0;
+    border-radius: 24px 24px 0 0;
     pointer-events: auto;
     transition: opacity 0.3s ease;
 }
@@ -3038,73 +3414,71 @@ html, body {
     -ms-user-select: none;
 }
 
-/* CTA Section with View and Favorite */
-.property-card__cta-section {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    margin-top: 12px;
-}
-
-/* Favorite button next to CTA */
-.property-card-favorite {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    color: #666;
-    padding: 0;
-    flex-shrink: 0;
-}
-
-.property-card-favorite:hover,
-.property-card-favorite:active {
-    background: #f5f5f5;
-    border-color: rgba(0, 0, 0, 0.15);
-}
-
-.property-card-favorite.active {
-    color: #E80067;
-    border-color: rgba(232, 0, 103, 0.3);
-    background: rgba(232, 0, 103, 0.05);
-}
-
-.property-card-favorite.active:hover,
-.property-card-favorite.active:active {
-    background: rgba(232, 0, 103, 0.1);
-}
-
-.property-card-favorite svg {
-    width: 20px;
-    height: 20px;
-}
-
-.property-card-favorite svg path {
-    transition: all 0.2s ease;
-}
-
-/* Inner padding */
+/* Card body – 16px padding (Figma) */
 .property-card__body {
-    padding: 12px 14px 14px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     flex: 1;
+    gap: 0;
+    min-height: 0;
 }
 
-/* Text */
-.property-card__title {
-    font-size: 16px;
-    line-height: 1.25;
-    margin: 0 0 6px;
-    color: #111;
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
+/* Badges row – RERA + status (Figma: 20px height, 6px radius) */
+.property-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.property-card__badge {
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    font-family: 'Rubik', sans-serif;
+    font-size: 10px;
+    line-height: 12px;
+    white-space: nowrap;
+}
+
+.property-card__badge--rera {
+    background: #edfff8;
+    color: #0f8458;
+    font-weight: 500;
+    letter-spacing: 0.27px;
+}
+
+.property-card__badge--status {
+    background: #f2f3f8;
+    color: #656565;
+    font-weight: 400;
+    letter-spacing: 0.6px;
+}
+
+/* Title block – type + name (Figma: Rubik Medium 14px #222, line 16) */
+.property-card__title-block {
+    margin-bottom: 16px;
+}
+
+.property-card__title-line1 {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    color: #222222;
+    margin: 0 0 4px;
+}
+
+.property-card__title-line2 {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    color: #222222;
+    margin: 0;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -3112,115 +3486,176 @@ html, body {
     overflow: hidden;
 }
 
-.property-card__price {
-    font-weight: 600;
-    margin: 0 0 10px;
-    color: #111;
-    font-family: 'Inter', sans-serif;
-    font-size: 18px;
-}
-
-.property-card__meta {
-    opacity: 0.7;
-    font-size: 13px;
-    margin: 0 0 10px;
-    color: #666;
-    font-family: 'Inter', sans-serif;
-}
-
-/* Property type and status */
-.property-card__type-status {
-    font-size: 13px;
-    line-height: 1.4;
-    margin: 0 0 8px;
-    color: #666;
-    font-family: 'Inter', sans-serif;
-    font-weight: 400;
-}
-
-/* Built-up area */
-.property-card__area {
-    font-size: 13px;
-    line-height: 1.4;
-    margin: 0 0 8px;
-    color: #666;
-    font-family: 'Inter', sans-serif;
-}
-
-/* Location with pin icon */
-.property-card__location {
+/* Area row – Figma: 16×16 icon + 4px gap + text #767676 14px */
+.property-card__area-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    line-height: 1.4;
-    margin: 0 0 10px;
-    color: #666;
-    font-family: 'Inter', sans-serif;
+    gap: 4px;
+    margin-bottom: 12px;
 }
 
-.property-card__location svg {
+.property-card__area-row img {
     width: 16px;
     height: 16px;
     flex-shrink: 0;
-    color: #666;
 }
 
-/* Amenity chips */
-.property-card__chips {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+.property-card__area-row span {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    line-height: 16px;
+    color: #767676;
+}
+
+/* Divider (Figma: #e1e2e8) */
+.property-card__divider {
+    height: 1px;
+    background: #e1e2e8;
     margin: 0 0 12px;
-}
-
-.property-chip {
-    font-size: 12px;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #f3f3f3;
-    white-space: nowrap;
-    color: #666;
-    font-family: 'Inter', sans-serif;
     flex-shrink: 0;
 }
 
-/* CTA Section with View and Favorite */
-.property-card__cta-section {
+/* Location row – Figma: 16×16 icon + 4px gap + text */
+.property-card__location-row {
     display: flex;
-    gap: 10px;
     align-items: center;
-    margin-top: 12px;
+    gap: 4px;
+    margin-bottom: 16px;
 }
 
-/* View CTA Button */
-.property-card__view-btn {
-    flex: 1;
-    height: 44px;
-    border-radius: 12px;
-    border: 0;
-    background: #111;
-    color: #fff;
+.property-card__location-row img {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.property-card__location-row span {
+    font-family: 'Rubik', sans-serif;
     font-size: 14px;
-    font-family: 'Inter', sans-serif;
-    font-weight: 600;
+    line-height: 16px;
+    color: #767676;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Price (Figma: Rubik Medium 18px #222, line 20) */
+.property-card__price {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 20px;
+    color: #222222;
+    margin: 0 0 16px;
+}
+
+/* CTA row – Figma: 16px from card edge, two buttons 111×48, 8px gap, 8px radius */
+.property-card__cta-section {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    margin-top: 0;
+    width: 100%;
+}
+
+.property-card__view-btn {
+    width: 111px;
+    min-width: 111px;
+    height: 48px;
+    flex: 0 0 111px;
+    border-radius: 8px;
+    border: 1px solid #5e23dc;
+    background: transparent;
+    color: #5e23dc;
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    letter-spacing: 0;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.2s ease, color 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .property-card__view-btn:hover,
 .property-card__view-btn:active {
-    background: #333;
-    transform: translateY(-1px);
+    background: rgba(94, 35, 220, 0.06);
 }
 
-.property-card__view-btn:active {
-    transform: translateY(0);
+.property-card__view-btn--primary {
+    background: #5e23dc;
+    color: #ffffff;
+    border: none;
+}
+
+.property-card__view-btn--primary:hover,
+.property-card__view-btn--primary:active {
+    background: #4a1bb5;
+}
+
+/* Shortlist (favorite) on image – 32×32 circle, top-right 8px (Figma) */
+.property-card-favorite {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+    border-radius: 100px;
+    border: 1px solid #e1e2e8;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    z-index: 2;
+}
+
+.property-card-favorite:hover,
+.property-card-favorite:active {
+    background: #f5f5f5;
+}
+
+/* Active = filled heart icon only; circle stroke stays #e1e2e8 like unfilled */
+.property-card-favorite.active {
+    color: #E80067;
+    border-color: #e1e2e8;
+    background: #ffffff;
+}
+
+.property-card-favorite img {
+    width: 32px;
+    height: 32px;
+    display: block;
+    pointer-events: none;
+}
+
+.property-card-favorite svg {
+    width: 16px;
+    height: 16px;
+}
+
+.property-card-favorite svg path {
+    transition: all 0.2s ease;
+}
+
+/* Legacy placeholders (unused in new layout) */
+.property-card__title,
+.property-card__meta,
+.property-card__type-status,
+.property-card__area,
+.property-card__location,
+.property-card__chips,
+.property-chip {
+    display: none;
 }
 
 /* Actions - CTA row with full-width button + separate save button */
@@ -3348,18 +3783,18 @@ html, body {
     display: none !important; /* Completely hide intro when chat starts */
 }
 
-/* Step 3: Composer - Sticky at bottom, positioned above keyboard using --kb-offset */
+/* Step 3: Composer - Figma Component 18 (Input field Default / Fill), responsive width */
 .chat-input-bar {
     padding: 12px 16px;
-    padding-bottom: calc(12px + env(safe-area-inset-bottom));
-    position: sticky; /* Sticky at bottom */
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    position: sticky;
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 50; /* Higher z-index for proper layering */
+    z-index: 50;
     background: transparent;
     pointer-events: none;
-    flex-shrink: 0; /* Don't shrink */
+    flex-shrink: 0;
 }
 
 .chat-input-wrapper {
@@ -3367,100 +3802,95 @@ html, body {
     align-items: center;
     position: relative;
     width: 100%;
+    max-width: min(328px, calc(100vw - 32px));
+    margin: 0 auto;
     pointer-events: all;
+    background: #ffffff;
+    border: 1px solid #e1e2e8;
+    border-radius: 12px;
+    min-height: 48px;
+    box-sizing: border-box;
 }
 
 .chat-input {
     width: 100%;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    border-radius: 28px;
-    padding: 16px 100px 16px 16px;
-    font-family: 'Inter', sans-serif;
-    font-size: 16px;
-    line-height: 20px;
-    color: var(--text-dark);
-    background-color: rgba(255, 255, 255, 0.7);
+    border: none;
+    border-radius: 12px;
+    padding: 12px 48px 12px 16px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    line-height: 16px;
+    color: #222222;
+    background: transparent;
     -webkit-appearance: none;
     appearance: none;
-    caret-color: #000000;
+    caret-color: #5e23dc;
     -webkit-tap-highlight-color: transparent;
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    min-height: 56px;
+    min-height: 48px;
     box-sizing: border-box;
 }
 
 .chat-input:focus {
     outline: none;
-    border-color: #000000;
-    background-color: rgba(255, 255, 255, 0.85);
 }
 
 .chat-input::placeholder {
-    color: var(--text-placeholder);
+    color: #767676;
 }
 
-.chat-voice-btn {
-    position: absolute;
-    right: 52px;
-    background: none;
-    border: none;
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
+.chat-disclaimer {
+    font-family: 'Rubik', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 12px;
+    letter-spacing: 0.6px;
+    color: #767676;
+    text-align: center;
+    margin: 8px 0 0;
     padding: 0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-dark);
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    flex-shrink: 0;
+    pointer-events: none;
 }
 
-.chat-voice-btn svg {
-    width: 20px;
-    height: 20px;
-    stroke: var(--text-dark);
-}
-
-.chat-voice-btn:active {
-    opacity: 0.7;
+/* Hide disclaimer as soon as the first message is sent */
+.chat-screen.chat-started .chat-disclaimer {
+    display: none !important;
 }
 
 .chat-send-btn {
     position: absolute;
-    right: 6px;
-    background-color: #000000;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
     border: none;
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
     padding: 0;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #FFFFFF;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     flex-shrink: 0;
 }
 
-.chat-send-btn svg {
-    width: 20px;
-    height: 20px;
-    stroke: #FFFFFF;
-    fill: #FFFFFF;
+.chat-send-btn:disabled {
+    cursor: default;
+    pointer-events: none;
 }
 
-.chat-send-btn:active {
-    opacity: 0.8;
-    transform: scale(0.95);
+.chat-send-btn .chat-send-btn-icon {
+    width: 24px;
+    height: 24px;
+    display: block;
+    pointer-events: none;
+}
+
+.chat-send-btn:not(:disabled):active {
+    opacity: 0.85;
 }
 
 /* Property Gallery Fullscreen */
@@ -3950,6 +4380,70 @@ html, body {
 }
 
 /* PDP Bottom Sheet */
+/* Full-page PDP (replaces bottom sheet) */
+.pdp-fullpage-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #ffffff;
+    z-index: 100000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.pdp-fullpage-overlay .pdp-bottom-sheet-back {
+    position: absolute;
+    top: calc(16px + env(safe-area-inset-top));
+    left: 16px;
+    z-index: 10;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+.pdp-fullpage-overlay .pdp-bottom-sheet-back .pdp-back-icon {
+    width: 40px;
+    height: 40px;
+    display: block;
+    pointer-events: none;
+}
+.pdp-fullpage-overlay .pdp-bottom-sheet-back:hover,
+.pdp-fullpage-overlay .pdp-bottom-sheet-back:active {
+    background: #f5f5f5 !important;
+    transform: scale(1.05);
+}
+.pdp-fullpage-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 24px;
+}
+.pdp-fullpage-scroll .pdp-hero-image {
+    height: 280px;
+    border-radius: 0;
+}
+.pdp-fullpage-scroll .pdp-content-wrapper {
+    padding: 20px 16px;
+}
+.pdp-fullpage-overlay .pdp-bottom-sheet-cta {
+    flex-shrink: 0;
+    padding: 16px;
+    background: #ffffff;
+    border-top: 1px solid #f0f0f0;
+}
+
 .pdp-bottom-sheet-overlay {
     position: fixed;
     top: 0;
@@ -4030,14 +4524,15 @@ html, body {
     transition: opacity 0.3s ease;
 }
 
-/* Back button overlays hero image */
+/* Back button overlays hero image – solid white when using local back.svg */
 .pdp-bottom-sheet-back {
     position: absolute;
     top: 16px;
     left: 16px;
     width: 40px;
     height: 40px;
-    background: rgba(0, 0, 0, 0.5);
+    background: #ffffff !important;
+    background-color: #ffffff !important;
     border: none;
     border-radius: 50%;
     display: flex;
@@ -4045,22 +4540,28 @@ html, body {
     justify-content: center;
     cursor: pointer;
     z-index: 100;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     transition: all 0.2s ease;
     padding: 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
 .pdp-bottom-sheet-back:hover,
 .pdp-bottom-sheet-back:active {
-    background: rgba(0, 0, 0, 0.7);
+    background: #f5f5f5 !important;
     transform: scale(1.05);
 }
 
 .pdp-bottom-sheet-back svg {
     width: 20px;
     height: 20px;
-    color: #ffffff;
+    color: #323232;
+}
+
+.pdp-bottom-sheet-back .pdp-back-icon {
+    width: 40px;
+    height: 40px;
+    display: block;
+    pointer-events: none;
 }
 
 /* Back button becomes fixed when fully expanded */
@@ -4308,7 +4809,7 @@ html, body {
     }
 }
 
-/* Login Bottom Sheet */
+/* Login Bottom Sheet – overlay + content, smooth slide-up open */
 .login-bottom-sheet {
     position: fixed;
     top: 0;
@@ -4318,7 +4819,7 @@ html, body {
     z-index: 1000001;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.25s ease-out;
 }
 
 .login-bottom-sheet.active {
@@ -4334,7 +4835,7 @@ html, body {
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.5);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease-out;
 }
 
 .login-bottom-sheet.active .login-bottom-sheet-overlay {
@@ -4346,19 +4847,21 @@ html, body {
     bottom: 0;
     left: 0;
     right: 0;
+    width: 100%;
     background: #ffffff;
     border-radius: 24px 24px 0 0;
     padding: 16px;
     padding-bottom: calc(16px + env(safe-area-inset-bottom, 20px));
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    box-shadow: 0px 2px 12px 0px rgba(0, 0, 0, 0.08);
+    gap: 0;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
     transform: translateY(100%);
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
     max-height: 90vh;
     overflow-y: auto;
     align-items: center;
+    box-sizing: border-box;
 }
 
 .login-bottom-sheet.active .login-bottom-sheet-content {
@@ -4369,16 +4872,16 @@ html, body {
     position: absolute;
     top: 16px;
     right: 16px;
-    width: 32px;
-    height: 32px;
-    border-radius: 33554400px;
-    border: 1px solid #e1e2e8;
-    background: #ffffff;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    padding: 1px;
+    padding: 0;
     z-index: 10;
     -webkit-tap-highlight-color: transparent;
 }
@@ -4388,20 +4891,23 @@ html, body {
 }
 
 /* Header Section */
+/* Figma Frame 2087324795 – pixel-perfect login */
 .login-frame3 {
     width: 100%;
+    max-width: 328px;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 0;
     align-items: center;
 }
 
 .login-frame5 {
     width: 100%;
+    max-width: 328px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
+    gap: 0;
 }
 
 .login-frame2 {
@@ -4410,54 +4916,72 @@ html, body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: -34px;
+    margin-bottom: -30px;
 }
 
 .login-bg-image {
     width: 100%;
-    height: 100px;
+    height: 113px;
+    min-height: 113px;
     border-radius: 16px;
-    opacity: 0.6;
-    filter: grayscale(100%);
-    object-fit: cover;
+    object-fit: contain;
+    object-position: center;
     display: block;
+    opacity: 0.45;
 }
 
-.login-container-image {
+.login-logo-container {
     position: absolute;
-    bottom: -27px;
+    bottom: -30px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 2;
-    width: 54px;
-    height: 54px;
-    display: block;
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    border: 1px solid #e1e2e8;
+    background: #ffffff;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.login-logo-inner {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
     object-fit: contain;
+    display: block;
 }
 
 .login-heading {
     font-family: 'Rubik', sans-serif;
-    font-size: 22px;
+    font-size: 16px;
     font-weight: 500;
-    line-height: 26px;
-    color: #222;
+    line-height: 20px;
+    color: #222222;
     text-align: center;
     margin: 0;
-    margin-top: 48px;
+    margin-top: 12px;
 }
 
-/* Phone Input Field */
+/* Phone Input Field – Figma 328×48, radius 12, border #e1e2e8 */
 .login-container2 {
     width: 100%;
-    height: 56px;
+    max-width: 328px;
+    height: 48px;
     border-radius: 12px;
     border: 1px solid #e1e2e8;
-    padding: 1px;
+    padding: 0;
     display: flex;
     align-items: center;
     position: relative;
     background: #ffffff;
     transition: border-color 0.2s ease;
+    box-sizing: border-box;
+    margin-top: 16px;
 }
 
 .login-container2.login-input-focused {
@@ -4471,13 +4995,15 @@ html, body {
 .login-country-selector {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding-left: 16px;
-    padding-right: 13px;
-    height: 22.5px;
+    align-self: center;
+    padding-left: 17px;
+    padding-right: 12px;
+    height: auto;
+    min-height: 24px;
     border-right: 1px solid #e1e2e8;
     cursor: pointer;
     transition: opacity 0.2s ease;
+    flex-shrink: 0;
 }
 
 .login-country-selector:hover {
@@ -4488,25 +5014,21 @@ html, body {
     opacity: 0.5;
 }
 
-.login-flag {
-    font-size: 20px;
-    line-height: 1;
-}
-
 .login-country-code {
     font-family: 'Rubik', sans-serif;
     font-size: 14px;
     font-weight: 400;
-    color: #222;
-    line-height: 1;
+    color: #222222;
+    line-height: 16px;
 }
 
 .login-phone-input-area {
     flex: 1;
     display: flex;
     align-items: center;
-    padding-left: 12px;
+    padding-left: 13px;
     padding-right: 16px;
+    min-width: 0;
     height: 100%;
 }
 
@@ -4594,13 +5116,15 @@ html, body {
     animation: login-shake 0.5s ease-in-out;
 }
 
-/* Buttons Section */
+/* Buttons Section – Figma: Continue 328×48, gap 24, OR, gap 16, WhatsApp 328×48 */
 .login-frame7 {
     width: 100%;
+    max-width: 328px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 0;
     align-items: center;
+    margin-top: 24px;
 }
 
 .login-continue-btn {
@@ -4633,12 +5157,13 @@ html, body {
     align-items: center;
     gap: 8px;
     height: 21px;
+    margin-top: 16px;
 }
 
 .login-or-line {
     flex: 1;
     height: 1px;
-    background: #e1e2e8;
+    background: #f2f3f8;
 }
 
 .login-or-text {
@@ -4655,7 +5180,7 @@ html, body {
     width: 100%;
     height: 48px;
     border: 1px solid #5e23dc;
-    border-radius: 12px;
+    border-radius: 8px;
     background: transparent;
     color: #5e23dc;
     font-family: 'Rubik', sans-serif;
@@ -4667,6 +5192,7 @@ html, body {
     justify-content: center;
     gap: 8px;
     cursor: pointer;
+    margin-top: 16px;
     transition: background 0.2s ease, color 0.2s ease;
     -webkit-tap-highlight-color: transparent;
 }
@@ -4681,11 +5207,13 @@ html, body {
 
 .login-whatsapp-btn svg {
     flex-shrink: 0;
+    fill: #1B5E20;
 }
 
 /* OTP Step Styles */
 .login-step {
     width: 100%;
+    max-width: 328px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -4890,6 +5418,110 @@ html, body {
     .login-otp-container {
         gap: 10px;
     }
+}
+
+/* Toast – slide up in, stay 3s, then fade out in place (no slide out) */
+.login-closed-toast {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%) translateY(100%);
+    opacity: 1;
+    width: 328px;
+    max-width: calc(100vw - 32px);
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    background: #000000;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    overflow: hidden;
+    z-index: 1000000;
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease-out;
+    pointer-events: auto;
+    box-sizing: border-box;
+}
+.login-closed-toast.login-closed-toast-visible {
+    transform: translateX(-50%) translateY(0);
+}
+.login-closed-toast.login-closed-toast-out {
+    opacity: 0;
+}
+.login-closed-toast .login-toast-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 18px;
+    min-width: 0;
+    flex: 1;
+    height: 44px;
+    overflow: hidden;
+}
+.login-closed-toast .login-toast-icon {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.login-closed-toast .login-toast-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+.login-closed-toast .login-toast-text {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 16px;
+    color: #ffffff;
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.login-closed-toast .login-toast-right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    height: 44px;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+.login-closed-toast .login-toast-divider {
+    width: 1px;
+    align-self: stretch;
+    min-height: 44px;
+    background: #434343;
+}
+.login-closed-toast .login-toast-close {
+    width: 36px;
+    min-width: 36px;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0 6px;
+    margin: 0 -6px;
+    -webkit-tap-highlight-color: transparent;
+}
+.login-closed-toast .login-toast-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+.login-closed-toast .login-toast-close:active {
+    background: rgba(255, 255, 255, 0.12);
 }
 
 /* Brochure Component */

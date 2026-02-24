@@ -20,7 +20,7 @@
     <!-- Preload critical homepage icons for faster loading -->
     <link rel="preload" href="buy-icon.png" as="image">
 </head>
-<body class="wireframe-mode">
+<body>
     <div class="desktop-blocker">
         <div class="desktop-message">
             <p>This experience is optimized for mobile devices only.</p>
@@ -295,58 +295,62 @@
     </div>
 
     <!-- Chat Screen -->
-    <div class="chat-screen" id="chat-screen">
-        <!-- Floating Top Bar -->
-        <div class="chat-top-bar">
-            <button class="chat-back-btn" id="chat-back-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-            </button>
-            <button class="chat-title-btn">
-                <div class="chat-title-icon-wrapper">
-                    <img src="chat-bot.png" alt="Houzy" class="chat-title-icon">
-                </div>
-                <span class="chat-title">Houzy</span>
-            </button>
-        </div>
+    <div class="chat-screen active" id="chat-screen">
+        <!-- Header: Figma 881:11443 - gradient + content row -->
+        <header class="chat-header chat-top-bar">
+            <div class="chat-header-bg" aria-hidden="true"></div>
+            <div class="chat-header-row">
+                <button type="button" class="chat-back-btn" id="chat-back-btn" aria-label="Back" disabled tabindex="-1">
+                    <img src="back.svg" alt="" class="chat-header-icon" width="24" height="24">
+                </button>
+                <button type="button" class="chat-title-btn" aria-label="Houzy">
+                    <span class="chat-title-pill">
+                        <img src="assets/header/houzy-logo.png" alt="" class="chat-title-icon" width="24" height="24" loading="eager" onerror="this.src='chat-bot.png'">
+                        <span class="chat-title">Houzy</span>
+                        <span class="chat-title-badge"><span class="chat-title-badge-text">BETA</span></span>
+                    </span>
+                </button>
+                <button type="button" class="chat-header-menu-btn" aria-label="Info">
+                    <img src="assets/header/info-icon.svg" alt="" class="chat-header-icon chat-header-info-icon" width="24" height="24">
+                </button>
+            </div>
+        </header>
 
         <!-- Chat Messages Area -->
         <div class="chat-messages" id="chat-messages">
-            <!-- Hero Intro Block (greeting + pills) -->
-            <div id="chat-intro" class="chat-intro">
-                <div class="stacked-images-container">
-                    <div class="stacked-image-card card-1">
-                        <img src="Stack placeholder.png" alt="Stack Placeholder" class="stacked-image">
-                    </div>
-                    <div class="stacked-image-card card-2">
-                        <img src="Stack placeholder.png" alt="Stack Placeholder" class="stacked-image">
-                    </div>
-                    <div class="stacked-image-card card-3">
-                        <img src="Stack placeholder.png" alt="Stack Placeholder" class="stacked-image">
-                    </div>
-                </div>
-                <h1 class="chat-hero-title">Hello, how can I help you today?</h1>
-                
-                <!-- Starter Conversation Pills - Infinite Scroll Rail (Two Rows) -->
-                <div class="chips-marquee" id="chipsMarquee">
+            <!-- Hero Intro Block (Figma 492:1508) - heading + pills, centre-aligned, infinite slow marquee both rows -->
+            <div id="chat-intro" class="chat-intro initial-load">
+                <h1 class="chat-hero-title">Hey, how can I<br>help you today?</h1>
+                <div class="chips-marquee" id="chipsRail">
                     <div class="chips-track" id="chipsTrack">
                         <div class="chips-set">
                             <div class="chat-starter-pills-row">
-                                <button class="chat-pill pill-1">3BHK Vasant Kunj</button>
-                                <button class="chat-pill pill-2">Penthouse near nature</button>
-                                <button class="chat-pill pill-3">2BHK metro station</button>
-                                <button class="chat-pill pill-4">4BHK villa with pool</button>
-                                <button class="chat-pill pill-5">1BHK furnished</button>
-                                <button class="chat-pill pill-6">Studio Connaught</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/furnished.svg" width="16" height="16" alt="" aria-hidden="true"></span>2 BHK fully furnished properties for rent</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/location.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show properties near me</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>3 BHK properties between ₹2 - 2.5 Cr</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/trending.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show trending localities in my area</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/furnished.svg" width="16" height="16" alt="" aria-hidden="true"></span>2 BHK fully furnished properties for rent</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/location.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show properties near me</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>3 BHK properties between ₹2 - 2.5 Cr</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/trending.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show trending localities in my area</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/furnished.svg" width="16" height="16" alt="" aria-hidden="true"></span>2 BHK fully furnished properties for rent</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/location.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show properties near me</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>3 BHK properties between ₹2 - 2.5 Cr</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/trending.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show trending localities in my area</button>
                             </div>
                             <div class="chat-starter-pills-row">
-                                <button class="chat-pill pill-7">3BHK sea view</button>
-                                <button class="chat-pill pill-8">2BHK gated community</button>
-                                <button class="chat-pill pill-9">Luxury apt</button>
-                                <button class="chat-pill pill-10">Penthouse terrace</button>
-                                <button class="chat-pill pill-11">2BHK near park</button>
-                                <button class="chat-pill pill-12">3BHK prime location</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/compare.svg" width="16" height="16" alt="" aria-hidden="true"></span>Compare localities</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/review.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality reviews</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/variant9.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show me under construction projects</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/price.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality price trends</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/compare.svg" width="16" height="16" alt="" aria-hidden="true"></span>Compare localities</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/review.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality reviews</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/variant9.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show me under construction projects</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/price.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality price trends</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/compare.svg" width="16" height="16" alt="" aria-hidden="true"></span>Compare localities</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/review.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality reviews</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/variant9.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show me under construction projects</button>
+                                <button type="button" class="chat-pill"><span class="chat-pill-icon"><img src="assets/pills/price.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality price trends</button>
                             </div>
                         </div>
                     </div>
@@ -354,26 +358,34 @@
             </div>
         </div>
 
-        <!-- Floating Chat Input Bar -->
+        <!-- Floating Chat Input Bar (Figma Component 18: Input field Default / Fill) -->
         <div class="chat-input-bar">
             <div class="chat-input-wrapper">
                 <input type="text" class="chat-input" id="chat-input" placeholder="Ask Houzy" autocomplete="off" autocapitalize="sentences">
-                <button class="chat-voice-btn" id="chat-voice-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                        <line x1="12" y1="19" x2="12" y2="23"></line>
-                        <line x1="8" y1="23" x2="16" y2="23"></line>
-                    </svg>
+                <button type="button" class="chat-send-btn" id="chat-send-btn" aria-label="Send" disabled>
+                    <img src="assets/input/send-disabled.svg" alt="" class="chat-send-btn-icon" width="24" height="24" id="chat-send-btn-icon">
                 </button>
-                <button class="chat-send-btn" id="chat-send-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="20" height="20">
-                        <rect width="256" height="256" fill="none"/>
-                        <path d="M223.69,42.18a8,8,0,0,0-9.87-9.87l-192,58.22a8,8,0,0,0-1.25,14.93L108,148l42.54,87.42a8,8,0,0,0,14.93-1.25Z" opacity="0.2" fill="currentColor"/>
-                        <line x1="108" y1="148" x2="160" y2="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-                        <path d="M223.69,42.18a8,8,0,0,0-9.87-9.87l-192,58.22a8,8,0,0,0-1.25,14.93L108,148l42.54,87.42a8,8,0,0,0,14.93-1.25Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
-                    </svg>
-                </button>
+            </div>
+            <p class="chat-disclaimer">Houzy is an AI assistant and may occasionally make mistakes</p>
+        </div>
+    </div>
+
+    <!-- Info bottom sheet (Figma: About the responses) – opens when header info icon is clicked -->
+    <div class="info-bottom-sheet" id="info-bottom-sheet" aria-hidden="true">
+        <div class="info-bottom-sheet-overlay"></div>
+        <div class="info-bottom-sheet-content">
+            <button type="button" class="info-bottom-sheet-close" id="info-bottom-sheet-close" aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="info-bottom-sheet-handle"></div>
+            <div class="info-bottom-sheet-body">
+                <h2 class="info-bottom-sheet-title">About the responses</h2>
+                <p class="info-bottom-sheet-text">This response is powered by AI and may occasionally contain inaccuracies. Please verify important details before making any property decisions.</p>
+                <div class="info-bottom-sheet-divider"></div>
+                <button type="button" class="info-bottom-sheet-cta" id="info-bottom-sheet-cta">Understood</button>
             </div>
         </div>
     </div>
