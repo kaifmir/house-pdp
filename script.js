@@ -1036,9 +1036,38 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Fill 2nd row so it matches 1st row width (no empty gap). Cause: row 2 has shorter
+        // total content width; .chips-set is as wide as row 1, so row 2 leaves a hole on the right.
+        function fillSecondRowToMatchFirst(chipsSet) {
+            const row1 = chipsSet.querySelector('.chat-starter-pills-row:nth-child(1)');
+            const row2 = chipsSet.querySelector('.chat-starter-pills-row:nth-child(2)');
+            if (!row1 || !row2) return;
+            const row1Width = row1.getBoundingClientRect().width;
+            const targetWidth = row1Width + 60; // small buffer so no visible gap from rounding
+            const pills = Array.from(row2.children);
+            if (pills.length === 0) return;
+            let i = 0;
+            while (row2.getBoundingClientRect().width < targetWidth) {
+                const clone = pills[i % pills.length].cloneNode(true);
+                row2.appendChild(clone);
+                i++;
+            }
+        }
+
         // Duplicate content for seamless loop (2x)
         const originalHTML = track.innerHTML;
         track.innerHTML = originalHTML + originalHTML;
+
+        // After layout, fill 2nd row in each set so there is no visible gap (left-aligned pack)
+        function runFillSecondRows() {
+            track.querySelectorAll('.chips-set').forEach(fillSecondRowToMatchFirst);
+        }
+        requestAnimationFrame(runFillSecondRows);
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(() => {
+                requestAnimationFrame(runFillSecondRows);
+            });
+        }
 
         // State
         let isDragging = false;
@@ -6290,21 +6319,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Pill click handlers
-        const pills = document.querySelectorAll('.chat-pill');
-        pills.forEach(pill => {
-            pill.addEventListener('click', () => {
-                const text = pill.textContent.trim();
-                
-                // Hide intro on first message
-                if (messages.length === 0 && chatScreen) {
-                    chatScreen.classList.add('chat-started');
-                    if (typeof setChatOffsets === 'function') setChatOffsets();
-                }
-                
-                // Handle the message directly
-                handleUserMessage(text);
-            });
+        // Pill click: delegation so cloned pills (used to fill 2nd row gap) also work
+        document.body.addEventListener('click', function pillClickDelegated(e) {
+            const pill = e.target && e.target.closest('.chat-pill');
+            if (!pill) return;
+            const text = pill.textContent.trim();
+            if (!text) return;
+
+            // Hide intro on first message
+            if (messages.length === 0 && chatScreen) {
+                chatScreen.classList.add('chat-started');
+                if (typeof setChatOffsets === 'function') setChatOffsets();
+            }
+
+            handleUserMessage(text);
         });
         
         // ============================================================================
