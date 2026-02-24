@@ -224,16 +224,9 @@ body:has(.chat-screen.active) {
 }
 
 @media (min-width: 768px) {
+    /* Hide the "open on mobile" message so the app is visible on desktop too (shareable link works for everyone) */
     .desktop-blocker {
-        display: flex !important;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        background-color: var(--bg-light);
-        padding: 20px;
-        z-index: 99999;
-        position: fixed;
-        inset: 0;
+        display: none !important;
     }
 
     .desktop-message {
@@ -247,16 +240,26 @@ body:has(.chat-screen.active) {
         margin: 8px 0;
     }
 
+    /* Keep app visible on desktop: show mobile-style UI centered */
     .mobile-container {
-        display: none !important;
+        display: block !important;
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.06);
+        min-height: 100vh;
     }
 
     .chat-screen {
-        display: none !important;
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .bottom-nav {
-        display: none !important;
+        max-width: 420px;
+        margin-left: auto;
+        margin-right: auto;
     }
 }
 
@@ -1512,8 +1515,6 @@ button, .property-type-card {
 
 .info-bottom-sheet-cta {
     width: 100%;
-    max-width: 328px;
-    margin: 0 auto;
     display: block;
     height: 48px;
     padding: 0 16px;
@@ -1528,6 +1529,7 @@ button, .property-type-card {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     transition: opacity 0.2s ease;
+    box-sizing: border-box;
 }
 
 .info-bottom-sheet-cta:active {
@@ -2146,7 +2148,7 @@ html, body {
 
 
 /* Chat layout: ChatGPT-style - messages start under header, scroll behind it */
-/* Messages Area - at least 40px from left edge, then content; pan-y so vertical scroll works everywhere including over property cards */
+/* Messages Area - scrollable; vertical scroll works everywhere including over property cards (no blocking) */
 .chat-messages {
     flex: 1 1 auto;
     min-height: 0;
@@ -2154,7 +2156,7 @@ html, body {
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: none;
-    overscroll-behavior-y: contain;
+    overscroll-behavior-y: auto;
     -ms-overflow-style: none;
     overscroll-behavior: contain;
     touch-action: pan-y;
@@ -3128,7 +3130,7 @@ html, body {
     border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-/* Property carousel - clean horizontal layout; pan-x so vertical scroll goes to parent .chat-messages */
+/* Property carousel - horizontal scroll; pan-x pan-y so vertical scroll still works on parent .chat-messages (no blocking) */
 .property-carousel {
     display: flex;
     align-items: center; /* Vertically center all items (cards + reveal zone) */
@@ -3140,7 +3142,7 @@ html, body {
     overscroll-behavior-y: none;
     -ms-overflow-style: none;
     pointer-events: auto !important;
-    touch-action: pan-x;
+    touch-action: pan-x pan-y;
     scroll-snap-type: x mandatory;
     padding: 8px 0 12px; /* Vertical padding only */
     padding-left: 16px; /* Left padding to align with heading */
