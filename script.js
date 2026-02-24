@@ -1766,6 +1766,15 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
+        const TYPING_STATUS_TEXTS = [
+            'Thinking...',
+            'Finding the answers...',
+            'Searching properties...',
+            'Looking that up...',
+            'One sec...',
+            'Checking...'
+        ];
+
         function showTypingIndicator() {
             // Remove any existing typing indicator
             const existing = document.getElementById('typing-indicator');
@@ -1790,6 +1799,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const span = document.createElement('span');
             loader.appendChild(span);
             typingIndicator.appendChild(loader);
+            
+            const statusText = document.createElement('span');
+            statusText.className = 'typing-indicator-shimmer-text';
+            statusText.textContent = TYPING_STATUS_TEXTS[0];
+            typingIndicator.appendChild(statusText);
+            
+            let index = 0;
+            const textInterval = setInterval(function() {
+                index = (index + 1) % TYPING_STATUS_TEXTS.length;
+                statusText.textContent = TYPING_STATUS_TEXTS[index];
+            }, 1500);
+            msgDiv._typingTextInterval = textInterval;
+            
             botContent.appendChild(typingIndicator);
             msgDiv.appendChild(botContent);
             
@@ -1804,7 +1826,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Hide typing indicator
         function hideTypingIndicator() {
             const typingIndicator = document.getElementById('typing-indicator');
-            if (typingIndicator) typingIndicator.remove();
+            if (typingIndicator) {
+                if (typingIndicator._typingTextInterval) clearInterval(typingIndicator._typingTextInterval);
+                typingIndicator.remove();
+            }
         }
         
         // Utility: Remove element by ID (with null check)
@@ -2457,6 +2482,34 @@ document.addEventListener('DOMContentLoaded', function() {
             'Ansal API'
         ];
 
+        // Indian project names and price ranges for brochure card (Figma: Property 1=Brochure)
+        const BROCHURE_PROJECT_NAMES = [
+            'Godrej Nature Plus',
+            'DLF Gardencity',
+            'Prestige Sunrise Park',
+            'Sobha Forest View',
+            'Brigade Metropolis',
+            'Mahindra Eden',
+            'Lodha Codename Crown',
+            'Tata Primanti',
+            'M3M Capital',
+            'Emaar Palm Heights',
+            'Signature The Millennia'
+        ];
+        const BROCHURE_PRICE_RANGES = [
+            '₹3.2 - ₹3.2 Cr',
+            '₹1.8 - ₹2.5 Cr',
+            '₹2.1 - ₹3.0 Cr',
+            '₹1.5 - ₹2.2 Cr',
+            '₹2.4 - ₹3.5 Cr',
+            '₹1.9 - ₹2.8 Cr',
+            '₹4.0 - ₹5.5 Cr',
+            '₹1.2 - ₹1.9 Cr',
+            '₹2.8 - ₹4.2 Cr',
+            '₹3.5 - ₹4.8 Cr',
+            '₹1.6 - ₹2.4 Cr'
+        ];
+
         const PROPERTY_PRAISE_TEXTS = [
             "Luxury living redefined with world-class amenities and premium finishes throughout.",
             "Experience the epitome of modern architecture with spacious layouts and elegant design.",
@@ -3079,7 +3132,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="login-bottom-sheet-overlay"></div>
                 <div class="login-bottom-sheet-content">
                     <button class="login-close-btn" id="login-close-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#656565" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#767676" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18"></line>
                             <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
@@ -4479,6 +4532,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 favoriteBtn.onclick = function(e) {
                     e.preventDefault();
                     e.stopPropagation();
+                    triggerHapticFeedback('subtle');
                     favoriteBtn.classList.toggle('active');
                     shortlistImg.src = favoriteBtn.classList.contains('active') ? SHORTLIST_FILLED : SHORTLIST_UNFILLED;
                     return false;
@@ -4796,7 +4850,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const backBtn = document.createElement('button');
             backBtn.className = 'pdp-bottom-sheet-back';
             backBtn.setAttribute('aria-label', 'Back');
-            backBtn.innerHTML = '<img src="back.svg" alt="" class="pdp-back-icon" width="40" height="40">';
+            backBtn.innerHTML = '<img src="back.svg" alt="" class="pdp-back-icon" width="20" height="20">';
             backBtn.onclick = closePDPFullPage;
             
             const scrollContent = document.createElement('div');
@@ -5132,76 +5186,64 @@ document.addEventListener('DOMContentLoaded', function() {
                 botText.className = 'bot-text';
                 botText.textContent = message.text;
                 
-                // Create brochure component
-                // Use a random property image as brochure cover
+                // Create brochure component – layout matches Figma "Property 1=Brochure"
                 const randomCoverImage = getRandomItem(PROPERTY_IMAGE_POOL);
+                const projectName = getRandomItem(BROCHURE_PROJECT_NAMES);
+                const priceRange = getRandomItem(BROCHURE_PRICE_RANGES);
+                const developerName = getRandomItem(INDIAN_DEVELOPER_NAMES);
                 
-                // Create brochure card component
                 const brochureComponent = document.createElement('div');
                 brochureComponent.className = 'brochure-card';
                 
-                // Image wrapper (full-width filled image)
+                // Image wrapper (249×160 in Figma)
                 const brochureImageWrapper = document.createElement('div');
                 brochureImageWrapper.className = 'brochure-card__image-wrapper';
                 const coverImg = document.createElement('img');
                 coverImg.src = randomCoverImage;
-                coverImg.alt = 'Project Brochure';
+                coverImg.alt = projectName;
                 coverImg.className = 'brochure-card__image';
                 coverImg.loading = 'eager';
                 coverImg.decoding = 'async';
                 coverImg.onerror = function() {
-                    // Fallback to local image if primary fails
                     if (!this.dataset.failed) {
                         this.dataset.failed = '1';
                         this.src = PROPERTY_IMAGE_POOL[0];
-            } else {
-                        // If fallback also fails, show placeholder background
+                    } else {
                         this.style.display = 'none';
                         this.parentElement.style.backgroundColor = '#f2f2f2';
                     }
                 };
                 brochureImageWrapper.appendChild(coverImg);
                 
-                // Card body
+                // Card body: title, divider, price, CTA (Figma)
                 const brochureBody = document.createElement('div');
                 brochureBody.className = 'brochure-card__body';
                 
-                // Get random developer name
-                const developerName = getRandomItem(INDIAN_DEVELOPER_NAMES);
-                
-                // Title
                 const brochureTitle = document.createElement('div');
                 brochureTitle.className = 'brochure-card__title';
-                brochureTitle.textContent = 'Project Brochure';
+                brochureTitle.textContent = projectName;
                 
-                // Developer name
-                const brochureDeveloper = document.createElement('div');
-                brochureDeveloper.className = 'brochure-card__developer';
-                brochureDeveloper.textContent = developerName;
+                const brochureDivider = document.createElement('div');
+                brochureDivider.className = 'brochure-card__divider';
                 
-                // Subtitle
-                const brochureSubtitle = document.createElement('div');
-                brochureSubtitle.className = 'brochure-card__subtitle';
-                brochureSubtitle.textContent = 'View detailed project information and specifications';
+                const brochurePrice = document.createElement('div');
+                brochurePrice.className = 'brochure-card__price';
+                brochurePrice.textContent = priceRange;
                 
-                // CTA button
                 const brochureCta = document.createElement('button');
+                brochureCta.type = 'button';
                 brochureCta.className = 'brochure-card__cta';
-                brochureCta.textContent = 'View Brochure';
+                brochureCta.textContent = 'View brochure';
                 
-                // Assemble body
                 brochureBody.appendChild(brochureTitle);
-                brochureBody.appendChild(brochureDeveloper);
-                brochureBody.appendChild(brochureSubtitle);
+                brochureBody.appendChild(brochureDivider);
+                brochureBody.appendChild(brochurePrice);
                 brochureBody.appendChild(brochureCta);
                 
-                // Assemble card
                 brochureComponent.appendChild(brochureImageWrapper);
                 brochureComponent.appendChild(brochureBody);
                 
-                // Make entire card clickable
                 brochureComponent.onclick = function(e) {
-                    // Don't trigger if clicking the button (handled separately)
                     if (e.target !== brochureCta && !brochureCta.contains(e.target)) {
                         openBrochurePDF(randomCoverImage, developerName);
                     }
@@ -5617,6 +5659,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             let selectedFeedback = null;
             const handleFeedback = (type) => {
+                triggerHapticFeedback('subtle');
                 if (selectedFeedback === type) {
                     selectedFeedback = null;
                     thumbsUpBtn.classList.remove('active');
@@ -5634,6 +5677,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             copyBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                triggerHapticFeedback('subtle');
                 const msgEl = document.getElementById(messageId);
                 const content = msgEl && msgEl.querySelector('.bot-message-content');
                 if (!content) return;
@@ -5678,6 +5722,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             let selectedFeedback = null;
             const handleFeedback = (type) => {
+                triggerHapticFeedback('subtle');
                 if (selectedFeedback === type) {
                     selectedFeedback = null;
                     thumbsUpBtn.classList.remove('active');
@@ -5694,6 +5739,7 @@ document.addEventListener('DOMContentLoaded', function() {
             thumbsDownBtn.addEventListener('click', (e) => { e.stopPropagation(); handleFeedback('down'); });
             shareBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
+                triggerHapticFeedback('subtle');
                 if (navigator.share) {
                     navigator.share({
                         title: 'Properties',
@@ -6024,10 +6070,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return true;
             }
             
-            // INTENT CHECK 2: Brochure request (handled)
-            const isBrochureRequest = /show.*brochure|brochure.*show|view.*brochure|brochure.*view|download.*brochure|brochure.*download/i.test(normalized) ||
+            // INTENT CHECK 2: Brochure request (handled) – includes typo "bruchire"
+            const isBrochureRequest = /show.*brochure|brochure.*show|view.*brochure|brochure.*view|download.*brochure|brochure.*download|bruchire/i.test(normalized) ||
                 fuzzyMatchWord(text, 'show brochure', 0.7) ||
-                fuzzyMatchWord(text, 'brochure', 0.7);
+                fuzzyMatchWord(text, 'brochure', 0.7) ||
+                fuzzyMatchWord(text, 'bruchire', 0.8);
             if (isBrochureRequest) {
                 if (window.__CHAT_DEBUG__) console.log('[Intent] Handled: Brochure request');
                 return true;
@@ -6110,10 +6157,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                 
-                    // Check for brochure request
-                    const isBrochureRequest = /show.*brochure|brochure.*show|view.*brochure|brochure.*view|download.*brochure|brochure.*download/i.test(normalized) ||
+                    // Check for brochure request (includes typo "bruchire")
+                    const isBrochureRequest = /show.*brochure|brochure.*show|view.*brochure|brochure.*view|download.*brochure|brochure.*download|bruchire/i.test(normalized) ||
                         fuzzyMatchWord(text, 'show brochure', 0.7) ||
-                        fuzzyMatchWord(text, 'brochure', 0.7);
+                        fuzzyMatchWord(text, 'brochure', 0.7) ||
+                        fuzzyMatchWord(text, 'bruchire', 0.8);
                     
                     if (isBrochureRequest) {
                         if (window.__CHAT_DEBUG__) console.log('[Intent] Routing to brochure flow');
