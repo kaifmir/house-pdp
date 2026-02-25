@@ -2356,7 +2356,7 @@ html, body {
     position: relative;
 }
 
-/* Single continuous track per row: flex nowrap, explicit gap, content-sized pills only */
+/* Single continuous track per row: flex nowrap, explicit gap, content-sized pills only. GPU layer for smooth scroll. */
 .chips-track {
     display: flex;
     flex-direction: row;
@@ -2368,6 +2368,8 @@ html, body {
     padding: 0;
     margin: 0;
     will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
     transform: translate3d(0, 0, 0);
     -webkit-transform: translate3d(0, 0, 0);
     user-select: none;

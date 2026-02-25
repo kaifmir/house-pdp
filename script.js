@@ -876,7 +876,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ============================================================================
-    // PILLS AUTO-SCROLL: Two independent marquee tracks (no gaps, no jitter)
+    // PILLS AUTO-SCROLL: Two independent marquee tracks (no gaps, smooth scroll)
+    // Root cause of past jerk: (1) Integer px rounding ignored devicePixelRatio
+    // so subpixel positions caused frame-to-frame shimmer; (2) No dt cap so
+    // tab visibility resume could advance one huge step. Fix: DPR snap + dt cap.
     // ============================================================================
     (function() {
         const marquee = document.getElementById('chipsMarquee') || document.getElementById('chipsRail');
@@ -980,9 +983,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function applyX(val) {
-            const px = Math.round(val);
-            track1.style.transform = `translate3d(${px}px,0,0)`;
-            track2.style.transform = `translate3d(${px}px,0,0)`;
+            const dpr = window.devicePixelRatio || 1;
+            const snappedX = Math.round(val * dpr) / dpr;
+            track1.style.transform = `translate3d(${snappedX}px,0,0)`;
+            track2.style.transform = `translate3d(${snappedX}px,0,0)`;
         }
 
         function wrapX(pos) {
@@ -993,9 +997,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return pos;
         }
 
+        const MAX_DT = 0.05;
         function tick(t) {
+            if (document.hidden) {
+                last = t;
+                requestAnimationFrame(tick);
+                return;
+            }
             if (!last) last = t;
-            const dt = (t - last) / 1000;
+            let dt = (t - last) / 1000;
+            dt = dt > MAX_DT ? MAX_DT : dt;
             last = t;
             const canAuto = !isDragging && (!isPaused || Date.now() > pauseUntil);
             if (isDragging) {
