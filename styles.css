@@ -3212,10 +3212,10 @@ html, body {
     -webkit-backface-visibility: hidden;
 }
 
-/* Reveal content - View more (Figma: Rubik Medium 14px, #434343, line-height 16px) */
+/* Reveal content - follow Figma frame: icon on top, text under it (Property 1=Max pull) */
 .carousel-reveal-content {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 8px;
