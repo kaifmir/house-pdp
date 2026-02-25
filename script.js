@@ -20,8 +20,7 @@ window.__CHAT_DEBUG__ = window.__CHAT_DEBUG__ || false;
 // ============================================================================
 
 // Constants
-const MOBILE_REGEX = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-const DESKTOP_BREAKPOINT = 768;
+const MOBILE_MAX_WIDTH = 480;
 const SLIDER_WIDTH = 52;
 const SLIDER_HEIGHT = 36;
 const DRAG_CLOSE_THRESHOLD = 80;
@@ -167,15 +166,11 @@ let desktopBlocker, mobileContainer, bottomSheet, bottomSheetContent, bottomShee
 let bottomSheetHandle, bottomSheetBody, scoutyGreetingText, scoutyCTA;
 let navItems, navSliderBg, bottomNav;
 
-// Mobile-only check
+// Mobile-only: show blocker when viewport is wider than largest phone width
 function checkMobileDevice() {
-    const isMobile = MOBILE_REGEX.test(navigator.userAgent);
-    const isSmallScreen = window.innerWidth < DESKTOP_BREAKPOINT;
-    
-    if (!isMobile && !isSmallScreen) {
-        if (desktopBlocker) desktopBlocker.style.display = 'flex';
-        if (mobileContainer) mobileContainer.style.display = 'none';
-    }
+    const isWideViewport = window.innerWidth > MOBILE_MAX_WIDTH;
+    if (desktopBlocker) desktopBlocker.style.display = isWideViewport ? 'flex' : '';
+    if (mobileContainer) mobileContainer.style.display = isWideViewport ? 'none' : '';
 }
 
 // Debounce utility
@@ -881,9 +876,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ============================================================================
-    // PILLS AUTO-SCROLL: Transform-based marquee (GPU smooth on iOS + Android)
-    // ============================================================================
-    // Bulletproof interaction state machine - never gets stuck
+    // PILLS AUTO-SCROLL: Two independent marquee tracks (no gaps, no jitter)
     // ============================================================================
     (function() {
         const marquee = document.getElementById('chipsMarquee') || document.getElementById('chipsRail');
@@ -893,73 +886,92 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Fill 2nd row so it matches 1st row width (no empty gap). Cause: row 2 has shorter
-        // total content width; .chips-set is as wide as row 1, so row 2 leaves a hole on the right.
-        function fillSecondRowToMatchFirst(chipsSet) {
-            const row1 = chipsSet.querySelector('.chat-starter-pills-row:nth-child(1)');
-            const row2 = chipsSet.querySelector('.chat-starter-pills-row:nth-child(2)');
-            if (!row1 || !row2) return;
-            const row1Width = row1.getBoundingClientRect().width;
-            const targetWidth = row1Width + 60; // small buffer so no visible gap from rounding
-            const pills = Array.from(row2.children);
-            if (pills.length === 0) return;
-            let i = 0;
-            while (row2.getBoundingClientRect().width < targetWidth) {
-                const clone = pills[i % pills.length].cloneNode(true);
-                row2.appendChild(clone);
-                i++;
+        const chipsSet = track.querySelector('.chips-set');
+        const row1 = chipsSet && chipsSet.querySelector('.chat-starter-pills-row:nth-child(1)');
+        const row2 = chipsSet && chipsSet.querySelector('.chat-starter-pills-row:nth-child(2)');
+        if (!row1 || !row2) return;
+
+        const pills1 = Array.from(row1.children);
+        const pills2 = Array.from(row2.children);
+        if (pills1.length === 0 || pills2.length === 0) return;
+
+        // Row 2: same pills shifted (e.g. start from index 3) for visual variety
+        const ROW2_SHIFT = 3;
+        const pills2Shifted = pills2.slice(ROW2_SHIFT).concat(pills2.slice(0, ROW2_SHIFT));
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'chips-tracks-wrapper';
+        const viewport1 = document.createElement('div');
+        viewport1.className = 'chips-row-viewport';
+        const viewport2 = document.createElement('div');
+        viewport2.className = 'chips-row-viewport';
+        const track1 = document.createElement('div');
+        track1.className = 'chips-track';
+        const track2 = document.createElement('div');
+        track2.className = 'chips-track';
+        viewport1.appendChild(track1);
+        viewport2.appendChild(track2);
+        wrapper.appendChild(viewport1);
+        wrapper.appendChild(viewport2);
+        marquee.appendChild(wrapper);
+
+        const MIN_MULTIPLE = 2.5;
+        let viewportWidthCached = 0;
+        let trackWidthCached = 0;
+        let loopWidthCached = 0;
+        let duplicateCountCached = 0;
+
+        function fillTrack(trackEl, pillSource) {
+            const vw = marquee.getBoundingClientRect().width;
+            const minTarget = vw * MIN_MULTIPLE;
+            let count = 0;
+            for (let i = 0; i < pillSource.length; i++) {
+                trackEl.appendChild(pillSource[i].cloneNode(true));
+                count++;
             }
+            let segmentW = trackEl.getBoundingClientRect().width;
+            while (trackEl.getBoundingClientRect().width < minTarget) {
+                for (let i = 0; i < pillSource.length; i++) {
+                    trackEl.appendChild(pillSource[i].cloneNode(true));
+                    count++;
+                }
+            }
+            return { segmentWidth: segmentW, count: Math.ceil(count / pillSource.length) };
         }
 
-        // Duplicate content for seamless loop (2x)
-        const originalHTML = track.innerHTML;
-        track.innerHTML = originalHTML + originalHTML;
+        const r1 = fillTrack(track1, pills1);
+        const r2 = fillTrack(track2, pills2Shifted);
+        viewportWidthCached = marquee.getBoundingClientRect().width;
+        trackWidthCached = track1.scrollWidth;
+        loopWidthCached = r1.segmentWidth;
+        duplicateCountCached = Math.round(track1.scrollWidth / loopWidthCached);
 
-        // After layout, fill 2nd row in each set so there is no visible gap (left-aligned pack)
-        function runFillSecondRows() {
-            track.querySelectorAll('.chips-set').forEach(fillSecondRowToMatchFirst);
-        }
-        requestAnimationFrame(runFillSecondRows);
-        if (document.fonts && document.fonts.ready) {
-            document.fonts.ready.then(() => {
-                requestAnimationFrame(runFillSecondRows);
-            });
-        }
+        marquee.removeChild(track);
 
-        // State
+        let x = 0;
+        let last = 0;
+        const speed = 12;
         let isDragging = false;
         let isPaused = false;
         let pauseUntil = 0;
-        let lastMoveAt = 0;
-        let resumeTimer = null;
         let activePointerId = null;
-
-        // Animation state
-        let last = 0;
-        let x = 0; // current translateX (px)
-        const speed = 12; // px/sec slow infinite scroll (both rows)
-        
-        // Drag state
         let dragStartX = 0;
         let dragStartOffset = 0;
-        
-        // Momentum scrolling
         let momentumVelocity = 0;
         let lastDragX = 0;
         let lastDragTime = 0;
-        const friction = 0.95; // deceleration factor (0.9-0.98)
-        const minVelocity = 0.5; // stop when velocity is below this
+        const friction = 0.95;
+        const minVelocity = 0.5;
+        let resumeTimer = null;
+        let lastMoveAt = 0;
 
-        // Helpers
         function now() { return performance.now(); }
-
-        function pause(ms = 900) {
+        function pause(ms) {
             isPaused = true;
-            pauseUntil = Date.now() + ms;
+            pauseUntil = Date.now() + (ms || 900);
             clearTimeout(resumeTimer);
-            resumeTimer = setTimeout(() => { isPaused = false; }, ms);
+            resumeTimer = setTimeout(() => { isPaused = false; }, ms || 900);
         }
-
         function hardResume() {
             isDragging = false;
             isPaused = false;
@@ -967,70 +979,55 @@ document.addEventListener('DOMContentLoaded', function() {
             activePointerId = null;
         }
 
-        function wrapPosition(pos) {
-            const halfWidth = track.scrollWidth / 2;
-            if (pos >= halfWidth) {
-                return pos - halfWidth;
-            } else if (pos <= -halfWidth) {
-                return pos + halfWidth;
-            }
+        function applyX(val) {
+            const px = Math.round(val);
+            track1.style.transform = `translate3d(${px}px,0,0)`;
+            track2.style.transform = `translate3d(${px}px,0,0)`;
+        }
+
+        function wrapX(pos) {
+            const lw = loopWidthCached;
+            if (lw <= 0) return pos;
+            while (pos <= -lw) pos += lw;
+            while (pos >= lw) pos -= lw;
             return pos;
         }
 
-        // rAF loop - never stops
         function tick(t) {
             if (!last) last = t;
             const dt = (t - last) / 1000;
             last = t;
-
-            const halfWidth = track.scrollWidth / 2;
             const canAuto = !isDragging && (!isPaused || Date.now() > pauseUntil);
-
             if (isDragging) {
-                // Don't animate during drag
-            } else if (momentumVelocity !== 0) {
-                // Apply momentum scrolling
+                requestAnimationFrame(tick);
+                return;
+            }
+            if (momentumVelocity !== 0) {
                 x += momentumVelocity * dt;
-                momentumVelocity *= friction; // decelerate
-                
-                // Stop when velocity is too low
+                momentumVelocity *= friction;
                 if (Math.abs(momentumVelocity) < minVelocity) {
                     momentumVelocity = 0;
-                    pause(100); // small delay then resume
+                    pause(100);
                 }
-                
-                // Wrap position during momentum
-                x = wrapPosition(x);
-                track.style.transform = `translate3d(${x}px,0,0)`;
+                x = wrapX(x);
+                applyX(x);
             } else if (canAuto) {
-                // Auto-scroll
-                x -= speed * dt; // move left (use + for right)
-                // wrap when we've moved one full set
-                if (Math.abs(x) >= halfWidth) {
-                    x = 0;
+                x -= speed * dt;
+                if (loopWidthCached > 0) {
+                    if (x <= -loopWidthCached) x += loopWidthCached;
                 }
-                track.style.transform = `translate3d(${x}px,0,0)`;
+                applyX(x);
             }
-
             requestAnimationFrame(tick);
         }
-        requestAnimationFrame(tick);
 
-        // Drag lifecycle
         marquee.addEventListener('pointerdown', (e) => {
             isDragging = true;
             activePointerId = e.pointerId;
             lastMoveAt = now();
-
-            if (marquee.setPointerCapture) {
-                marquee.setPointerCapture(e.pointerId);
-            }
-
-            // stop auto immediately
+            if (marquee.setPointerCapture) marquee.setPointerCapture(e.pointerId);
             isPaused = true;
-            pauseUntil = Date.now() + 999999; // temporarily; will be reset on end
-
-            // Setup drag
+            pauseUntil = Date.now() + 999999;
             momentumVelocity = 0;
             dragStartX = e.clientX;
             dragStartOffset = x;
@@ -1041,33 +1038,21 @@ document.addEventListener('DOMContentLoaded', function() {
         marquee.addEventListener('pointermove', (e) => {
             if (!isDragging || e.pointerId !== activePointerId) return;
             lastMoveAt = now();
-            
-            const nowTime = now();
-            const dt = (nowTime - lastDragTime) / 1000; // seconds
+            const dt = (now() - lastDragTime) / 1000;
             const dx = e.clientX - dragStartX;
             x = dragStartOffset + dx;
-            
-            // Calculate velocity for momentum
-            if (dt > 0) {
-                const moveX = e.clientX - lastDragX;
-                momentumVelocity = moveX / dt; // pixels per second
-            }
-            
+            if (dt > 0) momentumVelocity = (e.clientX - lastDragX) / dt;
             lastDragX = e.clientX;
-            lastDragTime = nowTime;
-            track.style.transform = `translate3d(${x}px,0,0)`;
+            lastDragTime = now();
+            applyX(x);
         });
 
         function endDrag() {
             if (!isDragging) return;
             isDragging = false;
             activePointerId = null;
-
-            // Wrap position on end
-            x = wrapPosition(x);
-            track.style.transform = `translate3d(${x}px,0,0)`;
-
-            // resume auto after 700–900ms
+            x = wrapX(x);
+            applyX(x);
             pause(850);
         }
 
@@ -1075,11 +1060,8 @@ document.addEventListener('DOMContentLoaded', function() {
         marquee.addEventListener('pointercancel', endDrag);
         marquee.addEventListener('lostpointercapture', endDrag);
         window.addEventListener('blur', hardResume);
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) hardResume();
-        });
+        document.addEventListener('visibilitychange', () => { if (document.hidden) hardResume(); });
 
-        // Touch fallback for iOS (only if pointer events not supported)
         const hasPointerEvents = 'PointerEvent' in window;
         if (!hasPointerEvents) {
             marquee.addEventListener('touchstart', (e) => {
@@ -1092,47 +1074,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastDragX = e.touches[0].clientX;
                 lastDragTime = now();
             }, { passive: false });
-
             marquee.addEventListener('touchmove', (e) => {
                 if (!isDragging) return;
                 lastMoveAt = now();
-                const nowTime = now();
-                const dt = (nowTime - lastDragTime) / 1000;
-                const dx = e.touches[0].clientX - dragStartX;
-                x = dragStartOffset + dx;
-                
-                if (dt > 0) {
-                    const moveX = e.touches[0].clientX - lastDragX;
-                    momentumVelocity = moveX / dt;
-                }
-                
+                const dt = (now() - lastDragTime) / 1000;
+                x = dragStartOffset + (e.touches[0].clientX - dragStartX);
+                if (dt > 0) momentumVelocity = (e.touches[0].clientX - lastDragX) / dt;
                 lastDragX = e.touches[0].clientX;
-                lastDragTime = nowTime;
-                track.style.transform = `translate3d(${x}px,0,0)`;
+                lastDragTime = now();
+                applyX(x);
             }, { passive: false });
-
             marquee.addEventListener('touchend', endDrag, { passive: true });
             marquee.addEventListener('touchcancel', endDrag, { passive: true });
         }
 
-        // Failsafe: if no pointermove happens for 200ms, auto-resume anyway
         setInterval(() => {
-            if (isDragging && (now() - lastMoveAt > 200)) {
-                endDrag();
-            }
+            if (isDragging && (now() - lastMoveAt > 200)) endDrag();
         }, 150);
 
-        // Debug mode
+        requestAnimationFrame(tick);
+
         if (window.__CHIPS_DEBUG__) {
             const debugEl = document.createElement('div');
-            debugEl.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(0,0,0,0.8);color:#fff;padding:8px;font-size:11px;font-family:monospace;z-index:99999;border-radius:4px;';
+            debugEl.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(0,0,0,0.8);color:#fff;padding:8px;font-size:11px;font-family:monospace;z-index:99999;border-radius:4px;max-width:220px;';
             document.body.appendChild(debugEl);
-            
             function updateDebug() {
-                const remaining = pauseUntil > Date.now() ? (pauseUntil - Date.now()) : 0;
-                debugEl.textContent = `isDragging: ${isDragging}\nisPaused: ${isPaused}\npauseUntil: ${remaining}ms\nactivePointerId: ${activePointerId}`;
+                debugEl.textContent = [
+                    'viewportWidth: ' + viewportWidthCached,
+                    'trackWidth: ' + trackWidthCached,
+                    'loopWidth: ' + loopWidthCached,
+                    'duplicateCount: ' + duplicateCountCached,
+                    'isDragging: ' + isDragging,
+                    'isPaused: ' + isPaused
+                ].join('\n');
             }
-            setInterval(updateDebug, 100);
+            setInterval(updateDebug, 300);
         }
     })();
     
@@ -4206,12 +4182,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const revealContent = document.createElement('div');
             revealContent.className = 'carousel-reveal-content';
             revealContent.innerHTML = `
-                <div class="overscroll-circle">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                </div>
-                <span class="overscroll-label">View all</span>
+                <svg class="overscroll-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+                <span class="overscroll-label">View more</span>
             `;
             revealZone.appendChild(revealContent);
             
@@ -4231,10 +4205,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Scroll to show the new space
                 carousel.scrollLeft = baseMaxScrollLeft + revealWidth;
                 
-                // Update content appearance
-                const scale = 0.88 + (0.12 * progress);
+                // Gentle elastic vibe: view-all card becomes more opaque as you pull (Figma: same height as cards, last after cards)
+                revealZone.style.opacity = progress.toString();
                 revealContent.style.opacity = progress.toString();
-                revealContent.style.transform = `scale(${scale})`;
                 
                 rafId = null;
             };
@@ -4247,14 +4220,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const resetReveal = (animated = true) => {
                 if (animated) {
-                    revealZone.style.transition = 'width 0.25s ease-out, min-width 0.25s ease-out';
-                    revealContent.style.transition = 'opacity 0.2s ease-out, transform 0.2s ease-out';
+                    revealZone.style.transition = 'width 0.25s ease-out, min-width 0.25s ease-out, opacity 0.2s ease-out';
+                    revealContent.style.transition = 'opacity 0.2s ease-out';
                 }
                 
                 revealZone.style.width = '0';
                 revealZone.style.minWidth = '0';
+                revealZone.style.opacity = '0';
                 revealContent.style.opacity = '0';
-                revealContent.style.transform = 'scale(0.88)';
                 
                 if (animated) {
                     setTimeout(() => {

@@ -218,48 +218,37 @@ body:has(.chat-screen.active) {
     width: 100% !important;
 }
 
-/* Desktop Blocker */
+/* Desktop Blocker - mobile-only experience; show message when viewport exceeds largest phone width */
 .desktop-blocker {
     display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: var(--bg-white);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
 }
 
-@media (min-width: 768px) {
-    /* Hide the "open on mobile" message so the app is visible on desktop too (shareable link works for everyone) */
+.desktop-message {
+    text-align: center;
+    color: var(--text-dark);
+    font-size: 16px;
+    line-height: 24px;
+}
+
+.desktop-message p {
+    margin: 8px 0;
+}
+
+/* Above largest phone width (~480px): show "mobile only" message, hide app */
+@media (min-width: 481px) {
     .desktop-blocker {
-        display: none !important;
+        display: flex !important;
     }
 
-    .desktop-message {
-        text-align: center;
-        color: var(--text-dark);
-        font-size: 16px;
-        line-height: 24px;
-    }
-
-    .desktop-message p {
-        margin: 8px 0;
-    }
-
-    /* Keep app visible on desktop: show mobile-style UI centered */
     .mobile-container {
-        display: block !important;
-        max-width: 420px;
-        margin-left: auto;
-        margin-right: auto;
-        box-shadow: 0 0 0 1px rgba(0,0,0,0.06);
-        min-height: 100vh;
-    }
-
-    .chat-screen {
-        max-width: 420px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .bottom-nav {
-        max-width: 420px;
-        margin-left: auto;
-        margin-right: auto;
+        display: none !important;
     }
 }
 
@@ -2349,12 +2338,35 @@ html, body {
     background: linear-gradient(to left, #FAFAFA, rgba(250, 250, 250, 0));
 }
 
-.chips-track {
-    display: inline-flex;
-    flex-direction: row;
-    gap: 12px;
+/* Two independent marquee tracks: no grid, no wrap, no space-between → no gaps */
+.chips-tracks-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    row-gap: 12px;
+    column-gap: 0;
+    width: 100%;
     padding: 0;
-    margin: 0 auto;
+    margin: 0;
+}
+
+.chips-row-viewport {
+    overflow: hidden;
+    width: 100%;
+    position: relative;
+}
+
+/* Single continuous track per row: flex nowrap, explicit gap, content-sized pills only */
+.chips-track {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    width: max-content;
+    column-gap: 12px;
+    row-gap: 0;
+    padding: 0;
+    margin: 0;
     will-change: transform;
     transform: translate3d(0, 0, 0);
     -webkit-transform: translate3d(0, 0, 0);
@@ -2363,11 +2375,13 @@ html, body {
     pointer-events: auto;
 }
 
-/* Each chip set contains 2 rows – stack tightly, no empty gap between rows */
+/* Legacy: keep .chips-set and .chat-starter-pills-row for initial HTML only (replaced by JS) */
 .chips-set {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    justify-content: flex-start;
+    row-gap: 12px;
+    column-gap: 0;
     flex-shrink: 0;
     padding: 0;
     margin: 0;
@@ -2378,9 +2392,11 @@ html, body {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    gap: 12px;
+    justify-content: flex-start;
+    column-gap: 12px;
+    row-gap: 0;
     width: max-content;
-    max-width: 100%;
+    max-width: none;
     padding: 0;
     margin: 0;
     flex-shrink: 0;
@@ -3174,64 +3190,56 @@ html, body {
     width: 100%;
 }
 
-/* Reveal zone - inline after last card, width 0 at rest, expands during pull */
+/* Reveal zone - inline after last card, same height as cards; width 0 at rest, expands during pull (Figma: Property 1=Max pull) */
 .carousel-reveal-zone {
     flex-shrink: 0;
     width: 0;
     min-width: 0;
-    align-self: stretch; /* Match height of adjacent cards */
+    align-self: stretch; /* Exactly height of adjacent cards */
     display: flex;
-    align-items: center; /* Vertically center content within zone */
+    align-items: center;
     justify-content: center;
     overflow: hidden;
     pointer-events: none;
+    background: #ffffff;
+    border: 1px solid #e1e2e8;
+    border-radius: 16px;
+    opacity: 0;
+    will-change: width, min-width, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
-/* Reveal content - circle + label, centered in reveal zone */
+/* Reveal content - View more (Figma: Rubik Medium 14px, #434343, line-height 16px) */
 .carousel-reveal-content {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    min-width: 100px;
-    padding: 0 10px;
+    gap: 8px;
+    min-width: 80px;
+    padding: 0 12px;
     opacity: 0;
-    transform: scale(0.88);
-    will-change: transform, opacity;
+    will-change: opacity;
     pointer-events: none;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
 }
 
-.carousel-reveal-content .overscroll-circle {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #222222 0%, #444444 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-}
-
-.carousel-reveal-content .overscroll-circle svg {
-    width: 26px;
-    height: 26px;
-    color: white;
-    margin-left: 2px; /* Visual centering for chevron */
+.carousel-reveal-content .overscroll-chevron {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    color: #434343;
 }
 
 .carousel-reveal-content .overscroll-label {
-    font-size: 13px;
-    font-weight: 500;
-    color: #222222;
     font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    color: #434343;
     white-space: nowrap;
-    text-align: center;
 }
 
 /* Full-width secondary CTA button below carousel */
