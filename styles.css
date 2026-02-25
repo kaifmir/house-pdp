@@ -2415,7 +2415,7 @@ html, body {
 
 .chat-pill {
     background: linear-gradient(to bottom, #ffffff 0%, #fafafa 100%);
-    border: 1px solid #e1e2e8;
+    border: 1px solid transparent;
     border-radius: 24px;
     padding: 10px 16px;
     font-family: 'Rubik', sans-serif;
@@ -2439,6 +2439,15 @@ html, body {
     margin: 0;
     box-sizing: border-box;
 }
+
+/* Pill stroke colors from Figma Frame 2147261371 (opacity 0.3 unless noted) */
+.chat-pill.pill-stroke-coral { border-color: rgba(244, 152, 143, 0.3); }
+.chat-pill.pill-stroke-blue { border-color: rgba(140, 179, 236, 0.3); }
+.chat-pill.pill-stroke-green { border-color: rgba(175, 210, 185, 0.3); }
+.chat-pill.pill-stroke-yellow { border-color: rgba(255, 211, 109, 0.3); }
+.chat-pill.pill-stroke-yellow-strong { border-color: rgba(255, 211, 109, 0.4); }
+.chat-pill.pill-stroke-purple { border-color: rgba(194, 169, 236, 0.3); }
+.chat-pill.pill-stroke-pink { border-color: rgba(255, 165, 226, 0.3); }
 
 .chat-pill-icon {
     flex-shrink: 0;
