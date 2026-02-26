@@ -2266,15 +2266,15 @@ html, body {
     display: none !important;
 }
 
-/* Keyboard open on mobile: hey + pills disappear gently */
+/* Keyboard / focus: hey + pills disappear softly (no jerk) */
 .chat-intro.is-hidden {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: translateY(-8px);
     max-height: 0;
     overflow: hidden;
     pointer-events: none;
     padding: 0;
-    transition: opacity 0.4s ease-out, transform 0.35s ease-out, max-height 0.4s ease-out;
+    transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.08s;
 }
 
 .chat-hero-title {
@@ -3203,6 +3203,7 @@ html, body {
 
 /* Reveal zone - inline after last card, same height as cards; width 0 at rest, expands during pull (Figma: Property 1=Max pull) */
 .carousel-reveal-zone {
+    position: relative;
     flex-shrink: 0;
     width: 0;
     min-width: 0;
@@ -3251,6 +3252,37 @@ html, body {
     line-height: 16px;
     color: #434343;
     white-space: nowrap;
+}
+
+/* Loading state: show spinner, hide View more */
+.carousel-reveal-zone.is-loading .carousel-reveal-content {
+    visibility: hidden;
+}
+.carousel-reveal-spinner {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin-left: -14px;
+    margin-top: -14px;
+}
+.carousel-reveal-zone.is-loading .carousel-reveal-spinner {
+    display: block;
+}
+/* View-all loader: dark grey conic spinner */
+.carousel-reveal-zone .loader {
+    width: 28px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+        radial-gradient(farthest-side, #434343 94%, #0000) top/4px 4px no-repeat,
+        conic-gradient(#0000 30%, #434343);
+    -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - 4px), #000 0);
+    mask: radial-gradient(farthest-side, #0000 calc(100% - 4px), #000 0);
+    animation: loader-rotate 1s infinite linear;
+}
+@keyframes loader-rotate {
+    100% { transform: rotate(1turn); }
 }
 
 /* Full-width secondary CTA button below carousel */

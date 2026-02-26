@@ -1167,8 +1167,13 @@ document.addEventListener('DOMContentLoaded', function() {
             window.visualViewport.addEventListener('scroll', onVVResize);
         }
 
-        // Fallback: focus/blur (only if visualViewport missing)
+        // On first tap of chat input: start gentle hide immediately (no wait for viewport), so no jerk
         document.addEventListener('focusin', (e) => {
+            if (!e.target.matches || !e.target.matches('input, textarea')) return;
+            const isChatInput = e.target.id === 'chat-input' || e.target.closest('.chat-input-bar');
+            if (isChatInput) {
+                requestAnimationFrame(() => setHiddenState(true));
+            }
             if (!window.visualViewport && e.target.matches('input,textarea')) setHiddenState(true);
         });
         document.addEventListener('focusout', (e) => {
@@ -4181,6 +4186,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const PULL_THRESHOLD = 170; // Raw pull needed to arm
             const MAX_REVEAL_WIDTH = 120; // Max reveal zone width
             
+            let isViewAllLoading = false;
+            let viewAllLoadTimeout = null;
+            
             // Strong resistance curve
             const applyResistance = (raw) => {
                 return MAX_REVEAL_WIDTH * (1 - Math.exp(-raw / 100)) * 0.9;
@@ -4199,6 +4207,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <span class="overscroll-label">View more</span>
             `;
             revealZone.appendChild(revealContent);
+            const spinnerEl = document.createElement('div');
+            spinnerEl.className = 'carousel-reveal-spinner loader';
+            spinnerEl.setAttribute('aria-hidden', 'true');
+            revealZone.appendChild(spinnerEl);
             
             // Apply pull state using requestAnimationFrame
             const applyPullState = () => {
@@ -4250,6 +4262,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Touch/pointer handlers
             const handleTouchStart = (e) => {
+                if (isViewAllLoading) return;
                 // Calculate base max scroll (before reveal zone expands)
                 // Exclude current reveal zone width
                 const currentRevealWidth = parseFloat(revealZone.style.width) || 0;
@@ -4269,6 +4282,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
             
             const handleTouchMove = (e) => {
+                if (isViewAllLoading) return;
                 if (startX === 0) return;
                 
                 const touch = e.touches ? e.touches[0] : e;
@@ -4309,8 +4323,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     rafId = null;
                 }
                 
-                if (isArmed && isPulling) {
-                    showViewAllPage(allCards || cards);
+                if (isArmed && isPulling && !isViewAllLoading) {
+                    isViewAllLoading = true;
+                    if (viewAllLoadTimeout) clearTimeout(viewAllLoadTimeout);
+                    revealZone.style.transition = 'none';
+                    revealContent.style.transition = 'none';
+                    revealZone.style.width = MAX_REVEAL_WIDTH + 'px';
+                    revealZone.style.minWidth = MAX_REVEAL_WIDTH + 'px';
+                    revealZone.style.opacity = '1';
+                    revealContent.style.opacity = '1';
+                    revealZone.classList.add('is-loading');
+                    carousel.scrollLeft = baseMaxScrollLeft + MAX_REVEAL_WIDTH;
+                    viewAllLoadTimeout = setTimeout(() => {
+                        viewAllLoadTimeout = null;
+                        isViewAllLoading = false;
+                        revealZone.classList.remove('is-loading');
+                        showViewAllPage(allCards || cards);
+                    }, 2500);
+                    carousel.style.scrollSnapType = originalScrollSnap || '';
+                    isOverscrolling = false;
+                    isPulling = false;
+                    rawPullDistance = 0;
+                    startX = 0;
+                    isArmed = false;
+                    return;
                 }
                 
                 carousel.style.scrollSnapType = originalScrollSnap || '';
