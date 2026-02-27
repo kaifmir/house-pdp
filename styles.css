@@ -114,10 +114,7 @@ body.wireframe-mode * {
 }
 
 /* Keep visuals monochrome without introducing new "boxy" wireframe shapes */
-body.wireframe-mode {
-    filter: grayscale(1) saturate(0);
-}
-
+body.wireframe-mode,
 body.wireframe-mode img,
 body.wireframe-mode svg {
     filter: grayscale(1) saturate(0);
@@ -455,7 +452,6 @@ img {
     margin-bottom: 0;
     align-items: flex-end;
     width: calc(100% + 24px);
-    overscroll-behavior-x: contain;
 }
 
 .property-types::-webkit-scrollbar {
@@ -6620,7 +6616,7 @@ html, body {
 }
 .srp-search-card-no-results {
     min-height: 0;
-    background: linear-gradient(#ffffff, #ffffff) padding-box,
+    background: linear-gradient(to bottom, #ffffff 0%, rgba(242, 235, 254, 0.6) 100%) padding-box,
         linear-gradient(90deg, rgba(115, 84, 255, 0.5) 0%, rgba(229, 62, 196, 0.5) 100%) border-box;
     background-origin: border-box;
     background-clip: padding-box, border-box;

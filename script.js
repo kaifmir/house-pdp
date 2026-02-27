@@ -19,6 +19,22 @@ window.__CHAT_DEBUG__ = window.__CHAT_DEBUG__ || false;
 // [ ] Composer sits above keyboard on both platforms
 // ============================================================================
 
+// Helpers: throttle/debounce for resize/scroll handlers (reduce layout thrash)
+function throttle(fn, ms) {
+    let last = 0;
+    return function throttled() {
+        const now = performance.now();
+        if (now - last >= ms) { last = now; fn(); }
+    };
+}
+function debounce(fn, ms) {
+    let t = null;
+    return function debounced() {
+        if (t) clearTimeout(t);
+        t = setTimeout(() => { t = null; fn(); }, ms);
+    };
+}
+
 // Constants
 const MOBILE_MAX_WIDTH = 480;
 const SLIDER_WIDTH = 52;
@@ -79,25 +95,16 @@ window.addEventListener('load', primeViewport);
 window.addEventListener('touchstart', primeViewport, { passive: true, once: true });
 window.addEventListener('pointerdown', primeViewport, { passive: true, once: true });
 
-// Sync heights on resize and orientation change
-window.addEventListener('resize', () => {
-    syncHeights();
-    syncKeyboard();
-});
-window.addEventListener('orientationchange', () => {
-    syncHeights();
-    syncKeyboard();
-});
+// Sync heights on resize and orientation change (debounced to reduce layout thrash)
+const syncOnResize = debounce(() => { syncHeights(); syncKeyboard(); }, 120);
+window.addEventListener('resize', syncOnResize);
+window.addEventListener('orientationchange', syncOnResize);
 
-// Use visualViewport for Android keyboard compatibility
+// Use visualViewport for Android keyboard compatibility (throttled during keyboard animation)
 if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', () => {
-        syncHeights();
-        syncKeyboard();
-    });
-    window.visualViewport.addEventListener('scroll', () => {
-        syncKeyboard();
-    });
+    const syncOnVV = throttle(() => { syncHeights(); syncKeyboard(); }, 100);
+    window.visualViewport.addEventListener('resize', syncOnVV);
+    window.visualViewport.addEventListener('scroll', syncOnVV);
 }
 
 // Fix 2: Prevent focus scroll-jump on iOS (works every time, not just first)
@@ -944,7 +951,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // tab visibility resume could advance one huge step. Fix: DPR snap + dt cap.
     // ============================================================================
     (function() {
-        const marquee = document.getElementById('chipsMarquee') || document.getElementById('chipsRail');
+        const marquee = document.getElementById('chipsRail');
         const track = document.getElementById('chipsTrack');
         if (!marquee || !track) {
             if (window.__CHAT_DEBUG__) console.warn('chipsMarquee/chipsRail or chipsTrack not found');
@@ -1533,13 +1540,14 @@ document.addEventListener('DOMContentLoaded', function() {
             setChatOffsets();
         }
         
-        // Initialize insets on load and resize
+        // Initialize insets on load and resize (debounced to reduce layout thrash)
         requestAnimationFrame(() => {
             requestAnimationFrame(setChatInsets);
         });
-        window.addEventListener("resize", setChatInsets);
+        const setChatInsetsDebounced = debounce(setChatInsets, 120);
+        window.addEventListener("resize", setChatInsetsDebounced);
         if (window.visualViewport) {
-            window.visualViewport.addEventListener("resize", setChatInsets);
+            window.visualViewport.addEventListener("resize", setChatInsetsDebounced);
         }
 
         // Remove chat-spacer completely (it breaks layout)
