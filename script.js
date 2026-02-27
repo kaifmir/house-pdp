@@ -1185,10 +1185,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     })();
     
-    // Step 3: Reliable keyboard detection for chat-intro hide/show – smooth fade-out/in, no jerk
+    // Step 3: Reliable keyboard detection for pills hide/show – smooth fade-out/in, no snap
     (function () {
-        const intro = document.getElementById('chat-intro');
-        if (!intro) return;
+        const pillsWrapper = document.getElementById('chat-pills-wrapper');
+        if (!pillsWrapper) return;
 
         let baseVVH = null;
         let keyboardOpen = false;
@@ -1204,20 +1204,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (isOpen) {
-                intro.classList.add('is-hidden');
-                /* Disable pointer-events at ~50% of fade-out (250ms) to avoid accidental taps */
+                pillsWrapper.classList.add('pills--hidden');
+                /* Disable pointer-events at ~50% of fade-out (140ms of 280ms) to avoid accidental taps */
                 pointerTimeout = setTimeout(function () {
-                    intro.style.pointerEvents = 'none';
+                    pillsWrapper.style.pointerEvents = 'none';
                     pointerTimeout = null;
-                }, 125);
+                }, 140);
             } else {
-                intro.classList.remove('is-hidden');
-                intro.style.pointerEvents = 'none';
-                /* Restore pointer-events only after opacity > 0.8 (~80% of 280ms fade-in) */
+                pillsWrapper.classList.remove('pills--hidden');
+                pillsWrapper.style.pointerEvents = 'none';
+                /* Restore pointer-events only after opacity > 0.6 (~70% of 300ms fade-in) */
                 pointerTimeout = setTimeout(function () {
-                    intro.style.pointerEvents = '';
+                    pillsWrapper.style.pointerEvents = '';
                     pointerTimeout = null;
-                }, 224);
+                }, 240);
             }
         }
 
@@ -1228,7 +1228,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (baseVVH == null) baseVVH = vv.height;
 
             const delta = baseVVH - vv.height;
-            const isOpen = delta > 120;
+            /* Trigger at 80px so fade starts as keyboard begins opening, not after full open */
+            const isOpen = delta > 80;
 
             setHiddenState(isOpen);
         }
@@ -1253,6 +1254,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!e.target.matches || !e.target.matches('input, textarea')) return;
             const isChatInput = e.target.id === 'chat-input' || e.target.closest('.chat-input-bar');
             if (isChatInput) {
+                /* Trigger immediately at focus start – don't wait for keyboard to fully open */
                 requestAnimationFrame(() => setHiddenState(true));
             }
             if (!window.visualViewport && e.target.matches('input,textarea')) setHiddenState(true);

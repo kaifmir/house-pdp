@@ -2286,20 +2286,42 @@ html, body {
     display: none !important;
 }
 
-/* Keyboard / focus: pills fade out gently (opacity + translateY), then collapse height – no jerk.
-   opacity + transform animate first (250ms easeOutCubic), height reserved; max-height collapses after fade.
-   pointer-events disabled at ~50% via JS to avoid accidental taps. */
-.chat-intro.is-hidden {
-    opacity: 0;
-    transform: translateY(6px);
-    max-height: 0;
-    overflow: hidden;
-    padding: 0;
+/* Pills wrapper – no layout change, just a hook for keyboard hide animation */
+.chat-pills-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+    clip-path: inset(0% 0% 0% 0% round 12px);
+    visibility: visible;
     transition:
-        opacity 0.25s cubic-bezier(0.33, 1, 0.68, 1),
-        transform 0.25s cubic-bezier(0.33, 1, 0.68, 1),
-        max-height 0.28s cubic-bezier(0.33, 1, 0.68, 1) 0.25s,
-        padding 0.12s cubic-bezier(0.33, 1, 0.68, 1) 0.25s;
+        opacity 0.3s cubic-bezier(0.33, 1, 0.68, 1),
+        transform 0.3s cubic-bezier(0.33, 1, 0.68, 1),
+        filter 0.3s cubic-bezier(0.33, 1, 0.68, 1),
+        clip-path 0.3s cubic-bezier(0.33, 1, 0.68, 1),
+        visibility 0s linear 0s;
+    will-change: opacity, transform, filter;
+}
+
+/* Keyboard open: pills fade out smoothly – premium animation, no snap.
+   opacity + transform + blur over 280ms; visibility:hidden at end (no layout jump).
+   pointer-events disabled during fade via JS. */
+.chat-pills-wrapper.pills--hidden {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+    filter: blur(2px);
+    clip-path: inset(5% 0% 5% 0% round 12px);
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity 0.28s cubic-bezier(0.33, 1, 0.68, 1),
+        transform 0.28s cubic-bezier(0.33, 1, 0.68, 1),
+        filter 0.28s cubic-bezier(0.33, 1, 0.68, 1),
+        clip-path 0.28s cubic-bezier(0.33, 1, 0.68, 1),
+        visibility 0s linear 0.28s;
 }
 
 .chat-hero-title {
