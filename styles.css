@@ -6651,14 +6651,15 @@ html, body {
     background: linear-gradient(
         105deg,
         transparent 0%,
-        transparent 40%,
-        rgba(255, 255, 255, 0.15) 50%,
-        transparent 60%,
+        transparent 45%,
+        rgba(115, 84, 255, 0.08) 50%,
+        transparent 55%,
         transparent 100%
     );
     background-size: 200% 100%;
     animation: srp-cta-shimmer 4s ease-in-out infinite;
     pointer-events: none;
+    border-radius: 7px;
 }
 @keyframes srp-cta-shimmer {
     0% { background-position: 120% 0; }
@@ -6680,9 +6681,12 @@ html, body {
     max-width: 348px;
     height: 48px;
     padding: 0 16px;
-    background: #5e23dc;
-    color: #ffffff;
-    border: none;
+    background: linear-gradient(#ffffff, #ffffff) padding-box,
+        linear-gradient(90deg, rgba(115, 84, 255, 0.5) 0%, rgba(229, 62, 196, 0.5) 100%) border-box;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    border: 1px solid transparent;
+    color: transparent;
     border-radius: 8px;
     font-family: 'Rubik', sans-serif;
     font-weight: 500;
@@ -6691,8 +6695,16 @@ html, body {
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
 }
+.srp-search-cta-primary .srp-search-cta-label {
+    background: linear-gradient(90deg, #7354ff 0%, #e53ec4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: #7354ff;
+}
 .srp-search-cta-primary:hover {
-    background: #4d1bb8;
+    background: linear-gradient(#f8f8f8, #f8f8f8) padding-box,
+        linear-gradient(90deg, rgba(115, 84, 255, 0.6) 0%, rgba(229, 62, 196, 0.6) 100%) border-box;
 }
 .srp-search-cta-chevron {
     flex-shrink: 0;

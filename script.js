@@ -3884,7 +3884,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scroll.className = 'srp-search-scroll';
             var cardNoResults = document.createElement('div');
             cardNoResults.className = 'srp-search-card srp-search-card-no-results';
-            cardNoResults.innerHTML = '<div class="srp-search-no-results-head"><span class="srp-search-card-title">No results found</span><div class="srp-search-no-results-logo"><img src="Bottom logo.jpg" alt="Houzy" class="srp-search-houzy-logo houzy-icon-bounce" onerror="this.src=\'chat-bot.png\'" width="40" height="40"></div></div><p class="srp-search-no-results-text">But I can help you find more relevant homes.</p><button type="button" class="srp-search-cta-primary srp-search-cta-use-houzy">Use Houzy</button>';
+            cardNoResults.innerHTML = '<div class="srp-search-no-results-head"><span class="srp-search-card-title">No results found</span><div class="srp-search-no-results-logo"><img src="Bottom logo.jpg" alt="Houzy" class="srp-search-houzy-logo houzy-icon-bounce" onerror="this.src=\'chat-bot.png\'" width="40" height="40"></div></div><p class="srp-search-no-results-text">But I can help you find more relevant homes.</p><button type="button" class="srp-search-cta-primary srp-search-cta-use-houzy"><span class="srp-search-cta-label">Use Houzy</span></button>';
             scroll.appendChild(cardNoResults);
             var cardLocalities = document.createElement('div');
             cardLocalities.className = 'srp-search-card';
