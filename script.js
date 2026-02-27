@@ -211,20 +211,12 @@ window.addEventListener('resize', debounce(checkMobileDevice, 150));
 document.addEventListener('DOMContentLoaded', function() {
     initDOMCache();
     
-    // Link opens directly on chat screen (no page animation); only hey + pills blur-in
+    // Land on homepage on load/refresh; chat opens when user taps Houzy in bottom nav
     const chatScreenEl = document.getElementById('chat-screen');
     const chatIntroEl = document.getElementById('chat-intro');
     if (chatScreenEl) {
-        chatScreenEl.classList.add('active');
-        document.body.style.overflow = 'hidden';
-        sessionStorage.setItem('houzySplashSeen', 'true');
-        if (typeof primeViewport === 'function') primeViewport();
-        // Reveal hey + pills section with slight blur-in
-        if (chatIntroEl && chatIntroEl.classList.contains('initial-load')) {
-            setTimeout(function() {
-                chatIntroEl.classList.add('revealed');
-            }, 320);
-        }
+        chatScreenEl.classList.remove('active');
+        // When user later opens chat, primeViewport and intro reveal run from nav handler
     }
     
     const propertyTypeCards = document.querySelectorAll('.property-type-card');
@@ -677,20 +669,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Handle specific nav actions
                 if (navType === 'chat') {
-                    const hasSeenSplash = sessionStorage.getItem('houzySplashSeen') === 'true';
-                    if (hasSeenSplash) {
-                        const chatScreen = document.getElementById('chat-screen');
-                        if (chatScreen) {
+                    // Houzy icon/text on homepage: open chat with slide-in from right
+                    sessionStorage.setItem('houzySplashSeen', 'true');
+                    const chatScreen = document.getElementById('chat-screen');
+                    const chatIntroEl = document.getElementById('chat-intro');
+                    const chatBackBtn = document.getElementById('chat-back-btn');
+                    if (chatScreen) {
+                        if (!document.body.dataset.returnToCase1) {
+                            if (chatBackBtn) {
+                                chatBackBtn.removeAttribute('disabled');
+                                chatBackBtn.removeAttribute('tabindex');
+                            }
+                            chatScreen.classList.add('slide-from-right');
+                        }
+                        document.body.style.overflow = 'hidden';
+                        requestAnimationFrame(() => {
                             requestAnimationFrame(() => {
                                 chatScreen.classList.add('active');
-                                // Prime viewport when chat screen opens
                                 primeViewport();
+                                function revealIntro() {
+                                    if (chatIntroEl && chatIntroEl.classList.contains('initial-load')) {
+                                        chatIntroEl.classList.add('revealed');
+                                    }
+                                }
+                                if (chatScreen.classList.contains('slide-from-right')) {
+                                    chatScreen.addEventListener('transitionend', function onSlideEnd(e) {
+                                        if (e.target === chatScreen && e.propertyName === 'transform') {
+                                            chatScreen.removeEventListener('transitionend', onSlideEnd);
+                                            revealIntro();
+                                        }
+                                    });
+                                    setTimeout(revealIntro, 400);
+                                } else {
+                                    setTimeout(revealIntro, 100);
+                                }
                             });
-                            document.body.style.overflow = 'hidden';
-                        // Placeholder animation removed
-                        }
-                    } else {
-                        openBottomSheet();
+                        });
                     }
                 }
             };
@@ -851,6 +865,48 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatBackBtn = document.getElementById('chat-back-btn');
     const chatInput = document.getElementById('chat-input');
     
+    if (chatBackBtn && chatScreen) {
+        chatBackBtn.addEventListener('click', function() {
+            var returnId = document.body.dataset.returnToCase1;
+            if (returnId) {
+                // Back from chat when opened from SRP/case page: return to that page
+                var casePage = document.getElementById(returnId);
+                if (casePage) {
+                    casePage.style.display = '';
+                    casePage.style.visibility = '';
+                    casePage.style.zIndex = '';
+                }
+                chatScreen.classList.remove('active');
+                chatBackBtn.setAttribute('disabled', '');
+                chatBackBtn.setAttribute('tabindex', '-1');
+                delete document.body.dataset.returnToCase1;
+                document.body.style.overflow = '';
+            } else {
+                // Back from chat when opened from homepage: slide out then return to homepage
+                var hadSlide = chatScreen.classList.contains('slide-from-right');
+                chatScreen.classList.remove('active');
+                if (hadSlide) {
+                    chatScreen.addEventListener('transitionend', function onOut() {
+                        chatScreen.removeEventListener('transitionend', onOut);
+                        chatScreen.classList.remove('slide-from-right');
+                    });
+                } else {
+                    chatScreen.classList.remove('slide-from-right');
+                }
+                chatBackBtn.setAttribute('disabled', '');
+                chatBackBtn.setAttribute('tabindex', '-1');
+                document.body.style.overflow = '';
+                var homeNav = document.querySelector('.nav-item[data-nav="home"]');
+                if (homeNav) {
+                    var navItems = document.querySelectorAll('.nav-item');
+                    navItems.forEach(function(n) { n.classList.remove('active'); });
+                    homeNav.classList.add('active');
+                    setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 50);
+                }
+            }
+        });
+    }
+    
     if (scoutyCTA) {
         scoutyCTA.addEventListener('click', () => {
             // Haptic feedback
@@ -862,15 +918,21 @@ document.addEventListener('DOMContentLoaded', function() {
             sessionStorage.setItem('houzySplashSeen', 'true');
             // Close bottom sheet
             closeBottomSheet();
-            // Open chat screen
+            // Open chat screen with slide-in from right (same as homepage Houzy click)
             if (chatScreen) {
-                // Trigger slide-in animation
-                requestAnimationFrame(() => {
-                    chatScreen.classList.add('active');
-                    // Prime viewport when chat screen opens
-                    primeViewport();
-                });
+                chatScreen.classList.add('slide-from-right');
                 document.body.style.overflow = 'hidden';
+                var chatBackBtn = document.getElementById('chat-back-btn');
+                if (chatBackBtn) {
+                    chatBackBtn.removeAttribute('disabled');
+                    chatBackBtn.removeAttribute('tabindex');
+                }
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        chatScreen.classList.add('active');
+                        primeViewport();
+                    });
+                });
             }
         });
     }
@@ -1123,18 +1185,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     })();
     
-    // Step 3: Reliable keyboard detection for chat-intro hide/show
+    // Step 3: Reliable keyboard detection for chat-intro hide/show – smooth fade-out/in, no jerk
     (function () {
         const intro = document.getElementById('chat-intro');
         if (!intro) return;
 
         let baseVVH = null;
         let keyboardOpen = false;
+        let pointerTimeout = null;
 
         function setHiddenState(isOpen) {
             if (isOpen === keyboardOpen) return;
             keyboardOpen = isOpen;
-            intro.classList.toggle('is-hidden', isOpen);
+
+            if (pointerTimeout) {
+                clearTimeout(pointerTimeout);
+                pointerTimeout = null;
+            }
+
+            if (isOpen) {
+                intro.classList.add('is-hidden');
+                /* Disable pointer-events at ~50% of fade-out (250ms) to avoid accidental taps */
+                pointerTimeout = setTimeout(function () {
+                    intro.style.pointerEvents = 'none';
+                    pointerTimeout = null;
+                }, 125);
+            } else {
+                intro.classList.remove('is-hidden');
+                intro.style.pointerEvents = 'none';
+                /* Restore pointer-events only after opacity > 0.8 (~80% of 280ms fade-in) */
+                pointerTimeout = setTimeout(function () {
+                    intro.style.pointerEvents = '';
+                    pointerTimeout = null;
+                }, 224);
+            }
         }
 
         function onVVResize() {
@@ -1143,14 +1227,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const vv = window.visualViewport;
             if (baseVVH == null) baseVVH = vv.height;
 
-            // threshold ~120px works well on Android (avoid small UI chrome changes)
             const delta = baseVVH - vv.height;
             const isOpen = delta > 120;
 
             setHiddenState(isOpen);
         }
 
-        // Prime baseline once user interacts (more accurate on Android)
         function prime() {
             if (window.visualViewport && baseVVH == null) {
                 baseVVH = window.visualViewport.height;
@@ -1167,7 +1249,6 @@ document.addEventListener('DOMContentLoaded', function() {
             window.visualViewport.addEventListener('scroll', onVVResize);
         }
 
-        // On first tap of chat input: start gentle hide immediately (no wait for viewport), so no jerk
         document.addEventListener('focusin', (e) => {
             if (!e.target.matches || !e.target.matches('input, textarea')) return;
             const isChatInput = e.target.id === 'chat-input' || e.target.closest('.chat-input-bar');
@@ -1216,6 +1297,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (infoSheetCta) {
         infoSheetCta.addEventListener('click', closeInfoBottomSheet);
     }
+    
+    // Houzy pill: shortcut to list view (All flows) – user picks SRP or other flows
+    const chatTitleBtn = document.getElementById('chat-title-btn');
+    function openSRPShortcut() {
+        if (typeof window.__openSRPDirect === 'function') window.__openSRPDirect();
+    }
+    if (chatTitleBtn) chatTitleBtn.addEventListener('click', openSRPShortcut);
     
     // Prime viewport on chat screen initialization
     primeViewport();
@@ -1720,60 +1808,75 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
-        // Render bot message - appears below user message, no auto-scroll
-        function addBotMessage(text, showTyping = true) {
-            // Show typing indicator first
-            if (showTyping) {
-                showTypingIndicator();
+        // Stream bot text word-by-word (ChatGPT-style) – ~50ms per word
+        const STREAM_WORD_MS = 50;
+
+        function streamTextIntoElement(element, text, wordMs, onComplete) {
+            const words = (text || '').trim() ? (text || '').trim().split(/(\s+)/) : [];
+            let idx = 0;
+            function next() {
+                if (idx >= words.length) { if (onComplete) onComplete(); return; }
+                element.textContent += words[idx];
+                idx++;
+                setTimeout(next, wordMs || STREAM_WORD_MS);
             }
-            
-            // 3 second loading for each bot reply (typing indicator + rotating text)
-            const delay = showTyping ? 3000 : 0;
-            
+            next();
+        }
+
+        // Render bot message - appears below user message, streams word-by-word
+        function addBotMessage(text, showTyping = true) {
+            if (showTyping) showTypingIndicator();
+
+            const delay = showTyping ? 1800 : 0;
+            const fullText = text.trim();
+            const words = fullText ? fullText.split(/(\s+)/) : []; /* preserve spaces */
+
             setTimeout(() => {
-                // Hide typing indicator
                 hideTypingIndicator();
-                
-            const msgId = generateMessageId();
-            const message = {
-                id: msgId,
-                role: 'bot',
-                    text: text.trim(),
-                    timestamp: Date.now()
-            };
-            messages.push(message);
-                
-                // Create message element
+
+                const msgId = generateMessageId();
+                const message = { id: msgId, role: 'bot', text: fullText, timestamp: Date.now() };
+                messages.push(message);
+
                 const msgDiv = document.createElement('div');
                 msgDiv.id = msgId;
                 msgDiv.className = 'msg msg-bot';
-                
+
                 const botContent = document.createElement('div');
                 botContent.className = 'bot-message-content';
-                
+
                 const botText = document.createElement('div');
                 botText.className = 'bot-text';
-                botText.textContent = text.trim();
-                
+
                 botContent.appendChild(botText);
-                const feedbackButtons = createFeedbackButtons(msgId);
-                botContent.appendChild(feedbackButtons);
                 msgDiv.appendChild(botContent);
-                
-            // Add to chat stack
-            const stack = domCache.chatStack;
-            if (stack) {
-                stack.appendChild(msgDiv);
-                
-                // Haptic feedback when bot message appears
-                triggerHapticFeedback('medium');
-                
-                // Bot messages appear below user message - no auto-scroll
-                // User can see it in context without page jumping
-            }
+
+                const stack = domCache.chatStack;
+                if (stack) stack.appendChild(msgDiv);
+                triggerHapticFeedback('light');
+
+                if (words.length === 0) {
+                    const feedbackButtons = createFeedbackButtons(msgId);
+                    botContent.appendChild(feedbackButtons);
+                    return;
+                }
+
+                let idx = 0;
+                function streamNext() {
+                    if (idx >= words.length) {
+                        const feedbackButtons = createFeedbackButtons(msgId);
+                        botContent.appendChild(feedbackButtons);
+                        triggerHapticFeedback('medium');
+                        return;
+                    }
+                    botText.textContent += words[idx];
+                    idx++;
+                    setTimeout(streamNext, STREAM_WORD_MS);
+                }
+                setTimeout(streamNext, 0);
             }, delay);
-            
-            return 'typing'; // Return placeholder ID while typing
+
+            return 'typing';
         }
         
         // Locality / "tell me about [place]" info cards (Figma Case 1 structure)
@@ -1911,8 +2014,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 botContent.appendChild(h2Overview);
                 
                 const pOverview = document.createElement('p');
-                pOverview.textContent = overview;
                 botContent.appendChild(pOverview);
+                streamTextIntoElement(pOverview, overview, STREAM_WORD_MS);
                 
                 if (highlights.length > 0) {
                     const hr2 = document.createElement('hr');
@@ -1954,8 +2057,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     h2P.textContent = 'Property types';
                     botContent.appendChild(h2P);
                     const pP = document.createElement('p');
-                    pP.textContent = card.propertyTypesText;
                     botContent.appendChild(pP);
+                    streamTextIntoElement(pP, card.propertyTypesText, STREAM_WORD_MS);
                 }
                 
                 const feedbackButtons = createFeedbackButtons(msgId);
@@ -2467,6 +2570,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 .replace(/[^\w\s]/g, ' ')       // Replace special chars with space
                 .replace(/\s+/g, ' ')           // Normalize spaces again
                 .trim();
+        }
+
+        // "All cases" trigger: exact or fuzzy (Levenshtein <= 2, or tokens "all" + "case")
+        function isAllCasesMessage(text) {
+            if (!text || typeof text !== 'string') return false;
+            const normalized = text.toLowerCase().replace(/\s+/g, ' ').trim();
+            const target = 'all cases';
+            if (normalized === target) return true;
+            const dist = levenshteinDistance(normalized, target);
+            if (dist <= 2) return true;
+            const tokens = normalized.split(/\s+/).filter(Boolean);
+            const hasAll = tokens.some(t => t.includes('all') || 'all'.includes(t));
+            const hasCase = tokens.some(t => t.includes('case') || 'case'.includes(t) || t === 'cases');
+            if (hasAll && hasCase) return true;
+            return false;
         }
         
         // Fuzzy match common words with typos - more aggressive matching
@@ -3728,6 +3846,567 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return cards;
         }
+
+        /** SRP Search screen – from Figma "Final" frame (1147:14005). Opened ONLY by the top SRP search bar. Not wired to AI bottom. */
+        function openSrpSearch() {
+            removeElementById('srp-search-screen');
+            var screen = document.createElement('div');
+            screen.id = 'srp-search-screen';
+            screen.className = 'srp-search-screen';
+            screen.setAttribute('aria-label', 'Search');
+            var header = document.createElement('div');
+            header.className = 'srp-search-header';
+            var backBtn = document.createElement('button');
+            backBtn.type = 'button';
+            backBtn.className = 'srp-search-back';
+            backBtn.setAttribute('aria-label', 'Back');
+            backBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+            var appRow = document.createElement('div');
+            appRow.className = 'srp-search-app-row';
+            appRow.innerHTML = '<span class="srp-search-buy-label">Buy</span><div class="srp-search-location"><span class="srp-search-location-text">Bangalore</span><svg class="srp-search-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg></div>';
+            var searchBarWrap = document.createElement('div');
+            searchBarWrap.className = 'srp-search-bar-wrap';
+            var searchInput = document.createElement('input');
+            searchInput.type = 'text';
+            searchInput.className = 'srp-search-input';
+            searchInput.placeholder = '2BHK in Bangalore';
+            searchInput.setAttribute('autocomplete', 'off');
+            var searchBarRight = document.createElement('div');
+            searchBarRight.className = 'srp-search-bar-right';
+            searchBarRight.innerHTML = '<span class="srp-search-bar-sep"></span><span class="srp-search-bar-dot" aria-hidden="true"></span>';
+            searchBarWrap.appendChild(searchInput);
+            searchBarWrap.appendChild(searchBarRight);
+            header.appendChild(backBtn);
+            header.appendChild(appRow);
+            header.appendChild(searchBarWrap);
+            screen.appendChild(header);
+            var scroll = document.createElement('div');
+            scroll.className = 'srp-search-scroll';
+            var cardNoResults = document.createElement('div');
+            cardNoResults.className = 'srp-search-card srp-search-card-no-results';
+            cardNoResults.innerHTML = '<div class="srp-search-no-results-head"><span class="srp-search-card-title">No results found</span><div class="srp-search-no-results-logo"><img src="Bottom logo.jpg" alt="Houzy" class="srp-search-houzy-logo houzy-icon-bounce" onerror="this.src=\'chat-bot.png\'" width="40" height="40"></div></div><p class="srp-search-no-results-text">But I can help you find more relevant homes.</p><button type="button" class="srp-search-cta-primary srp-search-cta-use-houzy">Use Houzy</button>';
+            scroll.appendChild(cardNoResults);
+            var cardLocalities = document.createElement('div');
+            cardLocalities.className = 'srp-search-card';
+            cardLocalities.innerHTML = '<div class="srp-search-card-head"><span class="srp-search-card-title">Popular localities</span></div><div class="srp-search-localities"><div class="srp-search-loc-card"><span class="srp-search-loc-name">Kharadi</span><span class="srp-search-loc-price">₹30.2K/sq.ft.</span></div><div class="srp-search-loc-card"><span class="srp-search-loc-name">DLF Avenue</span><span class="srp-search-loc-price">₹30.2K/sq.ft.</span></div><div class="srp-search-loc-card"><span class="srp-search-loc-name">Hadaspur</span><span class="srp-search-loc-price">₹30.2K/sq.ft.</span></div></div>';
+            scroll.appendChild(cardLocalities);
+            screen.appendChild(scroll);
+            backBtn.onclick = function() {
+                screen.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                screen.style.transform = 'translateX(100%)';
+                setTimeout(function() {
+                    screen.remove();
+                }, 300);
+            };
+            function openChatFromSearch() {
+                backBtn.click();
+                setTimeout(function() {
+                    var chatScreen = document.getElementById('chat-screen');
+                    var mainInput = document.getElementById('user-input') || document.getElementById('chat-input');
+                    if (chatScreen) {
+                        chatScreen.classList.add('active');
+                        chatScreen.classList.add('chat-started');
+                        if (typeof setChatOffsets === 'function') setChatOffsets();
+                        document.body.style.overflow = 'hidden';
+                    }
+                    if (mainInput) setTimeout(function() { mainInput.focus(); }, 100);
+                }, 320);
+            }
+            var useHouzyBtn = cardNoResults.querySelector('.srp-search-cta-use-houzy');
+            if (useHouzyBtn) useHouzyBtn.onclick = openChatFromSearch;
+            document.body.appendChild(screen);
+            screen.style.transform = 'translateX(100%)';
+            screen.style.transition = 'none';
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    screen.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    screen.style.transform = 'translateX(0)';
+                });
+            });
+            setTimeout(function() { searchInput.focus(); }, 320);
+        }
+
+        // All flows page (triggered by "all cases") - slides in from right, list UI
+        function showAllFlowsPage() {
+            removeElementById('all-flows-page');
+            const page = document.createElement('div');
+            page.id = 'all-flows-page';
+            page.className = 'all-flows-page';
+            page.setAttribute('aria-label', 'All flows');
+            const backBtn = document.createElement('button');
+            backBtn.type = 'button';
+            backBtn.className = 'all-flows-back';
+            backBtn.setAttribute('aria-label', 'Back');
+            backBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+            backBtn.onclick = function() {
+                page.style.transform = 'translateX(100%)';
+                page.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                setTimeout(() => {
+                    page.remove();
+                    document.body.style.overflow = '';
+                }, 300);
+            };
+            const heading = document.createElement('h1');
+            heading.className = 'all-flows-heading';
+            heading.textContent = 'All flows';
+            const list = document.createElement('div');
+            list.className = 'all-flows-list';
+            const rowIconSvg = '<svg class="all-flows-row-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#222" viewBox="0 0 256 256" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm45.66-109.66a8,8,0,0,1,0,11.32l-40,40a8,8,0,0,1-11.32,0l-40-40a8,8,0,0,1,11.32-11.32L128,140.69l34.34-34.35A8,8,0,0,1,173.66,106.34Z"></path></svg>';
+            const categories = ['SRP flows'];
+            const subCount = 6;
+            categories.forEach((label) => {
+                const item = document.createElement('div');
+                item.className = 'all-flows-item';
+                const row = document.createElement('button');
+                row.type = 'button';
+                row.className = 'all-flows-row';
+                row.innerHTML = `<span class="all-flows-row-label">${label}</span>${rowIconSvg}`;
+                const sub = document.createElement('div');
+                sub.className = 'all-flows-sub';
+                for (let i = 1; i <= subCount; i++) {
+                    const subRow = document.createElement('button');
+                    subRow.type = 'button';
+                    subRow.className = 'all-flows-sub-row';
+                    subRow.textContent = label === 'SRP flows' && i === 1 ? 'No results' : (label === 'SRP flows' && i === 2 ? 'Broad/Vague Search' : (label === 'SRP flows' && i === 3 ? 'Multiple Filter Changes' : (label === 'SRP flows' && i === 4 ? 'Passive scrolling' : (label === 'SRP flows' && i === 5 ? 'NP: Too many results' : (label === 'SRP flows' && i === 6 ? 'Multiple times sorting' : 'Case ' + i)))));
+                    var srpProperties = [
+                        { title: 'Sikka Karnam Greens', meta: '2, 3, 4 BHK Apartment', price: '₹35.4 L - ₹1.15 Cr' },
+                        { title: 'DLF Gardencity', meta: '3, 4 BHK', price: '₹1.2 Cr - ₹2.1 Cr' },
+                        { title: 'Sunil Apartment Home', meta: '2, 3, 4 BHK', price: '₹2.04 Cr - ₹3.06 Cr' },
+                        { title: 'Emaar Palm Heights', meta: '3, 4 BHK Apartment', price: '₹2.5 Cr onwards' },
+                        { title: 'Raheja Residency', meta: '2, 3 BHK', price: '₹85 L - ₹1.4 Cr' }
+                    ];
+                    subRow.onclick = function(e) {
+                        e.stopPropagation();
+                        if (label === 'SRP flows' && i === 1) {
+                            removeElementById('all-flows-page');
+                            showSRPCase1Page({ headlineText: 'Want to try opening up your search a bit?', empty: false, properties: srpProperties, srpContext: 'no-results' });
+                        } else if (label === 'SRP flows' && i === 2) {
+                            removeElementById('all-flows-page');
+                            showSRPCase1Page({ headlineText: 'Want help narrowing this down?', empty: false, properties: srpProperties, srpContext: 'broad-search' });
+                        } else if (label === 'SRP flows' && i === 3) {
+                            removeElementById('all-flows-page');
+                            showSRPCase1Page({ headlineText: 'I can help you discover properties faster', empty: false, properties: srpProperties, srpContext: 'filter-changes' });
+                        } else if (label === 'SRP flows' && i === 4) {
+                            removeElementById('all-flows-page');
+                            var passiveProps = srpProperties.concat(srpProperties);
+                            showSRPCase1Page({ headlineText: 'Looking for something specific?', empty: false, properties: passiveProps, srpContext: 'passive-scroll' });
+                        } else if (label === 'SRP flows' && i === 5) {
+                            removeElementById('all-flows-page');
+                            var tooManyProps = srpProperties.concat(srpProperties);
+                            showSRPCase1Page({ headlineText: 'Want me to shortlist the best ones?', empty: false, properties: tooManyProps, srpContext: 'too-many-results' });
+                        } else if (label === 'SRP flows' && i === 6) {
+                            removeElementById('all-flows-page');
+                            showSRPCase1Page({ headlineText: 'Want smarter sorting for your needs?', empty: false, properties: srpProperties, srpContext: 'sort-multiple' });
+                        } else if (window.__CHAT_DEBUG__) console.log('[All flows] Sub tapped:', label, 'Case', i);
+                    };
+                    sub.appendChild(subRow);
+                }
+                row.onclick = function() {
+                    const isOpen = item.classList.toggle('is-open');
+                    if (window.__CHAT_DEBUG__) console.log('[All flows] Row toggled:', label, isOpen ? 'open' : 'closed');
+                };
+                item.appendChild(row);
+                item.appendChild(sub);
+                item.classList.add('is-open');
+                list.appendChild(item);
+            });
+
+            page.appendChild(backBtn);
+            page.appendChild(heading);
+            page.appendChild(list);
+            document.body.appendChild(page);
+            document.body.style.overflow = 'hidden';
+            page.style.transform = 'translateX(100%)';
+            page.style.transition = 'none';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    page.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    page.style.transform = 'translateX(0)';
+                });
+            });
+        }
+
+        /**
+         * Show SRP Case page – pixel-perfect to Figma SRP. Reusable for no-properties (Case 1) or random SRP with cards.
+         * @param {Object} options
+         * @param {string} [options.headlineText] - Text above AI search bar
+         * @param {boolean} [options.empty=true] - If true, show "No properties found" widget on top only
+         * @param {Array} [options.properties] - Optional list of { title, meta, price, image } for cards (Unsplash used if image not provided)
+         */
+        function showSRPCase1Page(options) {
+            options = options || {};
+            const headlineText = options.headlineText || 'Want to try opening up your search a bit?';
+            const empty = options.empty !== false;
+            const properties = options.properties || [];
+            const srpContext = options.srpContext || null; /* 'no-results' | 'broad-search' | 'filter-changes' | 'passive-scroll' | 'too-many-results' | 'sort-multiple' when from those flows */
+
+            removeElementById('srp-case-1-page');
+            const page = document.createElement('div');
+            page.id = 'srp-case-1-page';
+            page.className = 'srp-case-page';
+
+            function closePage() {
+                removeElementById('srp-sort-bottom-sheet');
+                page.style.transform = 'translateX(100%)';
+                page.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                setTimeout(function() {
+                    page.remove();
+                    delete document.body.dataset.returnToCase1;
+                    /* SRP back → options page (All flows list) */
+                    showAllFlowsPage();
+                }, 300);
+            }
+
+            // Figma SRP: header 72px white, 16px padding, back + search (352px content width)
+            const header = document.createElement('div');
+            header.className = 'srp-case-header';
+            const backBtn = document.createElement('button');
+            backBtn.type = 'button';
+            backBtn.className = 'srp-case-back';
+            backBtn.setAttribute('aria-label', 'Back');
+            backBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#222" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+            backBtn.onclick = closePage;
+            const searchRow = document.createElement('div');
+            searchRow.className = 'srp-case-search-row';
+            const searchField = document.createElement('input');
+            searchField.type = 'text';
+            searchField.className = 'srp-case-search-field';
+            searchField.placeholder = 'What are you looking for?';
+            searchField.setAttribute('readonly', 'readonly');
+            const searchWrap = document.createElement('div');
+            searchWrap.className = 'srp-case-search-field-wrap';
+            const searchIcon = document.createElement('span');
+            searchIcon.className = 'srp-case-search-icon';
+            searchIcon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#5e23dc" viewBox="0 0 256 256"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>';
+            const sep = document.createElement('span');
+            sep.className = 'srp-case-search-separator';
+            const searchBtn = document.createElement('button');
+            searchBtn.type = 'button';
+            searchBtn.className = 'srp-case-search-btn';
+            searchBtn.setAttribute('aria-label', 'Search');
+            searchBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M240,128a15.79,15.79,0,0,1-10.5,15l-63.44,23.07L143,229.5a16,16,0,0,1-30,0L89.94,166.06,26.5,143a16,16,0,0,1,0-30L89.94,89.94,113,26.5a16,16,0,0,1,30,0l23.07,63.44L229.5,113A15.79,15.79,0,0,1,240,128Z"></path></svg>';
+            searchBtn.onclick = function() { openChatFromCase1(); };
+            searchWrap.appendChild(searchField);
+            searchWrap.appendChild(searchIcon);
+            searchWrap.appendChild(sep);
+            searchWrap.appendChild(searchBtn);
+            searchRow.appendChild(backBtn);
+            searchRow.appendChild(searchWrap);
+            header.appendChild(searchRow);
+
+            // TOP SRP search bar only (above filters): tap opens Figma Search screen. AI bottom (Ask Houzy pill/headline) is NOT wired here – it opens chat only.
+            function openSearchFromTopBar(e) {
+                if (e.target.closest('.srp-case-back') || e.target.closest('.srp-case-search-btn')) return;
+                if (!e.target.closest('.srp-case-header')) return; // only header top bar, never AI bottom
+                e.preventDefault();
+                e.stopPropagation();
+                openSrpSearch();
+            }
+            searchWrap.addEventListener('click', openSearchFromTopBar);
+            searchField.addEventListener('click', openSearchFromTopBar);
+
+            // Tabs: All, Projects, New launches, Owner, Ready to move – each with distinct icon
+            const tabsRow = document.createElement('div');
+            tabsRow.className = 'srp-case-tabs-row';
+            const tabItems = [
+                { label: 'All', icon: 'grid' },
+                { label: 'Projects', icon: 'building' },
+                { label: 'New launches', icon: 'star' },
+                { label: 'Owner', icon: 'user' },
+                { label: 'Ready to move', icon: 'check' }
+            ];
+            tabItems.forEach(function(item, i) {
+                const tab = document.createElement('button');
+                tab.type = 'button';
+                tab.className = 'srp-case-tab' + (i === 0 ? ' active' : '');
+                var iconSvg = getSRPTabIcon ? getSRPTabIcon(item.icon) : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
+                tab.innerHTML = '<span class="srp-case-tab-icon">' + iconSvg + '</span><span class="srp-case-tab-label">' + item.label + '</span>';
+                tabsRow.appendChild(tab);
+            });
+            header.appendChild(tabsRow);
+
+            // Filters: Sort icon first, then Filters (3), Budget, BHK type, Property type
+            const filtersRow = document.createElement('div');
+            filtersRow.className = 'srp-case-filters-row';
+            var sortIconSvg = '<svg class="srp-case-sort-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M200,136a8,8,0,0,1-8,8H64a8,8,0,0,1,0-16H192A8,8,0,0,1,200,136Zm32-56H24a8,8,0,0,0,0,16H232a8,8,0,0,0,0-16Zm-80,96H104a8,8,0,0,0,0,16h48a8,8,0,0,0,0-16Z"></path></svg>';
+            var sortBtn = document.createElement('button');
+            sortBtn.type = 'button';
+            sortBtn.className = 'srp-case-sort-btn';
+            sortBtn.setAttribute('aria-label', 'Sort');
+            sortBtn.innerHTML = sortIconSvg;
+            filtersRow.appendChild(sortBtn);
+            var arrowSvg = '<svg class="srp-case-filter-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+            const filterItems = [
+                { label: 'Filters (3)', active: true },
+                { label: 'Budget', active: false },
+                { label: 'BHK type', active: false },
+                { label: 'Property type', active: false }
+            ];
+            filterItems.forEach(function(f) {
+                const pill = document.createElement('button');
+                pill.type = 'button';
+                pill.className = 'srp-case-filter-pill' + (f.active ? ' active' : '') + (f.clear ? ' clear' : '');
+                pill.innerHTML = '<span>' + f.label + '</span>' + arrowSvg;
+                filtersRow.appendChild(pill);
+            });
+            header.appendChild(filtersRow);
+
+            const main = document.createElement('div');
+            main.className = 'srp-case-main';
+
+            if (empty) {
+                var noProps = document.createElement('div');
+                noProps.className = 'srp-case-no-properties';
+                noProps.innerHTML = `
+                    <div class="srp-case-no-properties-icon" aria-hidden="true"></div>
+                    <h2 class="srp-case-no-properties-headline">No properties found</h2>
+                    <p class="srp-case-no-properties-sub">Try adjusting your filters or search</p>
+                `;
+                main.appendChild(noProps);
+            }
+
+            if (properties.length > 0) {
+                var cardsWrap = document.createElement('div');
+                cardsWrap.className = 'srp-case-cards';
+                var imgPool = ['HOUSE 1.jpg', 'HOUSE 2.jpg', 'HOUSE 3.jpg', 'HOUSE 4.jpg', 'HOUSE 5.jpg'];
+                function pickRandomImg() { return imgPool[Math.floor(Math.random() * imgPool.length)]; }
+                function imgUrl(path) { return encodeURI(path); }
+                // Main listing cards – two images, Verified/RERA, 3D view, owner, View Number / Call
+                for (var j = 0; j < Math.max(1, properties.length); j++) {
+                    var p = properties[j] || properties[0];
+                    var g1 = p.image ? encodeURI(p.image) : imgUrl(pickRandomImg());
+                    var g2 = p.image ? encodeURI(p.image) : imgUrl(pickRandomImg());
+                    var listing = document.createElement('div');
+                    listing.className = 'srp-case-card listing';
+                    listing.innerHTML = `
+                        <div class="srp-case-gallery">
+                            <div class="srp-case-gallery-img" style="background-image:url('${g1}')">
+                                <span class="srp-case-badge left">Verified</span>
+                                <span class="srp-case-badge right">RERA</span>
+                                <span class="srp-case-gallery-counter">1/23</span>
+                                <a href="#" class="srp-case-3d-link">3D view &gt;</a>
+                            </div>
+                            <div class="srp-case-gallery-img" style="background-image:url('${g2}')">
+                                <button type="button" class="srp-case-gallery-fav" aria-label="Save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg></button>
+                                <span class="srp-case-listing-ago">1d ago</span>
+                            </div>
+                        </div>
+                        <div class="srp-case-listing-body">
+                            <p class="srp-case-listing-status">Ready to Move • Avg. Price/ sq.ft. ₹14k</p>
+                            <p class="srp-case-listing-bhk">3 BHK Apartment</p>
+                            <p class="srp-case-listing-price">₹2.85 Cr</p>
+                            <p class="srp-case-listing-project">${p.title || 'Ariisto Bellanza Phase 1 Wing Apartments Phase II'}</p>
+                            <p class="srp-case-listing-address">Sector 81, near Dwarka Expressway, New Gurgaon</p>
+                            <div class="srp-case-owner-row">
+                                <div class="srp-case-owner">
+                                    <div class="srp-case-owner-avatar" style="background-image:url(https://i.pravatar.cc/80?img=12)"></div>
+                                    <div>
+                                        <p class="srp-case-owner-name">Yashsvir Singh</p>
+                                        <p class="srp-case-owner-role">Owner</p>
+                                    </div>
+                                </div>
+                                <div class="srp-case-owner-actions">
+                                    <button type="button" class="srp-case-btn-view-number">View Number</button>
+                                    <button type="button" class="srp-case-call-btn" aria-label="Call"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="#fff" viewBox="0 0 256 256"><path d="M231.88,175.08A56.26,56.26,0,0,1,176,224C96.6,224,32,159.4,32,80A56.26,56.26,0,0,1,80.92,24.12a16,16,0,0,1,16.62,9.52l21.12,47.15,0,.12A16,16,0,0,1,117.39,96c-.18.27-.37.52-.57.77L96,121.45c7.49,15.22,23.41,31,38.83,38.51l24.34-20.71a8.12,8.12,0,0,1,.75-.56,16,16,0,0,1,15.17-1.4l.13.06,47.11,21.11A16,16,0,0,1,231.88,175.08Z"></path></svg></button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    cardsWrap.appendChild(listing);
+                }
+                main.appendChild(cardsWrap);
+            }
+
+            // Single container: nav and AI are two layers inside; height + opacity transition (no mount/unmount)
+            const bottomWrap = document.createElement('div');
+            bottomWrap.className = 'srp-case-bottom-wrap';
+
+            // Figma Property 1=Bottom: 60px, white, #e8e8e8 border
+            const navSvg = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#434343" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+            const initialBottom = document.createElement('div');
+            initialBottom.className = 'srp-case-initial-bottom';
+            initialBottom.innerHTML = `
+                <div class="srp-case-nav-items">
+                    <button type="button" class="srp-case-nav-item"><span class="srp-case-nav-icon">${navSvg}</span><span class="srp-case-nav-label">Suggestions</span></button>
+                    <button type="button" class="srp-case-nav-item"><span class="srp-case-nav-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#434343" stroke-width="1.5"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg></span><span class="srp-case-nav-label">Saved</span></button>
+                    <button type="button" class="srp-case-nav-item"><span class="srp-case-nav-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#434343" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><span class="srp-case-nav-label">Profile</span></button>
+                    <button type="button" class="srp-case-nav-item"><span class="srp-case-nav-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#434343" stroke-width="1.5"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4M9 9v.01M9 12v.01M9 15v.01M9 18v.01"/></svg></span><span class="srp-case-nav-label">Project</span></button>
+                </div>
+            `;
+
+            // Figma Property 1=AI bottom: exact structure – headline, pill 352×48 radius 12, placeholder "Ask Houzy", logo (no send icon)
+            const aiBottom = document.createElement('div');
+            aiBottom.className = 'srp-case-ai-bottom';
+            aiBottom.innerHTML = `
+                <div class="srp-case-ai-headline case-page-headline-shimmer" data-text="${headlineText.replace(/"/g, '&quot;')}">${headlineText}</div>
+                <div class="srp-case-ai-pill">
+                    <div class="srp-case-ai-pill-inner">
+                        <span class="srp-case-ai-placeholder">Ask Houzy</span>
+                        <div class="srp-case-ai-logo case-page-logo-spin" aria-hidden="true">
+                            <img src="Bottom logo.jpg" alt="" width="20" height="20" class="srp-case-ai-logo-img" onerror="this.src='chat-bot.png'">
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            bottomWrap.appendChild(initialBottom);
+            bottomWrap.appendChild(aiBottom);
+            page.appendChild(header);
+            page.appendChild(main);
+            page.appendChild(bottomWrap);
+
+            // Click on search bar (pill or headline) → open AI chat; SRP stays visible behind chat. Back in chat returns here.
+            function openChatFromCase1() {
+                document.body.dataset.returnToCase1 = page.id;
+                page.style.zIndex = '10001';
+                var chatScreen = document.getElementById('chat-screen');
+                var chatBackBtn = document.getElementById('chat-back-btn');
+                if (chatScreen) {
+                    chatScreen.classList.add('active');
+                    chatScreen.classList.add('chat-started');
+                    if (typeof setChatOffsets === 'function') setChatOffsets();
+                    chatBackBtn.removeAttribute('disabled');
+                    chatBackBtn.removeAttribute('tabindex');
+                    document.body.style.overflow = 'hidden';
+                }
+                var mainInput = document.getElementById('user-input') || document.getElementById('chat-input');
+                if (mainInput) setTimeout(function() { mainInput.focus(); }, 100);
+                if (srpContext === 'no-results' && typeof addBotMessage === 'function') {
+                    setTimeout(function() {
+                        addBotMessage("Hmm, not many options here. Want me to suggest nearby areas or adjust filters to find more properties?", true);
+                    }, 400);
+                }
+                if (srpContext === 'broad-search' && typeof addBotMessage === 'function') {
+                    setTimeout(function() {
+                        addBotMessage("Hey! Looks like you're exploring broadly. Tell me what matters most, budget, location, size? I'll find the right fit.", true);
+                    }, 400);
+                }
+                if (srpContext === 'filter-changes' && typeof addBotMessage === 'function') {
+                    setTimeout(function() {
+                        addBotMessage("Looks like you're still searching for the right combo. Just tell me what you need, I'll set the filters for you.", true);
+                    }, 400);
+                }
+                if (srpContext === 'passive-scroll' && typeof addBotMessage === 'function') {
+                    setTimeout(function() {
+                        addBotMessage("You've scrolled a lot but nothing clicked yet. What's missing? Tell me and I'll filter it down.", true);
+                    }, 400);
+                }
+                if (srpContext === 'too-many-results' && typeof addBotMessage === 'function') {
+                    setTimeout(function() {
+                        addBotMessage("There's a lot here! Want me to shortlist the top 5 that actually match what you're looking for?", true);
+                    }, 400);
+                }
+                if (srpContext === 'sort-multiple' && typeof addBotMessage === 'function') {
+                    setTimeout(function() {
+                        addBotMessage("Can't find the right order? Tell me your priority, price, size, new listings, I'll sort it for you.", true);
+                    }, 400);
+                }
+            }
+            var pill = aiBottom.querySelector('.srp-case-ai-pill');
+            var headline = aiBottom.querySelector('.srp-case-ai-headline');
+            if (pill) pill.addEventListener('click', openChatFromCase1);
+            if (headline) headline.addEventListener('click', openChatFromCase1);
+
+            document.body.appendChild(page);
+            document.body.style.overflow = 'hidden';
+
+            page.style.transform = 'translateX(100%)';
+            page.style.transition = 'none';
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    page.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                    page.style.transform = 'translateX(0)';
+                });
+            });
+
+            if (srpContext === 'filter-changes') {
+                var filterClickCount = 0;
+                var filterPills = page.querySelectorAll('.srp-case-filter-pill');
+                function maybeShowAiBottom() {
+                    filterClickCount++;
+                    if (filterClickCount >= 3) {
+                        bottomWrap.classList.add('is-ai-visible');
+                        filterPills.forEach(function(p) {
+                            p.removeEventListener('click', onFilterClick);
+                        });
+                    }
+                }
+                function onFilterClick() { maybeShowAiBottom(); }
+                filterPills.forEach(function(pill) {
+                    pill.addEventListener('click', onFilterClick);
+                });
+            } else if (srpContext === 'sort-multiple') {
+                if (sortBtn) {
+                    sortBtn.addEventListener('click', function openSortSheet(e) {
+                        if (e) { e.preventDefault(); e.stopPropagation(); }
+                        removeElementById('srp-sort-bottom-sheet');
+                        var overlay = document.createElement('div');
+                        overlay.id = 'srp-sort-bottom-sheet';
+                        overlay.className = 'srp-sort-bottom-sheet';
+                        var sheetContent = document.createElement('div');
+                        sheetContent.className = 'srp-sort-sheet-content';
+                        var cta = document.createElement('button');
+                        cta.type = 'button';
+                        cta.className = 'srp-sort-sheet-cta';
+                        cta.textContent = 'Click me 5 times';
+                        var clickCount = 0;
+                        cta.addEventListener('click', function() {
+                            clickCount++;
+                            if (clickCount >= 5) {
+                                overlay.classList.remove('active');
+                                overlay.style.transition = 'opacity 0.2s';
+                                setTimeout(function() {
+                                    overlay.remove();
+                                    bottomWrap.classList.add('is-ai-visible');
+                                }, 200);
+                            }
+                        });
+                        sheetContent.appendChild(cta);
+                        var sheetOverlay = document.createElement('div');
+                        sheetOverlay.className = 'srp-sort-sheet-overlay';
+                        sheetOverlay.addEventListener('click', function() {
+                            overlay.classList.remove('active');
+                            setTimeout(function() { overlay.remove(); }, 200);
+                        });
+                        overlay.appendChild(sheetOverlay);
+                        overlay.appendChild(sheetContent);
+                        document.body.appendChild(overlay);
+                        overlay.style.opacity = '0';
+                        requestAnimationFrame(function() {
+                            overlay.classList.add('active');
+                            overlay.style.opacity = '1';
+                        });
+                    });
+                }
+            } else if (srpContext === 'passive-scroll') {
+                var scrollDepthReached = 0;
+                var mainEl = page.querySelector('.srp-case-main');
+                function onPassiveScroll() {
+                    if (!mainEl || scrollDepthReached >= 3) return;
+                    var maxScroll = mainEl.scrollHeight - mainEl.clientHeight;
+                    if (maxScroll <= 0) return;
+                    var pct = mainEl.scrollTop / maxScroll;
+                    if (pct >= 0.25) scrollDepthReached = Math.max(scrollDepthReached, 1);
+                    if (pct >= 0.5) scrollDepthReached = Math.max(scrollDepthReached, 2);
+                    if (pct >= 0.75) scrollDepthReached = Math.max(scrollDepthReached, 3);
+                    if (scrollDepthReached >= 3) {
+                        bottomWrap.classList.add('is-ai-visible');
+                        mainEl.removeEventListener('scroll', onPassiveScroll);
+                    }
+                }
+                if (mainEl) mainEl.addEventListener('scroll', onPassiveScroll, { passive: true });
+            } else {
+                var delayMs = 2000 + Math.random() * 1000;
+                setTimeout(function() {
+                    bottomWrap.classList.add('is-ai-visible');
+                }, delayMs);
+            }
+        }
+        
+        // Houzy pill / star icon: open list view (All flows) so user can pick SRP or other flows
+        window.__openSRPDirect = function() {
+            showAllFlowsPage();
+        };
         
         // Show Search Results Page (SRP) - Pixel-perfect Figma implementation (Monochrome)
         function showViewAllPage(allCards) {
@@ -3768,6 +4447,18 @@ document.addEventListener('DOMContentLoaded', function() {
             
             searchBar.appendChild(searchInput);
             searchBar.appendChild(searchBtn);
+            // View-all SRP: only the TOP search bar (above filters) opens Figma Search. Sparkle/buttons unchanged.
+            searchBar.addEventListener('click', function(e) {
+                if (e.target.closest('.srp-search-btn')) return;
+                e.preventDefault();
+                e.stopPropagation();
+                openSrpSearch();
+            });
+            searchInput.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openSrpSearch();
+            });
             header.appendChild(backBtn);
             header.appendChild(searchBar);
             
@@ -3882,7 +4573,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="ai-chat-stroke"></div>
                     <div class="ai-chat-content">
                         <div class="ai-chat-icon">
-                            <img src="chat-bot.png" alt="AI" class="ai-chat-houze-icon" />
+                            <img src="Bottom logo.jpg" alt="AI" class="ai-chat-houze-icon" onerror="this.src='chat-bot.png'" />
                         </div>
                         <input type="text" class="ai-chat-input" placeholder="Ask anything" readonly />
                         <button class="ai-icon-btn ai-mic-btn" aria-label="Voice input">
@@ -3928,13 +4619,9 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.appendChild(page);
             document.body.style.overflow = 'hidden';
             
-            // ========== SCROLL-BASED TAB COLLAPSE + AI CHAT TAKEOVER ==========
-            let isTabsCollapsed = false;
+            // ========== SCROLL-BASED AI CHAT TAKEOVER (tabs stay visible always) ==========
             let isAIChatActive = false;
             let rafPending = false;
-            const COLLAPSE_THRESHOLD = 150; // px to scroll before collapsing tabs
-            
-            // Hysteresis thresholds for AI chat (in viewport heights)
             const AI_ENTER_THRESHOLD = 0.8; // Show AI bar after 0.8x viewport (less scrolling needed)
             const AI_EXIT_THRESHOLD = 0.5;  // Hide AI bar when scrolling back above 0.5x viewport
             
@@ -3944,16 +4631,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const viewportHeight = window.innerHeight;
                 const scrollRatio = scrollTop / viewportHeight;
                 
-                // Tab collapse logic
-                if (scrollTop > COLLAPSE_THRESHOLD && !isTabsCollapsed) {
-                    isTabsCollapsed = true;
-                    tabsContainer.classList.add('collapsed');
-                } else if (scrollTop <= 50 && isTabsCollapsed) {
-                    isTabsCollapsed = false;
-                    tabsContainer.classList.remove('collapsed');
-                }
-                
-                // AI Chat bar takeover with hysteresis
+                // AI Chat bar takeover with hysteresis (tabs no longer collapse)
                 if (scrollRatio >= AI_ENTER_THRESHOLD && !isAIChatActive) {
                     isAIChatActive = true;
                     bottomNavContainer.classList.add('ai-active');
@@ -5087,11 +5765,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const botContent = document.createElement('div');
                 botContent.className = 'bot-message-content';
                 
-                // Add text (no bubble – ChatGPT-style)
+                // Add text (no bubble – ChatGPT-style, streamed)
                 const botText = document.createElement('div');
                 botText.className = 'bot-text';
-                botText.textContent = message.text;
-                
+
                 // Create brochure component – layout matches Figma "Property 1=Brochure"
                 const randomCoverImage = getRandomItem(PROPERTY_IMAGE_POOL);
                 const projectName = getRandomItem(BROCHURE_PROJECT_NAMES);
@@ -5162,10 +5839,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 botContent.appendChild(botText);
                 botContent.appendChild(brochureComponent);
-                
-                // Add feedback buttons
-                const feedbackButtons = createFeedbackButtons(msgId);
-                botContent.appendChild(feedbackButtons);
+                streamTextIntoElement(botText, message.text, STREAM_WORD_MS, function() {
+                    botContent.appendChild(createFeedbackButtons(msgId));
+                });
                 
                 msgDiv.appendChild(botContent);
                 
@@ -5508,17 +6184,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const botContent = document.createElement('div');
                 botContent.className = 'bot-message-content';
                 
-                // Add text (no bubble – ChatGPT-style)
+                // Add text (no bubble – ChatGPT-style, streamed)
                 const botText = document.createElement('div');
                 botText.className = 'bot-text';
-                botText.textContent = message.text;
-                
+
                 botContent.appendChild(botText);
                 botContent.appendChild(carousel);
-                
-                // Thumbs up, thumbs down, share (no copy, no View all)
-                const feedbackButtons = createPropertyCardsFeedbackRow();
-                botContent.appendChild(feedbackButtons);
+                streamTextIntoElement(botText, message.text, STREAM_WORD_MS, function() {
+                    botContent.appendChild(createPropertyCardsFeedbackRow());
+                });
                 
                 msgDiv.appendChild(botContent);
                 
@@ -6033,6 +6707,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     resetConversationState();
                     const response = getGreetingResponse();
                     addBotMessage(response);
+                } else if (isAllCasesMessage(text)) {
+                    // PATH: "All cases" → open All flows page (slide in from right)
+                    if (window.__CHAT_DEBUG__) console.log('[Intent] Routing to All flows page');
+                    showAllFlowsPage();
                 } else {
                     // Normalize input before processing (handles case, spacing, punctuation, typos)
                     const normalized = normalizeText(text);

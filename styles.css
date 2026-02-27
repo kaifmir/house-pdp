@@ -1099,6 +1099,17 @@ img {
     pointer-events: none;
 }
 
+/* Houzy nav item: entire button (icon + label) clickable – all clicks go to the button */
+.nav-item[data-nav="chat"] {
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+}
+.nav-item[data-nav="chat"] .nav-icon-wrapper,
+.nav-item[data-nav="chat"] .nav-icon-img,
+.nav-item[data-nav="chat"] .nav-label {
+    pointer-events: none !important;
+}
 .nav-item[data-nav="chat"] .nav-icon-wrapper {
     position: relative;
 }
@@ -1914,7 +1925,7 @@ html, body {
     animation: none !important;
 }
 
-/* Chat Screen - no page animation; already in place on load */
+/* Chat Screen */
 .chat-screen {
     --chat-bg: #FAFAFA;
     --chat-bg-rgb: 250, 250, 250;
@@ -1939,6 +1950,15 @@ html, body {
 .chat-screen.active {
     opacity: 1;
     pointer-events: all;
+}
+
+/* Slide in from right when opening from homepage (Houzy icon/text click) */
+.chat-screen.slide-from-right {
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.chat-screen.slide-from-right.active {
+    transform: translateX(0);
 }
 
 /* Step 3: Header - full width on mobile, responsive padding, middle-aligned */
@@ -2230,7 +2250,7 @@ html, body {
     opacity: 1;
     transform: translateY(0);
     max-height: 500px;
-    transition: opacity 0.5s ease-out, filter 0.55s ease-out, transform 0.35s ease-out, max-height 0.4s ease-out;
+    transition: opacity 0.28s cubic-bezier(0.33, 1, 0.68, 1), filter 0.55s ease-out, transform 0.28s cubic-bezier(0.33, 1, 0.68, 1), max-height 0.3s cubic-bezier(0.33, 1, 0.68, 1), padding 0.2s cubic-bezier(0.33, 1, 0.68, 1);
     will-change: opacity, transform, max-height;
     overflow: hidden;
     box-sizing: border-box;
@@ -2266,15 +2286,20 @@ html, body {
     display: none !important;
 }
 
-/* Keyboard / focus: hey + pills disappear softly (no jerk) */
+/* Keyboard / focus: pills fade out gently (opacity + translateY), then collapse height – no jerk.
+   opacity + transform animate first (250ms easeOutCubic), height reserved; max-height collapses after fade.
+   pointer-events disabled at ~50% via JS to avoid accidental taps. */
 .chat-intro.is-hidden {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(6px);
     max-height: 0;
     overflow: hidden;
-    pointer-events: none;
     padding: 0;
-    transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.08s;
+    transition:
+        opacity 0.25s cubic-bezier(0.33, 1, 0.68, 1),
+        transform 0.25s cubic-bezier(0.33, 1, 0.68, 1),
+        max-height 0.28s cubic-bezier(0.33, 1, 0.68, 1) 0.25s,
+        padding 0.12s cubic-bezier(0.33, 1, 0.68, 1) 0.25s;
 }
 
 .chat-hero-title {
@@ -6046,6 +6071,1587 @@ html, body {
 }
 
 /* ============================================================================
+   ALL FLOWS PAGE (trigger: "all cases") - list UI, slide in from right
+   ============================================================================ */
+.all-flows-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999999;
+    background: #faf9f7;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+}
+.all-flows-page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+    background-size: 16px 16px;
+    pointer-events: none;
+    z-index: 0;
+}
+.all-flows-back {
+    position: absolute;
+    top: calc(16px + env(safe-area-inset-top));
+    left: calc(16px + env(safe-area-inset-left));
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 2;
+    -webkit-tap-highlight-color: transparent;
+}
+.all-flows-back:active {
+    opacity: 0.7;
+}
+.all-flows-heading {
+    position: relative;
+    z-index: 1;
+    font-family: 'Rubik', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #222;
+    margin: 0;
+    padding: 80px 20px 24px;
+    line-height: 1.2;
+    text-align: left;
+}
+.all-flows-list {
+    position: relative;
+    z-index: 1;
+    padding: 0 20px 24px;
+}
+.all-flows-item {
+    border-bottom: 1px solid #222;
+}
+.all-flows-item:last-child {
+    border-bottom: none;
+}
+.all-flows-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 18px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+}
+.all-flows-row:active {
+    background: rgba(0,0,0,0.04);
+}
+.all-flows-row-label {
+    font-family: 'Rubik', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #222;
+}
+.all-flows-row-icon {
+    display: block;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+.all-flows-item.is-open .all-flows-row-icon {
+    transform: rotate(180deg);
+}
+.all-flows-sub {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    padding: 0;
+    transition: max-height 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.06s,
+                padding 0.35s ease-out;
+}
+.all-flows-item.is-open .all-flows-sub {
+    max-height: 400px;
+    opacity: 1;
+    padding: 0 0 12px;
+}
+.all-flows-sub-row {
+    display: block;
+    width: 100%;
+    padding: 14px 0 14px 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'Rubik', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: #434343;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* ============================================================================
+   SRP CASE 1 PAGE (empty / low results state) - slide from right, delayed AI swap
+   ============================================================================ */
+/* SRP page: responsive up to 500px width */
+.srp-case-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000000;
+    background: #f2f3f8;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    margin: 0 auto;
+    width: 100%;
+    max-width: 500px;
+    box-sizing: border-box;
+}
+
+.srp-case-back {
+    position: absolute;
+    top: calc(16px + env(safe-area-inset-top));
+    left: calc(16px + env(safe-area-inset-left));
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 2;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.srp-case-back svg {
+    display: block;
+    flex-shrink: 0;
+}
+
+.srp-case-back:active {
+    opacity: 0.7;
+}
+
+/* Figma SRP: header white 384, content 352 centered (16px L/R), 72px search row */
+.srp-case-header {
+    flex-shrink: 0;
+    width: 100%;
+    background: #ffffff;
+    padding: 0 16px;
+    padding-top: env(safe-area-inset-top);
+    box-sizing: border-box;
+}
+
+.srp-case-search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 72px;
+    padding: 12px 0;
+    box-sizing: border-box;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.srp-case-search-row .srp-case-back {
+    position: relative;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    top: auto;
+    left: auto;
+}
+
+.srp-case-search-row .srp-case-back svg {
+    width: 24px;
+    height: 24px;
+}
+
+.srp-case-search-field-wrap {
+    flex: 1;
+    min-width: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 12px;
+    background: #ffffff;
+    border: 1px solid #d8d8d8;
+    border-radius: 12px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    color: #434343;
+}
+
+.srp-case-search-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+}
+
+.srp-case-search-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.srp-case-search-separator {
+    flex-shrink: 0;
+    align-self: center;
+    width: 1px;
+    height: 28px;
+    margin: 0 8px;
+    background: #d8d8d8;
+}
+
+.srp-case-search-field {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    outline: none;
+}
+
+.srp-case-search-field::placeholder {
+    color: #767676;
+}
+
+.srp-case-search-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    margin-left: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: rgba(94, 35, 220, 0.45);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.srp-case-search-btn:hover,
+.srp-case-search-btn:active {
+    color: rgba(94, 35, 220, 0.65);
+}
+
+.srp-case-search-btn svg {
+    width: 22px;
+    height: 22px;
+}
+
+.srp-case-tabs-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 0 16px 8px;
+    height: 59px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.srp-case-tabs-row::-webkit-scrollbar {
+    display: none;
+}
+
+.srp-case-tab {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 12px 4px;
+    gap: 4px;
+    width: auto;
+    min-width: 48px;
+    height: 59px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+}
+
+.srp-case-tab-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #656565;
+    border-radius: 6px;
+}
+
+.srp-case-tab.active .srp-case-tab-icon {
+    color: #5e23dc;
+    background: rgba(94, 35, 220, 0.12);
+}
+
+.srp-case-tab-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.srp-case-tab-label {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    color: #656565;
+}
+
+.srp-case-tab.active .srp-case-tab-label {
+    color: #222222;
+}
+
+.srp-case-tab.active::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 3px;
+    background: #5e23dc;
+    border-radius: 2px;
+}
+
+/* SRP Search screen – pixel-perfect from Figma "Final" frame (1134:10761). Above SRP page. */
+.srp-search-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000001;
+    width: 100%;
+    max-width: 412px;
+    margin: 0 auto;
+    background: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.srp-search-header {
+    position: relative;
+    flex-shrink: 0;
+    min-height: 0;
+    padding: env(safe-area-inset-top) 16px 16px 16px;
+    background: linear-gradient(180deg, #f2ebfe 0%, #ffffff 100%);
+    box-sizing: border-box;
+}
+.srp-search-back {
+    position: absolute;
+    top: calc(env(safe-area-inset-top) + 8px);
+    left: 16px;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.srp-search-back svg {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+.srp-search-app-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 24px;
+    margin-top: 8px;
+    margin-left: 40px;
+    padding: 0;
+}
+.srp-search-buy-label {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #222222;
+    line-height: 16px;
+}
+.srp-search-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #222222;
+    line-height: 16px;
+}
+.srp-search-chevron {
+    flex-shrink: 0;
+}
+.srp-search-bar-wrap {
+    display: flex;
+    align-items: center;
+    height: 48px;
+    margin-top: 12px;
+    padding: 0 12px;
+    background: #ffffff;
+    border: 1px solid #222222;
+    border-radius: 12px;
+    box-sizing: border-box;
+}
+.srp-search-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: none;
+    background: none;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #222222;
+    outline: none;
+}
+.srp-search-input::placeholder {
+    color: #222222;
+}
+.srp-search-bar-right {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+.srp-search-bar-sep {
+    width: 1px;
+    height: 24px;
+    background: #f5f5f5;
+}
+.srp-search-bar-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #f2f3f8;
+    margin-left: 9px;
+}
+.srp-search-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom)) 16px;
+    box-sizing: border-box;
+}
+.srp-search-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+}
+.srp-search-card:last-child {
+    margin-bottom: 0;
+}
+.srp-search-card-head {
+    margin-bottom: 12px;
+}
+.srp-search-card-title {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #434343;
+    line-height: 16px;
+}
+.srp-search-card-no-results {
+    min-height: 0;
+    background: linear-gradient(#ffffff, #ffffff) padding-box,
+        linear-gradient(90deg, rgba(115, 84, 255, 0.5) 0%, rgba(229, 62, 196, 0.5) 100%) border-box;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    border: 1px solid transparent;
+}
+.srp-search-no-results-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.srp-search-no-results-head .srp-search-card-title {
+    flex: 1;
+    margin: 0;
+}
+.srp-search-no-results-logo {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.srp-search-houzy-logo {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+.srp-search-no-results-text {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #767676;
+    line-height: 20px;
+    margin: 0 0 12px 0;
+}
+.srp-search-card-no-results .srp-search-cta-primary {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    position: relative;
+    overflow: hidden;
+}
+.srp-search-card-no-results .srp-search-cta-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        105deg,
+        transparent 0%,
+        transparent 40%,
+        rgba(255, 255, 255, 0.15) 50%,
+        transparent 60%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: srp-cta-shimmer 4s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes srp-cta-shimmer {
+    0% { background-position: 120% 0; }
+    100% { background-position: -20% 0; }
+}
+.srp-search-card-no-results .srp-search-cta-primary > * {
+    position: relative;
+    z-index: 1;
+}
+.srp-search-card-no-results .srp-search-cta-chevron {
+    display: none;
+}
+.srp-search-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 348px;
+    height: 48px;
+    padding: 0 16px;
+    background: #5e23dc;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.srp-search-cta-primary:hover {
+    background: #4d1bb8;
+}
+.srp-search-cta-chevron {
+    flex-shrink: 0;
+}
+.srp-search-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.srp-search-pills-row2 {
+    margin-top: 8px;
+}
+.srp-search-pill {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 12px;
+    background: #ffffff;
+    border: 1px solid #e1e2e8;
+    border-radius: 8px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    color: #434343;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.srp-search-localities {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.srp-search-loc-card {
+    width: 120px;
+    height: 56px;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    border: 1px solid #e1e2e8;
+    border-radius: 8px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+.srp-search-loc-name {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #434343;
+    line-height: 16px;
+}
+.srp-search-loc-price {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    color: #767676;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+}
+.srp-search-trending {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.srp-search-trend-card {
+    width: 168px;
+    min-height: 88px;
+    padding: 8px 12px;
+    background: #ffffff;
+    border: 1px solid #e1e2e8;
+    border-radius: 8px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.srp-search-trend-name {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #434343;
+    line-height: 16px;
+}
+.srp-search-trend-loc {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    color: #656565;
+    line-height: 16px;
+}
+.srp-search-trend-price {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    color: #767676;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+}
+.srp-search-explore {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+    padding: 0 16px;
+    cursor: pointer;
+}
+.srp-search-explore-text {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #434343;
+    line-height: 16px;
+}
+
+.srp-case-filters-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px 16px;
+    min-height: 36px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.srp-case-sort-btn {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #656565;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.srp-case-sort-btn .srp-case-sort-icon-svg {
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
+}
+
+/* SRP Multiple times sorting: bottom sheet with "Click me 5 times" CTA */
+.srp-sort-bottom-sheet {
+    position: fixed;
+    inset: 0;
+    z-index: 10005;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+.srp-sort-bottom-sheet.active {
+    pointer-events: auto;
+    opacity: 1;
+}
+.srp-sort-sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+}
+.srp-sort-sheet-content {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+}
+.srp-sort-sheet-cta {
+    font-family: 'Rubik', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    background: #5e23dc;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 24px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+.srp-sort-sheet-cta:active {
+    opacity: 0.9;
+}
+
+.srp-case-filters-row::-webkit-scrollbar {
+    display: none;
+}
+
+.srp-case-filter-pill {
+    flex-shrink: 0;
+    height: 36px;
+    padding: 0 12px 0 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 1px solid #d8d8d8;
+    border-radius: 8px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #656565;
+    background: #ffffff;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.srp-case-filter-pill.active {
+    background: rgba(94, 35, 220, 0.15);
+    color: #5e23dc;
+    border-color: rgba(94, 35, 220, 0.5);
+}
+
+.srp-case-filter-pill .srp-case-filter-arrow {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+.srp-case-filter-pill.clear {
+    background: #ffffff;
+    color: #656565;
+    border: 1px solid #d8d8d8;
+}
+
+.srp-case-main {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px 16px 160px;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+/* No properties found widget */
+.srp-case-no-properties {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto 24px;
+    padding: 32px 24px;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.srp-case-no-properties-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    background: #e1e2e8;
+    border-radius: 50%;
+}
+
+.srp-case-no-properties-headline {
+    font-family: 'Rubik', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: #222222;
+    margin: 0 0 8px;
+    line-height: 1.3;
+}
+
+.srp-case-no-properties-sub {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #656565;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Property cards – responsive width, consistent spacing */
+.srp-case-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.srp-case-card {
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+    height: 88px;
+    background: #ffffff;
+    overflow: hidden;
+    box-sizing: border-box;
+    border-bottom: 1px solid #e1e2e8;
+}
+
+.srp-case-card:last-child {
+    border-bottom: none;
+}
+
+.srp-case-card-img {
+    width: 77px;
+    min-width: 77px;
+    height: 88px;
+    background: #e1e2e8;
+    background-size: cover;
+    background-position: center;
+}
+
+/* Figma first card: content at 93px from left → 8px gap after 77px image */
+.srp-case-card-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px 16px 8px 8px;
+}
+
+.srp-case-card-title {
+    font-family: 'Rubik', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    color: #222222;
+    margin: 0 0 2px;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.srp-case-card-meta {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    color: #767676;
+    margin: 0 0 2px;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.srp-case-card-price {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #222222;
+    margin: 0;
+    line-height: 1.25;
+}
+
+/* Sponsored card – light grey bg, + Sponsored tag, thumbnail left, Know more, purple call button */
+.srp-case-card.sponsored {
+    background: #e8e8ec;
+    border-radius: 12px;
+    border: none;
+    margin-bottom: 0;
+    padding: 12px;
+    height: auto;
+    min-height: 88px;
+}
+
+.srp-case-card.sponsored .srp-case-card-img {
+    width: 77px;
+    min-width: 77px;
+    height: 72px;
+    border-radius: 8px;
+}
+
+.srp-case-card.sponsored .srp-case-card-body-wrap {
+    position: relative;
+    padding: 0 0 0 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    flex: 1;
+    min-width: 0;
+}
+
+.srp-case-sponsored-tag {
+    font-family: 'Rubik', sans-serif;
+    font-size: 11px;
+    color: #767676;
+    margin-bottom: 4px;
+}
+
+.srp-case-card.sponsored .srp-case-card-title {
+    font-size: 15px;
+    margin: 0 0 2px;
+}
+
+.srp-case-card.sponsored .srp-case-card-meta {
+    font-size: 13px;
+    margin: 0 0 2px;
+}
+
+.srp-case-card.sponsored .srp-case-card-price {
+    font-size: 14px;
+    margin: 0 0 8px;
+}
+
+.srp-case-know-more {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 13px;
+    color: #5e23dc;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.srp-case-call-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #5e23dc;
+    color: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.srp-case-card.listing .srp-case-call-btn {
+    border-radius: 8px;
+}
+
+.srp-case-call-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Main listing card – white, two images, Verified/RERA, 3D view, owner row, View Number / WhatsApp / Call */
+.srp-case-card.listing {
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+    border-radius: 12px;
+    border: none;
+    margin-bottom: 0;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.srp-case-card.listing .srp-case-card-img {
+    display: none;
+}
+
+.srp-case-gallery {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 12px 12px 0;
+}
+
+.srp-case-gallery-img {
+    position: relative;
+    width: 100%;
+    padding-bottom: 75%;
+    background: #e1e2e8;
+    background-size: cover;
+    background-position: center;
+    border-radius: 8px;
+}
+
+.srp-case-badge {
+    position: absolute;
+    top: 6px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: #fff;
+    background: #434343;
+}
+
+.srp-case-badge.left {
+    left: 6px;
+}
+
+.srp-case-badge.right {
+    right: 6px;
+}
+
+.srp-case-gallery-counter {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 11px;
+    color: #fff;
+    background: rgba(0,0,0,0.5);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.srp-case-3d-link {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Rubik', sans-serif;
+    font-size: 11px;
+    color: #fff;
+    background: rgba(0,0,0,0.5);
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.srp-case-gallery-fav {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.srp-case-gallery-fav svg {
+    width: 16px;
+    height: 16px;
+}
+
+.srp-case-listing-ago {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 11px;
+    color: #fff;
+    background: rgba(0,0,0,0.5);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.srp-case-listing-body {
+    padding: 16px 16px 20px;
+}
+
+.srp-case-listing-status {
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #767676;
+    margin: 0 0 8px;
+}
+
+.srp-case-listing-bhk {
+    font-family: 'Rubik', sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #222;
+    margin: 0 0 6px;
+}
+
+.srp-case-listing-price {
+    font-family: 'Rubik', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: #222;
+    margin: 0 0 8px;
+}
+
+.srp-case-listing-project {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: #222;
+    margin: 0 0 6px;
+}
+
+.srp-case-listing-address {
+    font-family: 'Rubik', sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #767676;
+    margin: 0 0 14px;
+}
+
+.srp-case-owner-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.srp-case-owner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.srp-case-owner-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e1e2e8;
+    background-size: cover;
+    background-position: center;
+}
+
+.srp-case-owner-name {
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: #222;
+    margin: 0 0 4px;
+}
+
+.srp-case-owner-role {
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    color: #767676;
+    margin: 0;
+}
+
+.srp-case-owner-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.srp-case-btn-view-number {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid #5e23dc;
+    background: #fff;
+    color: #5e23dc;
+    font-family: 'Rubik', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+/* SRP responsive: narrow screens – slightly tighter padding so layout fits */
+@media (max-width: 380px) {
+    .srp-case-header {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    .srp-case-main {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    .srp-case-ai-bottom {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+    .srp-case-nav-items {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}
+
+/* Bottom: single container – fluid morph from nav to AI; responsive width */
+.srp-case-bottom-wrap {
+    flex-shrink: 0;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 60px;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #f2f3f8;
+    border-top: 1px solid #e8e8e8;
+    transition: height 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                border-radius 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-sizing: border-box;
+}
+
+.srp-case-bottom-wrap.is-ai-visible {
+    height: 124px;
+    border-top-left-radius: 28px;
+    border-top-right-radius: 28px;
+    background: #f2f3f8;
+}
+
+/* Layer 1: nav bar – fades and lifts out as AI takes over */
+.srp-case-initial-bottom {
+    position: absolute;
+    inset: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 60px;
+    background: #ffffff;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+    transition: opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.srp-case-bottom-wrap.is-ai-visible .srp-case-initial-bottom {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+    pointer-events: none;
+}
+
+.srp-case-nav-items {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 0 16px;
+    height: 60px;
+    padding-bottom: 4px;
+}
+
+.srp-case-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 8px 8px 4px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.srp-case-nav-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.srp-case-nav-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.srp-case-nav-label {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    color: #434343;
+}
+
+/* Layer 2: Figma Property 1=AI bottom – 108px, rounded top, gradient stroke, headline + pill. Figma: content 16px from L/R edges.
+   Background + radius + stroke on same element; gradient via border-box trick. No white bleed: clip fill to padding-box, isolate layer. */
+.srp-case-ai-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 124px;
+    padding: 24px 16px 24px;
+    box-sizing: border-box;
+    background:
+        linear-gradient(#ffffff, #ffffff) padding-box,
+        linear-gradient(90deg, rgba(115, 84, 255, 0.5) 0%, rgba(229, 62, 196, 0.5) 100%) border-box;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    border: 1px solid transparent;
+    border-width: 1px 1px 0 1px;
+    border-top-left-radius: 28px;
+    border-top-right-radius: 28px;
+    overflow: hidden;
+    isolation: isolate;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.06s,
+                transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.06s;
+}
+
+.srp-case-ai-bottom .srp-case-ai-headline,
+.srp-case-ai-bottom .srp-case-ai-pill {
+    position: relative;
+    z-index: 1;
+}
+
+.srp-case-bottom-wrap.is-ai-visible .srp-case-ai-bottom {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+/* Figma: headline 16px from top, gradient #7354ff → #e53ec4, Rubik Medium 14px, line-height 16 */
+.srp-case-ai-headline {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 16px;
+    letter-spacing: 0;
+    margin: 0 0 12px;
+    padding: 0;
+    background: linear-gradient(90deg, #7354ff 0%, #e53ec4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: #7354ff;
+}
+
+/* Figma Component 18: 352×48, radius 12, fill #fff, stroke gradient lighter opacity; purple/pink shadow glow behind.
+   Border + background + radius on same element; overflow clips corners to prevent parent bleed. */
+.srp-case-ai-pill {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    height: 48px;
+    box-sizing: border-box;
+    border-radius: 12px;
+    padding: 1.5px;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba(115, 84, 255, 0.2) 0%, rgba(229, 62, 196, 0.2) 100%);
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: 0 2px 8px rgba(115, 84, 255, 0.08),
+                0 3px 10px rgba(229, 62, 196, 0.05);
+}
+
+/* Tight purple-pink glow – constrained close to pill */
+.srp-case-ai-pill::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 108%;
+    height: 120%;
+    transform: translate(-50%, -50%);
+    border-radius: 14px;
+    background: radial-gradient(
+        ellipse 80% 50% at 50% 50%,
+        rgba(115, 84, 255, 0.07) 0%,
+        rgba(229, 62, 196, 0.04) 55%,
+        transparent 75%
+    );
+    filter: blur(8px);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Inner fill: radius = outer 12px - padding 1.5px; no duplicate stroke; inherit-like match */
+.srp-case-ai-pill-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 0 12px 0 17px;
+    background: #ffffff;
+    border-radius: calc(12px - 1.5px);
+}
+
+.srp-case-ai-placeholder {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 16px;
+    letter-spacing: 0;
+    color: #767676;
+}
+
+.srp-case-ai-logo {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.srp-case-ai-logo-img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    display: block;
+}
+
+/* Subtle “thinking” pulse on logo: scale 1 → 1.03 → 1 (GPU transform, no layout shift) */
+/* Slow bounce on Houzy logo in bottom AI (same as other Houzy icons) */
+.case-page-logo-spin {
+    /* No bounce – bounce only on search screen (.houzy-icon-bounce) */
+}
+
+@keyframes houzyBounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-5px) scale(1.05); }
+}
+
+/* Optional: class for any Houzy icon that should bounce (e.g. search card logo) */
+.houzy-icon-bounce {
+    animation: houzyBounce 2.2s ease-in-out infinite;
+    will-change: transform;
+}
+
+/* Headline shimmer: very gentle gradient sweep masked to text, no width/layout change */
+.case-page-headline-shimmer {
+    position: relative;
+    display: inline-block;
+    contain: layout style;
+}
+
+.case-page-headline-shimmer::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        105deg,
+        transparent 0%,
+        transparent 35%,
+        rgba(255, 255, 255, 0.15) 48%,
+        rgba(255, 255, 255, 0.25) 50%,
+        rgba(255, 255, 255, 0.15) 52%,
+        transparent 65%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: caseHeadlineShimmer 2.5s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes caseHeadlineShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ============================================================================
    SEARCH RESULTS PAGE (SRP) - Pixel-perfect Figma implementation (Monochrome)
    ============================================================================ */
 
@@ -7010,12 +8616,6 @@ html, body {
     height: 28px;
     object-fit: contain;
     opacity: 0.4;
-    animation: gentleSpin 8s linear infinite;
-}
-
-@keyframes gentleSpin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
 }
 
 .ai-icon-btn {
