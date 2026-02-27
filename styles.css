@@ -2282,12 +2282,13 @@ html, body {
     display: none !important;
 }
 
-/* Pills wrapper – no layout change, just a hook for keyboard hide animation */
+/* Pills wrapper – heading + pills; same keyboard hide animation for both */
 .chat-pills-wrapper {
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 28px;
     opacity: 1;
     transform: translateY(0) scale(1);
     filter: blur(0);
@@ -6616,7 +6617,7 @@ html, body {
 }
 .srp-search-card-no-results {
     min-height: 0;
-    background: linear-gradient(to bottom, #ffffff 0%, rgba(242, 235, 254, 0.6) 100%) padding-box,
+    background: linear-gradient(#ffffff, #ffffff) padding-box,
         linear-gradient(90deg, rgba(115, 84, 255, 0.5) 0%, rgba(229, 62, 196, 0.5) 100%) border-box;
     background-origin: border-box;
     background-clip: padding-box, border-box;
