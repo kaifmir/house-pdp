@@ -4248,7 +4248,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const aiBottom = document.createElement('div');
             aiBottom.className = 'srp-case-ai-bottom';
             aiBottom.innerHTML = `
-                <div class="srp-case-ai-headline case-page-headline-shimmer" data-text="${headlineText.replace(/"/g, '&quot;')}">${headlineText}</div>
+                <div class="srp-case-ai-top-row">
+                    <div class="srp-case-ai-headline case-page-headline-shimmer" data-text="${headlineText.replace(/"/g, '&quot;')}">${headlineText}</div>
+                    <button type="button" class="srp-case-ai-close" aria-label="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
                 <div class="srp-case-ai-pill">
                     <div class="srp-case-ai-pill-inner">
                         <span class="srp-case-ai-placeholder">Ask Houzy</span>
@@ -4264,6 +4269,16 @@ document.addEventListener('DOMContentLoaded', function() {
             page.appendChild(header);
             page.appendChild(main);
             page.appendChild(bottomWrap);
+
+            // Close AI bottom and show nav again (SRP only)
+            var closeBtn = aiBottom.querySelector('.srp-case-ai-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    bottomWrap.classList.remove('is-ai-visible');
+                });
+            }
 
             // Click on search bar (pill or headline) → open AI chat; SRP stays visible behind chat. Back in chat returns here.
             function openChatFromCase1() {
@@ -4316,6 +4331,7 @@ document.addEventListener('DOMContentLoaded', function() {
             var headline = aiBottom.querySelector('.srp-case-ai-headline');
             if (pill) pill.addEventListener('click', openChatFromCase1);
             if (headline) headline.addEventListener('click', openChatFromCase1);
+            // Top row (headline) opens chat; close button handled above
 
             document.body.appendChild(page);
             document.body.style.overflow = 'hidden';
@@ -4578,6 +4594,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const aiChatBar = document.createElement('div');
             aiChatBar.className = 'srp-ai-chat-bar';
             aiChatBar.innerHTML = `
+                <button type="button" class="srp-ai-close" aria-label="Close">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
                 <div class="ai-chat-pill">
                     <div class="ai-chat-glow"></div>
                     <div class="ai-chat-stroke"></div>
@@ -4603,7 +4622,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             `;
-            
+
+            // Close AI bar and show nav again (SRP only)
+            var srpAiClose = aiChatBar.querySelector('.srp-ai-close');
+            if (srpAiClose) {
+                srpAiClose.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isAIChatActive = false;
+                    bottomNavContainer.classList.remove('ai-active');
+                });
+            }
+
             // Clicking AI chat bar opens the chat
             aiChatBar.addEventListener('click', function(e) {
                 if (!e.target.closest('.ai-send-btn')) {
