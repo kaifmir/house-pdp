@@ -44,6 +44,29 @@ const TOP_AREA_THRESHOLD = 100;
 const TAP_THRESHOLD = 15;
 const TAP_TIME_THRESHOLD = 300;
 
+// Global handler for Houzy bottom nav (button, icon wrapper, image). Uses app's real chat navigation.
+function openAiChatScreen(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    if (window.__CHAT_DEBUG__) console.log('Houzy clicked');
+    var trigger = document.getElementById('ai-chat-trigger');
+    if (typeof window.__openAiChatScreenImpl === 'function' && trigger) {
+        window.__openAiChatScreenImpl(trigger);
+        return;
+    }
+    if (typeof navigateTo === 'function') {
+        navigateTo('chat');
+        return;
+    }
+    if (typeof showScreen === 'function') {
+        showScreen('ai-chat');
+        return;
+    }
+    window.location.href = 'ai-chat.html';
+}
+
 // Step 4: Measure header/composer heights
 function syncHeights() {
     const header = document.querySelector('.chat-top-bar');
@@ -648,6 +671,50 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.__CHAT_DEBUG__) console.log('Found', navItems.length, 'nav items');
     }
     
+    // Single app navigation: open AI chat screen (homepage bottom nav Houzy)
+    function openAiChatScreen(activeNavItem) {
+        sessionStorage.setItem('houzySplashSeen', 'true');
+        var chatScreen = document.getElementById('chat-screen');
+        var chatIntroEl = document.getElementById('chat-intro');
+        var chatBackBtn = document.getElementById('chat-back-btn');
+        if (navItems && navItems.length && activeNavItem) {
+            navItems.forEach(function(nav) { nav.classList.remove('active'); });
+            activeNavItem.classList.add('active');
+            if (navSliderBg && bottomNav) updateSliderPosition(activeNavItem, true);
+        }
+        if (chatScreen) {
+            if (!document.body.dataset.returnToCase1 && chatBackBtn) {
+                chatBackBtn.removeAttribute('disabled');
+                chatBackBtn.removeAttribute('tabindex');
+            }
+            chatScreen.classList.add('slide-from-right');
+            document.body.style.overflow = 'hidden';
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    chatScreen.classList.add('active');
+                    if (typeof primeViewport === 'function') primeViewport();
+                    function revealIntro() {
+                        if (chatIntroEl && chatIntroEl.classList.contains('initial-load')) {
+                            chatIntroEl.classList.add('revealed');
+                        }
+                    }
+                    if (chatScreen.classList.contains('slide-from-right')) {
+                        chatScreen.addEventListener('transitionend', function onSlideEnd(ev) {
+                            if (ev.target === chatScreen && ev.propertyName === 'transform') {
+                                chatScreen.removeEventListener('transitionend', onSlideEnd);
+                                revealIntro();
+                            }
+                        });
+                        setTimeout(revealIntro, 400);
+                    } else {
+                        setTimeout(revealIntro, 100);
+                    }
+                });
+            });
+        }
+    }
+    window.__openAiChatScreenImpl = openAiChatScreen;
+
     // Attach event listeners directly to each nav item
     if (navItems && navItems.length > 0) {
         navItems.forEach((item) => {
@@ -656,70 +723,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const navType = item.getAttribute('data-nav');
             if (!navType) return;
             
-            // Create handler for this specific item
+            // Chat item uses inline onclick (button, wrapper, image); do not overwrite so those handlers run
+            if (navType === 'chat') return;
+            
             const handleNavClick = function(e) {
                 if (e) {
                     e.preventDefault();
                     e.stopPropagation();
                 }
-                
                 if (window.__CHAT_DEBUG__) console.log('Nav clicked:', navType);
-                
-                // Update active state
                 navItems.forEach(nav => nav.classList.remove('active'));
                 item.classList.add('active');
-                
-                // Update slider position
-                if (navSliderBg && bottomNav) {
-                    updateSliderPosition(item, true);
-                }
-                
-                // Handle specific nav actions
-                if (navType === 'chat') {
-                    // Houzy icon/text on homepage: open chat with slide-in from right
-                    sessionStorage.setItem('houzySplashSeen', 'true');
-                    const chatScreen = document.getElementById('chat-screen');
-                    const chatIntroEl = document.getElementById('chat-intro');
-                    const chatBackBtn = document.getElementById('chat-back-btn');
-                    if (chatScreen) {
-                        if (!document.body.dataset.returnToCase1) {
-                            if (chatBackBtn) {
-                                chatBackBtn.removeAttribute('disabled');
-                                chatBackBtn.removeAttribute('tabindex');
-                            }
-                            chatScreen.classList.add('slide-from-right');
-                        }
-                        document.body.style.overflow = 'hidden';
-                        requestAnimationFrame(() => {
-                            requestAnimationFrame(() => {
-                                chatScreen.classList.add('active');
-                                primeViewport();
-                                function revealIntro() {
-                                    if (chatIntroEl && chatIntroEl.classList.contains('initial-load')) {
-                                        chatIntroEl.classList.add('revealed');
-                                    }
-                                }
-                                if (chatScreen.classList.contains('slide-from-right')) {
-                                    chatScreen.addEventListener('transitionend', function onSlideEnd(e) {
-                                        if (e.target === chatScreen && e.propertyName === 'transform') {
-                                            chatScreen.removeEventListener('transitionend', onSlideEnd);
-                                            revealIntro();
-                                        }
-                                    });
-                                    setTimeout(revealIntro, 400);
-                                } else {
-                                    setTimeout(revealIntro, 100);
-                                }
-                            });
-                        });
-                    }
-                }
+                if (navSliderBg && bottomNav) updateSliderPosition(item, true);
             };
             
-            // Add click listener
             item.onclick = handleNavClick;
-            
-            // Add touch listener
             item.ontouchend = function(e) {
                 if (e) {
                     e.preventDefault();
@@ -730,6 +748,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Houzy item is handled by inline openAiChatScreen(event); no delegated handler so no double-call
+
+    // Houzy nav uses inline onclick on button, icon wrapper, and image (openAiChatScreen); no overlay.
+
     // Debounced resize handler
     window.addEventListener('resize', debounce(() => {
         const activeItem = document.querySelector('.nav-item.active');

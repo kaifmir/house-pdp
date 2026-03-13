@@ -249,11 +249,31 @@
             </div>
             <span class="nav-label">Saved</span>
         </button>
-        <button class="nav-item" data-nav="chat">
-            <div class="nav-icon-wrapper">
-                <img src="Bottom logo.jpg" alt="Chat" class="nav-icon nav-icon-img" width="24" height="24" loading="eager" onerror="this.src='assets/header/houzy-logo.png'; this.onerror=function(){this.src='chat-bot.png'}">
-            </div>
-            <span class="nav-label">Houzy</span>
+        <button
+          type="button"
+          class="nav-item"
+          id="ai-chat-trigger"
+          data-nav="chat"
+          aria-label="Open AI chat"
+          onclick="openAiChatScreen(event)"
+        >
+          <div
+            class="nav-icon-wrapper"
+            onclick="openAiChatScreen(event)"
+            role="presentation"
+          >
+            <img
+              src="Bottom logo.jpg"
+              alt="Chat"
+              class="nav-icon nav-icon-img"
+              width="24"
+              height="24"
+              loading="eager"
+              onclick="openAiChatScreen(event)"
+              onerror="this.src='assets/header/houzy-logo.png'; this.onerror=function(){this.src='chat-bot.png'}"
+            >
+          </div>
+          <span class="nav-label">Houzy</span>
         </button>
         <button class="nav-item" data-nav="profile">
             <div class="nav-icon-wrapper">

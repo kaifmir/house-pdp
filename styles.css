@@ -1039,6 +1039,7 @@ img {
     touch-action: manipulation;
 }
 
+/* Purple selection pill: must not intercept clicks; stays behind nav items */
 .nav-slider-bg {
     position: absolute;
     width: 52px;
@@ -1049,7 +1050,7 @@ img {
     left: 0;
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 0;
-    pointer-events: none;
+    pointer-events: none !important;
 }
 
 .nav-item {
@@ -1095,19 +1096,35 @@ img {
     pointer-events: none;
 }
 
-/* Houzy nav item: entire button (icon + label) clickable – all clicks go to the button */
-.nav-item[data-nav="chat"] {
+/* Houzy nav item: same layout as other nav items so label aligns with Home, Saved, Profile */
+#ai-chat-trigger {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    padding: 6px 8px;
+    min-width: 0;
     cursor: pointer;
-    position: relative;
-    z-index: 1;
 }
-.nav-item[data-nav="chat"] .nav-icon-wrapper,
-.nav-item[data-nav="chat"] .nav-icon-img,
-.nav-item[data-nav="chat"] .nav-label {
-    pointer-events: none !important;
+
+#ai-chat-trigger .nav-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 36px;
+    cursor: pointer;
+    pointer-events: auto; /* override base .nav-icon-wrapper so icon area receives clicks */
 }
-.nav-item[data-nav="chat"] .nav-icon-wrapper {
-    position: relative;
+
+#ai-chat-trigger .nav-icon-img {
+    display: block;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    pointer-events: auto; /* override base .nav-icon-img so Bottom logo.jpg receives clicks */
 }
 
 .nav-icon {
@@ -1941,6 +1958,13 @@ html, body {
     display: flex;
     flex-direction: column;
     height: 100dvh;
+}
+
+/* When chat is closed, ensure input bar and input never intercept bottom-nav clicks */
+.chat-screen:not(.active) .chat-input-bar,
+.chat-screen:not(.active) .chat-input-wrapper,
+.chat-screen:not(.active) .chat-input {
+    pointer-events: none !important;
 }
 
 .chat-screen.active {
