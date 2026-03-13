@@ -3894,7 +3894,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scroll.className = 'srp-search-scroll';
             var cardNoResults = document.createElement('div');
             cardNoResults.className = 'srp-search-card srp-search-card-no-results';
-            cardNoResults.innerHTML = '<div class="srp-search-no-results-head"><span class="srp-search-card-title">No results found</span><div class="srp-search-no-results-logo"><img src="Bottom logo.jpg" alt="Houzy" class="srp-search-houzy-logo houzy-icon-bounce" onerror="this.src=\'chat-bot.png\'" width="40" height="40"></div></div><p class="srp-search-no-results-text">But I can help you find more relevant homes.</p><button type="button" class="srp-search-cta-primary srp-search-cta-use-houzy"><span class="srp-search-cta-label">Use Houzy</span></button>';
+            cardNoResults.innerHTML = '<div class="srp-search-no-results-head"><span class="srp-search-card-title">No results found</span><div class="srp-search-no-results-logo"><img src="Bottom logo.jpg" alt="Houzy" class="srp-search-houzy-logo houzy-icon-bounce" onerror="this.src=\'chat-bot.png\'" width="40" height="40"></div></div><p class="srp-search-no-results-text">But I can help you find more relevant homes.</p><button type="button" class="srp-search-cta-primary srp-search-cta-use-houzy"><span class="srp-search-cta-label">Try Houzy</span></button>';
             scroll.appendChild(cardNoResults);
             var cardLocalities = document.createElement('div');
             cardLocalities.className = 'srp-search-card';
@@ -4037,6 +4037,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         /**
+         * Run a subtle shockwave from the bottom when the SRP bottom AI card appears (SRP only).
+         * @param {HTMLElement} container - The SRP page element (e.g. srp-case-page or srp-page)
+         */
+        function runSrpAiShockwave(container) {
+            if (!container || !container.appendChild) return;
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    var wrap = document.createElement('div');
+                    wrap.className = 'srp-ai-shockwave';
+                    wrap.setAttribute('aria-hidden', 'true');
+                    var wave = document.createElement('div');
+                    wave.className = 'srp-ai-shockwave-wave';
+                    var grain = document.createElement('div');
+                    grain.className = 'srp-ai-shockwave-grain';
+                    wrap.appendChild(wave);
+                    wrap.appendChild(grain);
+                    container.appendChild(wrap);
+                    var duration = 1600;
+                    setTimeout(function() {
+                        if (wrap.parentNode) wrap.remove();
+                    }, duration);
+                });
+            });
+        }
+
+        /**
          * Show SRP Case page – pixel-perfect to Figma SRP. Reusable for no-properties (Case 1) or random SRP with cards.
          * @param {Object} options
          * @param {string} [options.headlineText] - Text above AI search bar
@@ -4164,7 +4190,32 @@ document.addEventListener('DOMContentLoaded', function() {
             const main = document.createElement('div');
             main.className = 'srp-case-main';
 
-            if (empty) {
+            if (srpContext === 'no-results') {
+                // No-results only: AI widget above, Personalise card below (match Figma); no property cards
+                var aiWidget = document.createElement('div');
+                aiWidget.className = 'srp-search-card srp-search-card-no-results srp-case-no-results-ai-widget';
+                aiWidget.innerHTML = '<div class="srp-search-no-results-head"><span class="srp-search-card-title">No results found</span><div class="srp-search-no-results-logo"><img src="Bottom logo.jpg" alt="Houzy" class="srp-search-houzy-logo houzy-icon-bounce" onerror="this.src=\'chat-bot.png\'" width="40" height="40"></div></div><p class="srp-search-no-results-text">But I can help you find more relevant homes.</p><button type="button" class="srp-search-cta-primary srp-search-cta-use-houzy"><span class="srp-search-cta-label">Try Houzy</span></button>';
+                main.appendChild(aiWidget);
+                var useHouzyWidgetBtn = aiWidget.querySelector('.srp-search-cta-use-houzy');
+                if (useHouzyWidgetBtn) useHouzyWidgetBtn.addEventListener('click', openChatFromCase1);
+
+                var personaliseWrap = document.createElement('div');
+                personaliseWrap.className = 'srp-case-no-results-personalise';
+                personaliseWrap.innerHTML = `
+                    <div class="srp-case-no-results-figma-frame">
+                        <h2 class="srp-case-no-results-headline">Personalise your home search journey!</h2>
+                        <div class="srp-case-no-results-row">
+                            <p class="srp-case-no-results-sub">Enhance your search experience with just 3 quick answers.</p>
+                            <button type="button" class="srp-case-no-results-cta">
+                                <span class="srp-case-no-results-cta-label">Let's begin</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                main.appendChild(personaliseWrap);
+                var useHouzyBtn = personaliseWrap.querySelector('.srp-case-no-results-cta');
+                if (useHouzyBtn) useHouzyBtn.addEventListener('click', openChatFromCase1);
+            } else if (empty) {
                 var noProps = document.createElement('div');
                 noProps.className = 'srp-case-no-properties';
                 noProps.innerHTML = `
@@ -4175,7 +4226,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 main.appendChild(noProps);
             }
 
-            if (properties.length > 0) {
+            if (properties.length > 0 && srpContext !== 'no-results') {
                 var cardsWrap = document.createElement('div');
                 cardsWrap.className = 'srp-case-cards';
                 var imgPool = ['HOUSE 1.jpg', 'HOUSE 2.jpg', 'HOUSE 3.jpg', 'HOUSE 4.jpg', 'HOUSE 5.jpg'];
@@ -4244,40 +4295,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
 
-            // Figma Property 1=AI bottom: exact structure – headline, pill 352×48 radius 12, placeholder "Ask Houzy", logo (no send icon)
-            const aiBottom = document.createElement('div');
-            aiBottom.className = 'srp-case-ai-bottom';
-            aiBottom.innerHTML = `
-                <div class="srp-case-ai-top-row">
-                    <div class="srp-case-ai-headline case-page-headline-shimmer" data-text="${headlineText.replace(/"/g, '&quot;')}">${headlineText}</div>
-                    <button type="button" class="srp-case-ai-close" aria-label="Close">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
-                </div>
-                <div class="srp-case-ai-pill">
-                    <div class="srp-case-ai-pill-inner">
-                        <span class="srp-case-ai-placeholder">Ask Houzy</span>
-                        <div class="srp-case-ai-logo case-page-logo-spin" aria-hidden="true">
-                            <img src="Bottom logo.jpg" alt="" width="20" height="20" class="srp-case-ai-logo-img" onerror="this.src='chat-bot.png'">
+            // Figma Property 1=AI bottom: only for non–no-results flows (no-results has no bottom AI)
+            var aiBottom = null;
+            if (srpContext !== 'no-results') {
+                aiBottom = document.createElement('div');
+                aiBottom.className = 'srp-case-ai-bottom';
+                aiBottom.innerHTML = `
+                    <div class="srp-case-ai-top-row">
+                        <div class="srp-case-ai-headline case-page-headline-shimmer" data-text="${headlineText.replace(/"/g, '&quot;')}">${headlineText}</div>
+                        <button type="button" class="srp-case-ai-close" aria-label="Close">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                    <div class="srp-case-ai-pill">
+                        <div class="srp-case-ai-pill-inner">
+                            <span class="srp-case-ai-placeholder">Ask Houzy</span>
+                            <div class="srp-case-ai-logo case-page-logo-spin" aria-hidden="true">
+                                <img src="Bottom logo.jpg" alt="" width="20" height="20" class="srp-case-ai-logo-img" onerror="this.src='chat-bot.png'">
+                            </div>
                         </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
 
             bottomWrap.appendChild(initialBottom);
-            bottomWrap.appendChild(aiBottom);
+            if (aiBottom) bottomWrap.appendChild(aiBottom);
             page.appendChild(header);
             page.appendChild(main);
             page.appendChild(bottomWrap);
 
-            // Close AI bottom and show nav again (SRP only)
-            var closeBtn = aiBottom.querySelector('.srp-case-ai-close');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    bottomWrap.classList.remove('is-ai-visible');
-                });
+            if (aiBottom) {
+                var closeBtn = aiBottom.querySelector('.srp-case-ai-close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        bottomWrap.classList.remove('is-ai-visible');
+                    });
+                }
             }
 
             // Click on search bar (pill or headline) → open AI chat; SRP stays visible behind chat. Back in chat returns here.
@@ -4327,11 +4382,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 400);
                 }
             }
-            var pill = aiBottom.querySelector('.srp-case-ai-pill');
-            var headline = aiBottom.querySelector('.srp-case-ai-headline');
-            if (pill) pill.addEventListener('click', openChatFromCase1);
-            if (headline) headline.addEventListener('click', openChatFromCase1);
-            // Top row (headline) opens chat; close button handled above
+            if (aiBottom) {
+                var pill = aiBottom.querySelector('.srp-case-ai-pill');
+                var headline = aiBottom.querySelector('.srp-case-ai-headline');
+                if (pill) pill.addEventListener('click', openChatFromCase1);
+                if (headline) headline.addEventListener('click', openChatFromCase1);
+            }
 
             document.body.appendChild(page);
             document.body.style.overflow = 'hidden';
@@ -4352,6 +4408,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     filterClickCount++;
                     if (filterClickCount >= 3) {
                         bottomWrap.classList.add('is-ai-visible');
+                        runSrpAiShockwave(page);
                         filterPills.forEach(function(p) {
                             p.removeEventListener('click', onFilterClick);
                         });
@@ -4384,6 +4441,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 setTimeout(function() {
                                     overlay.remove();
                                     bottomWrap.classList.add('is-ai-visible');
+                                    runSrpAiShockwave(page);
                                 }, 200);
                             }
                         });
@@ -4417,14 +4475,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (pct >= 0.75) scrollDepthReached = Math.max(scrollDepthReached, 3);
                     if (scrollDepthReached >= 3) {
                         bottomWrap.classList.add('is-ai-visible');
+                        runSrpAiShockwave(page);
                         mainEl.removeEventListener('scroll', onPassiveScroll);
                     }
                 }
                 if (mainEl) mainEl.addEventListener('scroll', onPassiveScroll, { passive: true });
-            } else {
+            } else if (srpContext !== 'no-results') {
                 var delayMs = 2000 + Math.random() * 1000;
                 setTimeout(function() {
                     bottomWrap.classList.add('is-ai-visible');
+                    runSrpAiShockwave(page);
                 }, delayMs);
             }
         }
@@ -4675,6 +4735,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (scrollRatio >= AI_ENTER_THRESHOLD && !isAIChatActive) {
                     isAIChatActive = true;
                     bottomNavContainer.classList.add('ai-active');
+                    runSrpAiShockwave(page);
                 } else if (scrollRatio < AI_EXIT_THRESHOLD && isAIChatActive) {
                     isAIChatActive = false;
                     bottomNavContainer.classList.remove('ai-active');

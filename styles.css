@@ -6628,11 +6628,12 @@ html, body {
     align-items: flex-start;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
 }
 .srp-search-no-results-head .srp-search-card-title {
     flex: 1;
     margin: 0;
+    line-height: 1.25;
 }
 .srp-search-no-results-logo {
     flex-shrink: 0;
@@ -6652,8 +6653,9 @@ html, body {
     font-weight: 400;
     font-size: 14px;
     color: #767676;
-    line-height: 20px;
+    line-height: 1.35;
     margin: 0 0 12px 0;
+    max-width: 100%;
 }
 .srp-search-card-no-results .srp-search-cta-primary {
     width: 100%;
@@ -7010,6 +7012,88 @@ html, body {
     color: #656565;
     margin: 0;
     line-height: 1.4;
+}
+
+/* No-results only: Figma personalise frame (Personalise your home search journey!) – no illustration */
+.srp-case-no-results-personalise {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.srp-case-no-results-figma-frame {
+    width: 100%;
+    padding: 16px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-sizing: border-box;
+}
+
+.srp-case-no-results-headline {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 1.3;
+    color: #222222;
+    margin: 0 0 12px;
+    letter-spacing: 0;
+}
+
+.srp-case-no-results-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    background: #F2F3F8;
+    border-radius: 12px;
+    box-sizing: border-box;
+}
+
+.srp-case-no-results-sub {
+    font-family: 'Rubik', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #434343;
+    letter-spacing: 0.02em;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+}
+
+.srp-case-no-results-cta {
+    flex-shrink: 0;
+    height: 40px;
+    padding: 0 16px;
+    background: #f2f3f8;
+    border: 1.5px solid #5e23dc;
+    border-radius: 10px;
+    font-family: 'Rubik', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    color: #5e23dc;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.srp-case-no-results-cta:hover {
+    background: #e8e6f0;
+}
+
+.srp-case-no-results-cta:active {
+    background: #e0dcec;
+}
+
+.srp-case-no-results-cta-label {
+    color: inherit;
+}
+
+.srp-case-no-results-ai-widget {
+    margin-bottom: 24px;
 }
 
 /* Property cards – responsive width, consistent spacing */
@@ -7410,6 +7494,7 @@ html, body {
 .srp-case-bottom-wrap {
     flex-shrink: 0;
     position: relative;
+    z-index: 11;
     overflow: hidden;
     width: 100%;
     height: 60px;
@@ -7426,6 +7511,73 @@ html, body {
     border-top-left-radius: 28px;
     border-top-right-radius: 28px;
     background: #f2f3f8;
+}
+
+/* Subtle shockwave when bottom AI appears (SRP only): radial wave + grain from bottom to top */
+.srp-ai-shockwave {
+    position: absolute;
+    inset: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 10;
+    overflow: hidden;
+}
+
+.srp-ai-shockwave-wave {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: 50% 100%;
+    background: radial-gradient(
+        ellipse 120% 80% at 50% 100%,
+        rgba(120, 90, 180, 0.2) 0%,
+        rgba(120, 90, 180, 0.09) 28%,
+        rgba(120, 90, 180, 0.03) 50%,
+        transparent 65%
+    );
+    animation: srp-shockwave-expand 1.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.srp-ai-shockwave-grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.srp-ai-shockwave-grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    animation: srp-shockwave-grain-fade 1.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+@keyframes srp-shockwave-expand {
+    0% {
+        transform: scale(0.2);
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+    100% {
+        transform: scale(1.2);
+        opacity: 0;
+    }
+}
+
+@keyframes srp-shockwave-grain-fade {
+    0% { opacity: 0; }
+    20% { opacity: 0.06; }
+    60% { opacity: 0.04; }
+    100% { opacity: 0; }
 }
 
 /* Layer 1: nav bar – fades and lifts out as AI takes over */
@@ -8461,6 +8613,7 @@ html, body {
 /* ===== BOTTOM CONTAINER (Nav + AI Chat) ===== */
 .srp-bottom-container {
     position: relative;
+    z-index: 11;
     flex-shrink: 0;
     background: #fff;
 }
