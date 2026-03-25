@@ -249,32 +249,77 @@
             </div>
             <span class="nav-label">Saved</span>
         </button>
-        <button
-          type="button"
-          class="nav-item"
-          id="ai-chat-trigger"
-          data-nav="chat"
-          aria-label="Open AI chat"
-          onclick="openAiChatScreen(event)"
-        >
+        <div class="bottom-nav-houzy-slot" id="bottom-nav-houzy-slot">
           <div
-            class="nav-icon-wrapper"
-            onclick="openAiChatScreen(event)"
-            role="presentation"
+            class="houzy-nav-tooltip"
+            id="houzy-nav-tooltip"
+            role="tooltip"
+            aria-hidden="true"
+            hidden
           >
-            <img
-              src="Bottom logo.jpg"
-              alt="Chat"
-              class="nav-icon nav-icon-img"
-              width="24"
-              height="24"
-              loading="eager"
-              onclick="openAiChatScreen(event)"
-              onerror="this.src='assets/header/houzy-logo.png'; this.onerror=function(){this.src='chat-bot.png'}"
-            >
+            <div class="houzy-nav-tooltip__stack">
+              <div class="houzy-nav-tooltip__bubble">
+                <div class="houzy-nav-tooltip__row">
+                  <svg class="houzy-nav-tooltip__sparkle" width="24" height="24" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="houzyTooltipSparkleGrad" x1="56" y1="48" x2="200" y2="208" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#c4b5fd"/>
+                        <stop offset="0.55" stop-color="#ede9fe"/>
+                        <stop offset="1" stop-color="#ffffff"/>
+                      </linearGradient>
+                    </defs>
+                    <path fill="url(#houzyTooltipSparkleGrad)" fill-rule="evenodd" d="M229.5,113,166.06,89.94,143,26.5a16,16,0,0,0-30,0L89.94,89.94,26.5,113a16,16,0,0,0,0,30l63.44,23.07L113,229.5a16,16,0,0,0,30,0l23.07-63.44L229.5,143a16,16,0,0,0,0-30ZM157.08,152.3a8,8,0,0,0-4.78,4.78L128,223.9l-24.3-66.82a8,8,0,0,0-4.78-4.78L32.1,128l66.82-24.3a8,8,0,0,0,4.78-4.78L128,32.1l24.3,66.82a8,8,0,0,0,4.78,4.78L223.9,128Z"/>
+                  </svg>
+                  <p class="houzy-nav-tooltip__text">Ask Houzy. It&apos;s faster than searching.</p>
+                  <button type="button" class="houzy-nav-tooltip__close" id="houzy-nav-tooltip-close" aria-label="Dismiss">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="houzy-nav-tooltip__caret" aria-hidden="true">
+                <svg width="20" height="10" viewBox="0 0 20 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    fill="#000000"
+                    stroke="#8f8f8f"
+                    stroke-width="1"
+                    stroke-linejoin="round"
+                    stroke-linecap="round"
+                    d="M 2.2 0.5 L 17.8 0.5 Q 19.2 0.5 19.35 1.85 L 11.35 6.65 Q 10 7.75 8.65 6.65 L 0.65 1.85 Q 0.8 0.5 2.2 0.5 Z"
+                  />
+                </svg>
+              </div>
+            </div>
           </div>
-          <span class="nav-label">Houzy</span>
-        </button>
+          <button
+            type="button"
+            class="nav-item"
+            id="ai-chat-trigger"
+            data-nav="chat"
+            aria-label="Open AI chat"
+            onclick="openAiChatScreen(event)"
+          >
+            <div
+              class="nav-icon-wrapper"
+              onclick="openAiChatScreen(event)"
+              role="presentation"
+            >
+              <img
+                src="Bottom logo.png"
+                alt="Chat"
+                class="nav-icon nav-icon-img"
+                width="24"
+                height="24"
+                loading="eager"
+                onclick="openAiChatScreen(event)"
+                onerror="this.src='assets/header/houzy-logo.png'; this.onerror=function(){this.src='chat-bot.png'}"
+              >
+            </div>
+            <span class="nav-label">Houzy</span>
+          </button>
+        </div>
         <button class="nav-item" data-nav="profile">
             <div class="nav-icon-wrapper">
                 <svg class="nav-icon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -300,7 +345,7 @@
             <div class="bottom-sheet-body">
                 <div class="bottom-sheet-gradient-bg" style="content-visibility: auto; contain-intrinsic-size: auto 500px;"></div>
                 <div class="scouty-icons-container">
-                    <img src="Bottom logo.jpg" alt="Chat Bot" class="scouty-chat-bot-icon" onerror="this.src='chat-bot.png'">
+                    <img src="Bottom logo.png" alt="Chat Bot" class="scouty-chat-bot-icon" onerror="this.src='chat-bot.png'">
                 </div>
                 <div class="scouty-greeting-text" id="scouty-greeting-text"></div>
                 <button class="scouty-cta" id="scouty-cta" style="display: none;">
@@ -325,7 +370,7 @@
                 </button>
                 <button type="button" class="chat-title-btn" id="chat-title-btn" aria-label="Houzy">
                     <span class="chat-title-pill">
-                        <img src="Bottom logo.jpg" alt="" class="chat-title-icon" width="24" height="24" loading="eager" onerror="this.src='assets/header/houzy-logo.png'; this.onerror=function(){this.src='chat-bot.png'}">
+                        <img src="Bottom logo.png" alt="" class="chat-title-icon" width="24" height="24" loading="eager" onerror="this.src='assets/header/houzy-logo.png'; this.onerror=function(){this.src='chat-bot.png'}">
                         <span class="chat-title">Houzy</span>
                         <span class="chat-title-badge"><span class="chat-title-badge-text">BETA</span></span>
                     </span>

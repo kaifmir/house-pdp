@@ -735,6 +735,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 navItems.forEach(nav => nav.classList.remove('active'));
                 item.classList.add('active');
                 if (navSliderBg && bottomNav) updateSliderPosition(item, true);
+                // Saved: open the Houzy welcome / onboarding bottom sheet (same as first-time flow)
+                if (navType === 'saved') {
+                    openBottomSheet();
+                }
             };
             
             item.onclick = handleNavClick;
@@ -3916,7 +3920,7 @@ document.addEventListener('DOMContentLoaded', function() {
             scroll.className = 'srp-search-scroll';
             var cardNoResults = document.createElement('div');
             cardNoResults.className = 'srp-search-card srp-search-card-no-results';
-            cardNoResults.innerHTML = '<div class="srp-search-no-results-head"><span class="srp-search-card-title">No results found</span><div class="srp-search-no-results-logo"><img src="Bottom logo.jpg" alt="Houzy" class="srp-search-houzy-logo houzy-icon-bounce" onerror="this.src=\'chat-bot.png\'" width="40" height="40"></div></div><p class="srp-search-no-results-text">But I can help you find more relevant homes.</p><button type="button" class="srp-search-cta-primary srp-search-cta-use-houzy"><span class="srp-search-cta-label">Try Houzy</span></button>';
+            cardNoResults.innerHTML = '<div class="srp-search-no-results-head"><span class="srp-search-card-title">No results found</span><div class="srp-search-no-results-logo"><img src="Bottom logo.png" alt="Houzy" class="srp-search-houzy-logo houzy-icon-bounce" onerror="this.src=\'chat-bot.png\'" width="40" height="40"></div></div><p class="srp-search-no-results-text">But I can help you find more relevant homes.</p><button type="button" class="srp-search-cta-primary srp-search-cta-use-houzy"><span class="srp-search-cta-label">Try Houzy</span></button>';
             scroll.appendChild(cardNoResults);
             var cardLocalities = document.createElement('div');
             cardLocalities.className = 'srp-search-card';
@@ -3985,7 +3989,7 @@ document.addEventListener('DOMContentLoaded', function() {
             list.className = 'all-flows-list';
             const rowIconSvg = '<svg class="all-flows-row-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#222" viewBox="0 0 256 256" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm45.66-109.66a8,8,0,0,1,0,11.32l-40,40a8,8,0,0,1-11.32,0l-40-40a8,8,0,0,1,11.32-11.32L128,140.69l34.34-34.35A8,8,0,0,1,173.66,106.34Z"></path></svg>';
             const categories = ['SRP flows'];
-            const subCount = 6;
+            const subCount = 5;
             categories.forEach((label) => {
                 const item = document.createElement('div');
                 item.className = 'all-flows-item';
@@ -3999,7 +4003,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const subRow = document.createElement('button');
                     subRow.type = 'button';
                     subRow.className = 'all-flows-sub-row';
-                    subRow.textContent = label === 'SRP flows' && i === 1 ? 'No results' : (label === 'SRP flows' && i === 2 ? 'Broad/Vague Search' : (label === 'SRP flows' && i === 3 ? 'Multiple Filter Changes' : (label === 'SRP flows' && i === 4 ? 'Passive scrolling' : (label === 'SRP flows' && i === 5 ? 'NP: Too many results' : (label === 'SRP flows' && i === 6 ? 'Multiple times sorting' : 'Case ' + i)))));
+                    subRow.textContent = label === 'SRP flows' && i === 1 ? 'No results' : (label === 'SRP flows' && i === 2 ? 'Broad/Vague Search' : (label === 'SRP flows' && i === 3 ? 'Multiple Filter Changes' : (label === 'SRP flows' && i === 4 ? 'Passive scrolling' : (label === 'SRP flows' && i === 5 ? 'NP: Too many results' : 'Case ' + i))));
                     var srpProperties = [
                         { title: 'Sikka Karnam Greens', meta: '2, 3, 4 BHK Apartment', price: '₹35.4 L - ₹1.15 Cr' },
                         { title: 'DLF Gardencity', meta: '3, 4 BHK', price: '₹1.2 Cr - ₹2.1 Cr' },
@@ -4026,9 +4030,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             removeElementById('all-flows-page');
                             var tooManyProps = srpProperties.concat(srpProperties);
                             showSRPCase1Page({ headlineText: 'Want me to shortlist the best ones?', empty: false, properties: tooManyProps, srpContext: 'too-many-results' });
-                        } else if (label === 'SRP flows' && i === 6) {
-                            removeElementById('all-flows-page');
-                            showSRPCase1Page({ headlineText: 'Want smarter sorting for your needs?', empty: false, properties: srpProperties, srpContext: 'sort-multiple' });
                         } else if (window.__CHAT_DEBUG__) console.log('[All flows] Sub tapped:', label, 'Case', i);
                     };
                     sub.appendChild(subRow);
@@ -4142,7 +4143,7 @@ document.addEventListener('DOMContentLoaded', function() {
             searchBtn.type = 'button';
             searchBtn.className = 'srp-case-search-btn';
             searchBtn.setAttribute('aria-label', 'Search');
-            searchBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M240,128a15.79,15.79,0,0,1-10.5,15l-63.44,23.07L143,229.5a16,16,0,0,1-30,0L89.94,166.06,26.5,143a16,16,0,0,1,0-30L89.94,89.94,113,26.5a16,16,0,0,1,30,0l23.07,63.44L229.5,113A15.79,15.79,0,0,1,240,128Z"></path></svg>';
+            searchBtn.innerHTML = '<svg class="srp-case-search-btn-star" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M240,128a15.79,15.79,0,0,1-10.5,15l-63.44,23.07L143,229.5a16,16,0,0,1-30,0L89.94,166.06,26.5,143a16,16,0,0,1,0-30L89.94,89.94,113,26.5a16,16,0,0,1,30,0l23.07,63.44L229.5,113A15.79,15.79,0,0,1,240,128Z"></path></svg>';
             searchBtn.onclick = function() { openChatFromCase1(); };
             searchWrap.appendChild(searchField);
             searchWrap.appendChild(searchIcon);
@@ -4216,7 +4217,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // No-results only: AI widget above, Personalise card below (match Figma); no property cards
                 var aiWidget = document.createElement('div');
                 aiWidget.className = 'srp-search-card srp-search-card-no-results srp-case-no-results-ai-widget';
-                aiWidget.innerHTML = '<div class="srp-search-no-results-head"><span class="srp-search-card-title">No results found</span><div class="srp-search-no-results-logo"><img src="Bottom logo.jpg" alt="Houzy" class="srp-search-houzy-logo houzy-icon-bounce" onerror="this.src=\'chat-bot.png\'" width="40" height="40"></div></div><p class="srp-search-no-results-text">But I can help you find more relevant homes.</p><button type="button" class="srp-search-cta-primary srp-search-cta-use-houzy"><span class="srp-search-cta-label">Try Houzy</span></button>';
+                aiWidget.innerHTML = '<div class="srp-search-no-results-head"><span class="srp-search-card-title">No results found</span><div class="srp-search-no-results-logo"><img src="Bottom logo.png" alt="Houzy" class="srp-search-houzy-logo houzy-icon-bounce" onerror="this.src=\'chat-bot.png\'" width="40" height="40"></div></div><p class="srp-search-no-results-text">But I can help you find more relevant homes.</p><button type="button" class="srp-search-cta-primary srp-search-cta-use-houzy"><span class="srp-search-cta-label">Try Houzy</span></button>';
                 main.appendChild(aiWidget);
                 var useHouzyWidgetBtn = aiWidget.querySelector('.srp-search-cta-use-houzy');
                 if (useHouzyWidgetBtn) useHouzyWidgetBtn.addEventListener('click', openChatFromCase1);
@@ -4333,7 +4334,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="srp-case-ai-pill-inner">
                             <span class="srp-case-ai-placeholder">Ask Houzy</span>
                             <div class="srp-case-ai-logo case-page-logo-spin" aria-hidden="true">
-                                <img src="Bottom logo.jpg" alt="" width="20" height="20" class="srp-case-ai-logo-img" onerror="this.src='chat-bot.png'">
+                                <img src="Bottom logo.png" alt="" width="20" height="20" class="srp-case-ai-logo-img" onerror="this.src='chat-bot.png'">
                             </div>
                         </div>
                     </div>
@@ -4684,7 +4685,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="ai-chat-stroke"></div>
                     <div class="ai-chat-content">
                         <div class="ai-chat-icon">
-                            <img src="Bottom logo.jpg" alt="AI" class="ai-chat-houze-icon" onerror="this.src='chat-bot.png'" />
+                            <img src="Bottom logo.png" alt="AI" class="ai-chat-houze-icon" onerror="this.src='chat-bot.png'" />
                         </div>
                         <input type="text" class="ai-chat-input" placeholder="Ask anything" readonly />
                         <button class="ai-icon-btn ai-mic-btn" aria-label="Voice input">
@@ -7111,5 +7112,70 @@ document.addEventListener('DOMContentLoaded', function() {
         // ============================================================================
         // End of chat reset - ready to build from scratch
         // ============================================================================
+    })();
+
+    // Houzy bottom-nav tooltip; dismiss with X for this visit only — shows again on refresh
+    (function initHouzyNavTooltip() {
+        var tip = document.getElementById('houzy-nav-tooltip');
+        var closeBtn = document.getElementById('houzy-nav-tooltip-close');
+        var trigger = document.getElementById('ai-chat-trigger');
+        if (!tip || !closeBtn) return;
+
+        function positionTooltipAboveHouzy() {
+            if (!trigger || tip.hasAttribute('hidden')) return;
+            var iconWrap = trigger.querySelector('.nav-icon-wrapper');
+            var r = (iconWrap || trigger).getBoundingClientRect();
+            var cx = r.left + r.width / 2;
+            var pad = 12;
+            var w = tip.getBoundingClientRect().width;
+            if (!w || w < 4) w = tip.offsetWidth;
+            var half = Math.max(w / 2, 40);
+            var x = Math.max(pad + half, Math.min(window.innerWidth - pad - half, cx));
+            tip.style.left = x + 'px';
+        }
+
+        function dismiss() {
+            tip.classList.remove('houzy-nav-tooltip--enter');
+            tip.setAttribute('hidden', '');
+            tip.setAttribute('aria-hidden', 'true');
+            tip.style.left = '';
+        }
+
+        function shouldShow() {
+            var chat = document.getElementById('chat-screen');
+            if (chat && chat.classList.contains('active')) return false;
+            return true;
+        }
+
+        function show() {
+            if (!shouldShow()) return;
+            tip.removeAttribute('hidden');
+            tip.setAttribute('aria-hidden', 'false');
+            tip.classList.remove('houzy-nav-tooltip--enter');
+            void tip.offsetWidth;
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    tip.classList.add('houzy-nav-tooltip--enter');
+                    positionTooltipAboveHouzy();
+                    requestAnimationFrame(function() {
+                        positionTooltipAboveHouzy();
+                    });
+                    setTimeout(positionTooltipAboveHouzy, 120);
+                });
+            });
+        }
+
+        closeBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dismiss();
+        });
+
+        window.addEventListener('resize', debounce(positionTooltipAboveHouzy, 120));
+        window.addEventListener('orientationchange', function() {
+            setTimeout(positionTooltipAboveHouzy, 200);
+        });
+
+        show();
     })();
 });

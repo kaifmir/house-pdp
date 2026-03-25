@@ -1037,6 +1037,7 @@ img {
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
     pointer-events: auto;
     touch-action: manipulation;
+    overflow: visible;
 }
 
 /* Purple selection pill: must not intercept clicks; stays behind nav items */
@@ -1096,6 +1097,190 @@ img {
     pointer-events: none;
 }
 
+/* Houzy column: tooltip + nav button (matches Figma tooltip above Houzy tab) */
+.bottom-nav-houzy-slot {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-width: 0;
+    z-index: 10001;
+    overflow: visible;
+}
+
+.bottom-nav-houzy-slot > .nav-item {
+    width: 100%;
+}
+
+/* Houzy nav tooltip — viewport-centered so it never clips; sits above bottom nav */
+.houzy-nav-tooltip {
+    position: fixed;
+    left: 50%;
+    right: auto;
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    width: fit-content;
+    max-width: calc(100vw - 24px);
+    min-width: 0;
+    box-sizing: border-box;
+    z-index: 10012;
+    pointer-events: none;
+    transform: translateX(-50%);
+    opacity: 0;
+    visibility: hidden;
+    overflow: visible;
+}
+
+.houzy-nav-tooltip:not([hidden]) {
+    pointer-events: auto;
+}
+
+.houzy-nav-tooltip__stack {
+    position: relative;
+    width: 100%;
+    filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.1)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.06));
+}
+
+.houzy-nav-tooltip__bubble {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: #000000;
+    border: 1px solid #8f8f8f;
+    border-radius: 20px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.houzy-nav-tooltip__row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 22px;
+}
+
+.houzy-nav-tooltip__sparkle {
+    flex-shrink: 0;
+    display: block;
+}
+
+.houzy-nav-tooltip__text {
+    flex: 1 1 auto;
+    margin: 0;
+    min-width: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600;
+    font-size: clamp(12.5px, 3.2vw, 14px);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: #ffffff;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.houzy-nav-tooltip__close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    margin: 0 -6px 0 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.houzy-nav-tooltip__close:active {
+    opacity: 0.65;
+}
+
+/* Tail centered under bubble; whole tooltip anchored to Houzy icon via JS */
+.houzy-nav-tooltip__caret {
+    position: absolute;
+    left: 50%;
+    top: calc(100% - 1px);
+    transform: translateX(-50%);
+    line-height: 0;
+    pointer-events: none;
+}
+
+.houzy-nav-tooltip__caret svg {
+    display: block;
+}
+
+/* Slide up on first show, then subtle bounce (Figma onboarding tooltip) */
+@keyframes houzyNavTooltipSlideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Continuous gentle bounce (subtle, slow) */
+@keyframes houzyNavTooltipBounce {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+.houzy-nav-tooltip.houzy-nav-tooltip--enter:not([hidden]) {
+    visibility: visible;
+    animation: houzyNavTooltipSlideUp 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.houzy-nav-tooltip.houzy-nav-tooltip--enter:not([hidden]) .houzy-nav-tooltip__stack {
+    animation: houzyNavTooltipBounce 2.6s ease-in-out 0.52s infinite;
+    transform-origin: 50% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .houzy-nav-tooltip.houzy-nav-tooltip--enter:not([hidden]) .houzy-nav-tooltip__stack {
+        animation: none;
+    }
+}
+
+body:has(#chat-screen.active) .houzy-nav-tooltip,
+body:has(#chat-screen.active) .houzy-nav-tooltip.houzy-nav-tooltip--enter {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    animation: none !important;
+}
+
+body:has(#chat-screen.active) .houzy-nav-tooltip .houzy-nav-tooltip__stack {
+    animation: none !important;
+}
+
+/* Keep tooltip true black/white in wireframe grayscale mode */
+body.wireframe-mode .houzy-nav-tooltip,
+body.wireframe-mode .houzy-nav-tooltip * {
+    filter: none !important;
+}
+
 /* Houzy nav item: same layout as other nav items so label aligns with Home, Saved, Profile */
 #ai-chat-trigger {
     display: flex;
@@ -1124,7 +1309,8 @@ img {
     width: 24px;
     height: 24px;
     cursor: pointer;
-    pointer-events: auto; /* override base .nav-icon-img so Bottom logo.jpg receives clicks */
+    pointer-events: auto; /* override base .nav-icon-img so Bottom logo receives clicks */
+    animation: none !important; /* no spinning on bottom nav icon */
 }
 
 .nav-icon {
@@ -6416,6 +6602,11 @@ html, body {
 .srp-case-search-btn svg {
     width: 22px;
     height: 22px;
+    fill: #9ca3af; /* soft grey star icon */
+}
+.srp-case-search-btn:hover svg,
+.srp-case-search-btn:active svg {
+    fill: #9ca3af;
 }
 
 .srp-case-tabs-row {
@@ -7844,9 +8035,9 @@ html, body {
     justify-content: center;
 }
 
-/* SRP bottom AI card only: soft rotation on the same spot */
+/* SRP bottom AI card: logo no longer spins */
 .srp-case-ai-bottom .srp-case-ai-logo {
-    animation: srp-ai-logo-soft-spin 10s linear infinite;
+    animation: none;
 }
 
 @keyframes srp-ai-logo-soft-spin {
@@ -7859,6 +8050,7 @@ html, body {
     height: 20px;
     object-fit: contain;
     display: block;
+    animation: none !important;
 }
 
 /* Subtle “thinking” pulse on logo: scale 1 → 1.03 → 1 (GPU transform, no layout shift) */
@@ -8909,9 +9101,9 @@ html, body {
     flex-shrink: 0;
 }
 
-/* SRP bottom AI bar only: soft rotation on the same spot (not search or any other page) */
+/* SRP bottom AI bar: icon no longer spins */
 .srp-ai-chat-bar .ai-chat-icon {
-    animation: srp-ai-logo-soft-spin 10s linear infinite;
+    animation: none;
 }
 
 .ai-chat-houze-icon {
