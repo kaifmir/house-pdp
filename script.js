@@ -64,7 +64,25 @@ function openAiChatScreen(e) {
         showScreen('ai-chat');
         return;
     }
-    window.location.href = 'ai-chat.html';
+    // GitHub Pages / single-page: no ai-chat.html — open chat on index
+    var cs = document.getElementById('chat-screen');
+    if (cs) {
+        cs.classList.add('slide-from-right');
+        document.body.style.overflow = 'hidden';
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                cs.classList.add('active');
+                if (typeof primeViewport === 'function') primeViewport();
+            });
+        });
+        var bb = document.getElementById('chat-back-btn');
+        if (bb) {
+            bb.removeAttribute('disabled');
+            bb.removeAttribute('tabindex');
+        }
+        return;
+    }
+    window.location.href = 'index.html';
 }
 
 // Step 4: Measure header/composer heights
