@@ -4332,10 +4332,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="srp-case-ai-pill">
                         <div class="srp-case-ai-pill-inner">
-                            <span class="srp-case-ai-placeholder">Ask Houzy</span>
-                            <div class="srp-case-ai-logo case-page-logo-spin" aria-hidden="true">
+                            <div class="srp-case-ai-logo" aria-hidden="true">
                                 <img src="Bottom logo.png" alt="" width="20" height="20" class="srp-case-ai-logo-img" onerror="this.src='chat-bot.png'">
                             </div>
+                            <span class="srp-case-ai-placeholder">Ask Houzy</span>
                         </div>
                     </div>
                 `;
@@ -4687,7 +4687,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="ai-chat-icon">
                             <img src="Bottom logo.png" alt="AI" class="ai-chat-houze-icon" onerror="this.src='chat-bot.png'" />
                         </div>
-                        <input type="text" class="ai-chat-input" placeholder="Ask anything" readonly />
+                        <input type="text" class="ai-chat-input" placeholder="Ask Houzy" readonly />
                         <button class="ai-icon-btn ai-mic-btn" aria-label="Voice input">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                 <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
@@ -7118,27 +7118,26 @@ document.addEventListener('DOMContentLoaded', function() {
     (function initHouzyNavTooltip() {
         var tip = document.getElementById('houzy-nav-tooltip');
         var closeBtn = document.getElementById('houzy-nav-tooltip-close');
-        var trigger = document.getElementById('ai-chat-trigger');
         if (!tip || !closeBtn) return;
 
-        function positionTooltipAboveHouzy() {
-            if (!trigger || tip.hasAttribute('hidden')) return;
-            var iconWrap = trigger.querySelector('.nav-icon-wrapper');
-            var r = (iconWrap || trigger).getBoundingClientRect();
-            var cx = r.left + r.width / 2;
+        /** Keep tooltip in viewport when centered on Houzy slot (caret stays over icon via CSS absolute). */
+        function nudgeHouzyTooltipIntoViewport() {
+            if (tip.hasAttribute('hidden')) return;
+            tip.style.setProperty('--houzy-tip-nudge', '0px');
+            void tip.offsetWidth;
+            var r = tip.getBoundingClientRect();
             var pad = 12;
-            var w = tip.getBoundingClientRect().width;
-            if (!w || w < 4) w = tip.offsetWidth;
-            var half = Math.max(w / 2, 40);
-            var x = Math.max(pad + half, Math.min(window.innerWidth - pad - half, cx));
-            tip.style.left = x + 'px';
+            var nudge = 0;
+            if (r.left < pad) nudge = pad - r.left;
+            else if (r.right > window.innerWidth - pad) nudge = window.innerWidth - pad - r.right;
+            if (nudge) tip.style.setProperty('--houzy-tip-nudge', nudge + 'px');
         }
 
         function dismiss() {
             tip.classList.remove('houzy-nav-tooltip--enter');
             tip.setAttribute('hidden', '');
             tip.setAttribute('aria-hidden', 'true');
-            tip.style.left = '';
+            tip.style.removeProperty('--houzy-tip-nudge');
         }
 
         function shouldShow() {
@@ -7155,12 +7154,12 @@ document.addEventListener('DOMContentLoaded', function() {
             void tip.offsetWidth;
             requestAnimationFrame(function() {
                 requestAnimationFrame(function() {
+                    nudgeHouzyTooltipIntoViewport();
                     tip.classList.add('houzy-nav-tooltip--enter');
-                    positionTooltipAboveHouzy();
                     requestAnimationFrame(function() {
-                        positionTooltipAboveHouzy();
+                        nudgeHouzyTooltipIntoViewport();
                     });
-                    setTimeout(positionTooltipAboveHouzy, 120);
+                    setTimeout(nudgeHouzyTooltipIntoViewport, 120);
                 });
             });
         }
@@ -7171,9 +7170,9 @@ document.addEventListener('DOMContentLoaded', function() {
             dismiss();
         });
 
-        window.addEventListener('resize', debounce(positionTooltipAboveHouzy, 120));
+        window.addEventListener('resize', debounce(nudgeHouzyTooltipIntoViewport, 120));
         window.addEventListener('orientationchange', function() {
-            setTimeout(positionTooltipAboveHouzy, 200);
+            setTimeout(nudgeHouzyTooltipIntoViewport, 200);
         });
 
         show();
