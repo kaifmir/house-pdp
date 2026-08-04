@@ -259,6 +259,57 @@ body:has(.chat-screen.active) {
     margin: 8px 0;
 }
 
+.desktop-continue-btn {
+    margin-top: 16px;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    background: #5e23dc;
+    color: #ffffff;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.desktop-continue-btn:active {
+    opacity: 0.85;
+}
+
+body.force-mobile-demo .desktop-blocker {
+    display: none !important;
+}
+
+body.force-mobile-demo .mobile-container,
+body.force-mobile-demo .bottom-nav,
+body.force-mobile-demo .chat-screen,
+body.force-mobile-demo .bottom-sheet {
+    display: block !important;
+}
+
+body.force-mobile-demo .mobile-container {
+    max-width: 390px;
+    min-height: 100vh;
+    box-shadow: 0 0 0 1px #eee;
+}
+
+body.force-mobile-demo .bottom-nav {
+    display: flex !important;
+    max-width: 390px;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    width: 100%;
+}
+
+body.force-mobile-demo .chat-screen {
+    max-width: 390px;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    width: 100%;
+}
+
 /* Above largest phone width (~480px): show "mobile only" message, hide app */
 @media (min-width: 481px) {
     .desktop-blocker {
@@ -2958,6 +3009,39 @@ html, body {
     margin: 0 0 6px 0;
 }
 
+/* Project context chip after returning from PDP (Figma parent chat) */
+.chat-project-context {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    width: 100%;
+    padding: 4px 16px 8px;
+    box-sizing: border-box;
+    animation: houzy-pdp-fade-in 0.32s ease;
+}
+
+.chat-project-context__icon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    opacity: 0.7;
+    display: block;
+}
+
+.chat-project-context__name {
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    color: #9d9e9f;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+}
+
 /* Feedback row – thumbs up, thumbs down, copy (Figma Frame 2147261418) */
 /* Only show on the last bot message */
 .msg-bot .feedback-buttons {
@@ -4431,6 +4515,214 @@ html, body {
     }
 }
 
+/* Property pictures preview in chat – 2×2 grid + See more */
+.property-pictures-preview {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 12px;
+    box-sizing: border-box;
+}
+
+@keyframes projectPicturesHeaderIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes projectPicturesTileIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(12px);
+        filter: blur(3px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: blur(0);
+    }
+}
+
+@keyframes projectPicturesSeeMoreIn {
+    from {
+        opacity: 0;
+        transform: translateX(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.property-pictures-preview--pending .property-pictures-preview__header,
+.property-pictures-preview--pending .property-pictures-item,
+.property-pictures-preview--pending .property-pictures-see-more {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.property-pictures-preview--revealing .property-pictures-preview__header {
+    animation: projectPicturesHeaderIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.property-pictures-preview--revealing .property-pictures-item {
+    animation: projectPicturesTileIn 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(60ms + var(--reveal-index, 0) * 72ms);
+    will-change: transform, opacity, filter;
+}
+
+.property-pictures-preview--revealing .property-pictures-see-more {
+    animation: projectPicturesSeeMoreIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(60ms + 4 * 72ms + 48ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .property-pictures-preview--pending .property-pictures-preview__header,
+    .property-pictures-preview--pending .property-pictures-item,
+    .property-pictures-preview--pending .property-pictures-see-more {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .property-pictures-preview--revealing .property-pictures-preview__header,
+    .property-pictures-preview--revealing .property-pictures-item,
+    .property-pictures-preview--revealing .property-pictures-see-more,
+    .property-pictures-preview--revealing .property-pictures-item__overlay {
+        animation: none;
+    }
+}
+
+.property-pictures-preview__header {
+    margin-bottom: 12px;
+}
+
+.property-pictures-preview__badge {
+    display: inline-block;
+    margin-bottom: 6px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: #f3edff;
+    color: #5e23dc;
+    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 16px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.property-pictures-preview__title {
+    margin: 0 0 4px;
+    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 24px;
+    color: #0a0a0a;
+}
+
+.property-pictures-preview__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.property-pictures-preview__developer,
+.property-pictures-preview__location {
+    margin: 0;
+}
+
+.property-pictures-preview__price {
+    margin: 4px 0 0;
+    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 21px;
+    color: #0a0a0a;
+}
+
+.property-pictures-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+}
+
+.property-pictures-item {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 12px;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: #f2f2f2;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.property-pictures-item:active {
+    transform: scale(0.98);
+}
+
+.property-pictures-preview--revealing .property-pictures-item {
+    transition: transform 0.2s ease;
+}
+
+.property-pictures-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.property-pictures-item__overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    color: #ffffff;
+    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.property-pictures-see-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 12px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #5e23dc;
+    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 21px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.property-pictures-see-more:active {
+    opacity: 0.7;
+}
+
+.property-pictures-see-more span {
+    font-size: 16px;
+    line-height: 1;
+}
+
 /* Property Detail Page (PDP) */
 .property-detail-page {
     position: fixed;
@@ -4729,7 +5021,953 @@ html, body {
 }
 
 /* PDP Bottom Sheet */
-/* Full-page PDP (replaces bottom sheet) */
+/* ========== Houzy PDP — transform-based sheet → fullscreen (Maps / Vaul style) ========== */
+.houzy-pdp-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    transition: opacity 0.48s cubic-bezier(0.32, 0.72, 0, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.houzy-pdp-backdrop--open {
+    opacity: 1;
+}
+
+.houzy-pdp-backdrop--closing {
+    opacity: 0;
+    transition-duration: 0.36s;
+}
+
+.houzy-pdp {
+    --pdp-peek: min(82vh, 720px);
+    --pdp-ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --pdp-duration: 0.48s;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 100000;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: 20px 20px 0 0;
+    height: 100%;
+    height: 100dvh;
+    max-height: none;
+    /* Closed: fully off-screen. Open peek / expanded use translate only — no scale/zoom. */
+    transform: translate3d(0, 100%, 0);
+    transition:
+        transform var(--pdp-duration) var(--pdp-ease),
+        border-radius var(--pdp-duration) var(--pdp-ease),
+        box-shadow 0.36s ease;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.2);
+    padding-bottom: env(safe-area-inset-bottom);
+    overflow: hidden;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.houzy-pdp--open {
+    /* Peek: only the bottom --pdp-peek of the full-height sheet is visible */
+    transform: translate3d(0, calc(100% - var(--pdp-peek)), 0);
+}
+
+.houzy-pdp--closing {
+    transform: translate3d(0, 100%, 0) !important;
+    transition-duration: 0.36s;
+}
+
+.houzy-pdp--expanded {
+    transform: translate3d(0, 0, 0);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.houzy-pdp--expanding {
+    pointer-events: none;
+}
+
+.houzy-pdp-backdrop--dimmed {
+    opacity: 0;
+    pointer-events: none;
+    transition-duration: 0.48s;
+}
+
+.houzy-pdp--expanded .houzy-pdp__grabber {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.houzy-pdp__grabber {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    padding: 10px 0 6px;
+    box-sizing: content-box;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Fade only — no height collapse (avoids content “zoom” jump) */
+    transition: opacity 0.28s ease;
+}
+
+.houzy-pdp__grabber:active {
+    cursor: grabbing;
+}
+
+.houzy-pdp__handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: #d1d5db;
+    transition: opacity 0.28s ease;
+}
+
+.houzy-pdp--expanded .houzy-pdp__handle {
+    opacity: 0;
+}
+
+.houzy-pdp__scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-bottom: 8px;
+}
+
+.houzy-pdp__hero {
+    position: relative;
+    width: 100%;
+    height: 320px;
+    max-height: 42vh;
+    min-height: 240px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #222;
+    flex-shrink: 0;
+}
+
+.houzy-pdp__hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    /* Prevent any image scale during sheet motion */
+    transform: translateZ(0);
+}
+
+.houzy-pdp__hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(102, 102, 102, 0.2) 0%, rgba(0, 0, 0, 0.2) 78.55%, rgba(0, 0, 0, 0.2) 100%);
+    pointer-events: none;
+}
+
+.houzy-pdp__hero-top {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Figma scroll-state sticky top bar */
+.houzy-pdp__topnav {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+    transform: translateY(-110%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.22s ease;
+}
+
+.houzy-pdp__topnav--visible {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.houzy-pdp__topnav-close {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 38px;
+    background: transparent;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.houzy-pdp__topnav-close img {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+.houzy-pdp__topnav-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    justify-content: center;
+}
+
+.houzy-pdp__topnav-title {
+    margin: 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 16px;
+    color: #222222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.houzy-pdp__topnav-price {
+    margin: 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    color: #434343;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.houzy-pdp__topnav-actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.houzy-pdp__topnav-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 16px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.houzy-pdp__topnav-btn--fav {
+    background: #f3f7ff;
+}
+
+.houzy-pdp__topnav-btn img {
+    width: 15.5px;
+    height: 15.5px;
+    display: block;
+}
+
+.houzy-pdp__topnav-btn--fav.is-active {
+    background: #f3f7ff;
+}
+
+.houzy-pdp__hero-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.houzy-pdp__icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.12);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.houzy-pdp__icon-btn img {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.houzy-pdp__icon-btn--brand {
+    background: #5e23dc;
+}
+
+.houzy-pdp__icon-btn.is-active {
+    background: #ffe8f1;
+}
+
+.houzy-pdp__hero-bottom {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.houzy-pdp__count-badge,
+.houzy-pdp__tag-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 23px;
+    padding: 0 8px;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    color: #ffffff;
+    font-family: 'Rubik', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 12px;
+    letter-spacing: 0.6px;
+}
+
+.houzy-pdp__dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.houzy-pdp__dots i {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #9d9e9f;
+    display: block;
+}
+
+.houzy-pdp__dots i.is-active {
+    background: #ffffff;
+}
+
+.houzy-pdp__info {
+    background: #ffffff;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.houzy-pdp__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.houzy-pdp__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 23px;
+    padding: 0 8px;
+    border-radius: 16px;
+    border: 1px solid #e1e2e8;
+    background: rgba(255, 255, 255, 0.4);
+    font-family: 'Rubik', sans-serif;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 12px;
+    letter-spacing: 0.6px;
+    color: #434343;
+}
+
+.houzy-pdp__badge img {
+    width: 12px;
+    height: 12px;
+    display: block;
+}
+
+.houzy-pdp__badge--launch {
+    color: #e80067;
+}
+
+.houzy-pdp__badge--rera {
+    color: #222222;
+}
+
+.houzy-pdp__badge strong {
+    font-weight: 500;
+    color: #434343;
+}
+
+.houzy-pdp__title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.houzy-pdp__title-block {
+    flex: 1;
+    min-width: 0;
+}
+
+.houzy-pdp__title {
+    margin: 0 0 4px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 28px;
+    color: #222222;
+}
+
+.houzy-pdp__location {
+    margin: 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    color: #656565;
+}
+
+.houzy-pdp__map {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    border: none;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    color: #5e23dc;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+}
+
+.houzy-pdp__map-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid #e1e2e8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        linear-gradient(135deg, rgba(94, 35, 220, 0.08), rgba(94, 35, 220, 0.02)),
+        #f7f7f8;
+}
+
+.houzy-pdp__map-icon img {
+    width: 16px;
+    height: 16px;
+}
+
+.houzy-pdp__price-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.houzy-pdp__price {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    font-family: 'Rubik', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+    color: #222222;
+}
+
+.houzy-pdp__price span {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    color: #767676;
+}
+
+.houzy-pdp__price img {
+    width: 16px;
+    height: 16px;
+}
+
+.houzy-pdp__bhk {
+    margin: 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    color: #656565;
+}
+
+.houzy-pdp__seller {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px dashed #e1e2e8;
+}
+
+.houzy-pdp__seller-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.houzy-pdp__seller-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #d8d8d8;
+    flex-shrink: 0;
+}
+
+.houzy-pdp__seller-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.houzy-pdp__seller-name {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    color: #222222;
+    text-align: left;
+    cursor: pointer;
+}
+
+.houzy-pdp__seller-role {
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    color: #656565;
+}
+
+.houzy-pdp__view-phone {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 8px;
+    background: #5e23dc;
+    color: #ffffff;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 16px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.houzy-pdp__more {
+    padding: 8px 16px 24px;
+}
+
+.houzy-pdp__section-title {
+    margin: 0 0 8px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 20px;
+    color: #222222;
+}
+
+.houzy-pdp__about {
+    margin: 0 0 12px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 21px;
+    color: #434343;
+}
+
+.houzy-pdp__see-photos {
+    border: none;
+    background: none;
+    padding: 0;
+    color: #5e23dc;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 21px;
+    cursor: pointer;
+}
+
+/* Figma Bottom navigation — sticky Ask Houzy sheet on full PDP */
+.houzy-pdp__sticky {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    background: #ffffff;
+    border-radius: 16px 16px 0 0;
+    border-top: 1px solid #67a0ff;
+    box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.16);
+    transition: border-color 0.28s ease, box-shadow 0.28s ease, gap 0.4s cubic-bezier(0.22, 1, 0.36, 1), padding 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* State 0: Reply to Houzy only */
+.houzy-pdp__sticky--compact {
+    gap: 0;
+    padding-top: 12px;
+}
+
+.houzy-pdp__sticky--thinking,
+.houzy-pdp__sticky--answer {
+    border-top-color: #5e23dc;
+    box-shadow: 0 -4px 20px rgba(94, 35, 220, 0.12);
+}
+
+.houzy-pdp__thinking {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 24px;
+    animation: houzy-pdp-fade-in 0.28s ease;
+}
+
+.houzy-pdp__thinking[hidden],
+.houzy-pdp__answer[hidden] {
+    display: none !important;
+}
+
+.houzy-pdp__thinking-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 16px;
+    color: #767676;
+}
+
+.houzy-pdp__thinking-sparkle {
+    width: 16px;
+    height: 16px;
+    display: block;
+    animation: houzy-pdp-sparkle 1.4s ease-in-out infinite;
+}
+
+@keyframes houzy-pdp-sparkle {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.85; }
+    50% { transform: scale(1.12) rotate(12deg); opacity: 1; }
+}
+
+@keyframes houzy-pdp-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.houzy-pdp__sheet-close {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: #9d9e9f;
+    font-size: 22px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.houzy-pdp__sheet-close:active {
+    color: #434343;
+}
+
+.houzy-pdp__answer {
+    position: relative;
+    max-height: min(42vh, 320px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 28px;
+    opacity: 1;
+    transform: translateY(0);
+    transition: max-height 0.36s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.24s ease,
+                transform 0.28s ease,
+                padding 0.28s ease,
+                margin 0.28s ease;
+    animation: houzy-pdp-fade-in 0.32s ease;
+}
+
+.houzy-pdp__answer--out {
+    max-height: 0 !important;
+    opacity: 0;
+    transform: translateY(10px);
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.houzy-pdp__answer-close {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+}
+
+.houzy-pdp__answer-text {
+    margin: 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 21px;
+    color: #222222;
+}
+
+.houzy-pdp__pills {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -16px;
+    padding: 0 16px;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: max-height 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.32s ease,
+                transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                margin 0.4s ease;
+}
+
+.houzy-pdp__pills::-webkit-scrollbar {
+    display: none;
+}
+
+.houzy-pdp__sticky--suggest .houzy-pdp__pills:not(.is-suppressed) {
+    max-height: 56px;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.houzy-pdp__sticky--compact .houzy-pdp__pills,
+.houzy-pdp__pills.is-suppressed {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.houzy-pdp__sticky--thinking .houzy-pdp__pills,
+.houzy-pdp__sticky--answer .houzy-pdp__pills {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.houzy-pdp__pill {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #e1e2e8;
+    background: #ffffff;
+    color: #767676;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.houzy-pdp__pill img {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    display: block;
+}
+
+.houzy-pdp__pill:active {
+    background: #f7f7f8;
+}
+
+.houzy-pdp__ask {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 52px;
+    padding: 0 0 0 16px;
+    border-radius: 12px;
+    border: 1px solid #e1e2e8;
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+.houzy-pdp__ask-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 12px 8px 12px 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 16px;
+    color: #222222;
+    -webkit-appearance: none;
+}
+
+.houzy-pdp__ask-input::placeholder {
+    color: #767676;
+}
+
+.houzy-pdp__ask-input:read-only {
+    cursor: default;
+}
+
+.houzy-pdp__ask-send {
+    position: relative;
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border: none;
+    background: transparent;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.houzy-pdp__ask-send-bg {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    background: #9d9e9f;
+    transition: background 0.15s ease;
+}
+
+.houzy-pdp__ask-send.is-ready .houzy-pdp__ask-send-bg {
+    background: #5e23dc;
+}
+
+.houzy-pdp__ask-send:disabled {
+    cursor: default;
+    opacity: 1;
+}
+
+.houzy-pdp__ask-send img {
+    position: relative;
+    z-index: 1;
+    width: 17.5px;
+    height: 17.5px;
+    display: block;
+    pointer-events: none;
+}
+
+.houzy-pdp__ask-send:active:not(:disabled) {
+    opacity: 0.88;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .houzy-pdp__sticky,
+    .houzy-pdp__pills,
+    .houzy-pdp__answer,
+    .houzy-pdp__thinking-sparkle {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .houzy-pdp,
+    .houzy-pdp-backdrop,
+    .houzy-pdp__topnav {
+        transition: none;
+    }
+}
+
+body.force-mobile-demo .houzy-pdp,
+body.force-mobile-demo .houzy-pdp-backdrop {
+    max-width: 390px;
+    left: 0;
+    right: 0;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+}
+
+/* Full-page PDP (legacy styles kept for other callers) */
 .pdp-fullpage-overlay {
     position: fixed;
     top: 0;

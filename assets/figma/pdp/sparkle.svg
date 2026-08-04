@@ -1,0 +1,10 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pdpSparkleGrad" x1="2" y1="2" x2="14" y2="14" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5E23DC"/>
+      <stop offset="0.55" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#E9D5FF"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#pdpSparkleGrad)" d="M8 1.2c.22 1.9 1.05 3.5 2.5 4.8 1.35 1.2 2.95 1.95 4.8 2.2-1.85.25-3.45 1-4.8 2.2C9.05 11.7 8.22 13.3 8 15.2c-.22-1.9-1.05-3.5-2.5-4.8C4.15 9.2 2.55 8.45.7 8.2c1.85-.25 3.45-1 4.8-2.2C6.95 4.7 7.78 3.1 8 1.2z"/>
+</svg>

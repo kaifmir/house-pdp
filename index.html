@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#F7F2EC">
     <title>Housing.com - Home</title>
     <link rel="icon" href="Favicon.png" type="image/png">
-    <link rel="stylesheet" href="styles.css?v=20260402">
+    <link rel="stylesheet" href="styles.css?v=20260804n">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
     <link rel="preload" href="buy-icon.png" as="image">
 </head>
 <body>
-    <div class="desktop-blocker">
+    <div class="desktop-blocker" id="desktop-blocker">
         <div class="desktop-blocker-content">
             <img
                 class="desktop-preview-image"
@@ -31,6 +31,7 @@
             <div class="desktop-message">
                 <p>This experience is optimized for mobile devices only.</p>
                 <p>Please open this page on your mobile device.</p>
+                <button type="button" class="desktop-continue-btn" id="desktop-continue-btn">Continue on desktop</button>
             </div>
         </div>
     </div>
@@ -398,14 +399,17 @@
                     <div class="chips-track" id="chipsTrack">
                         <div class="chips-set">
                             <div class="chat-starter-pills-row">
+                                <button type="button" class="chat-pill pill-stroke-blue"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>Buy 3 BHK in Gurgaon under 3 Cr</button>
                                 <button type="button" class="chat-pill pill-stroke-green"><span class="chat-pill-icon"><img src="assets/pills/furnished.svg" width="16" height="16" alt="" aria-hidden="true"></span>2 BHK fully furnished properties for rent</button>
                                 <button type="button" class="chat-pill pill-stroke-coral"><span class="chat-pill-icon"><img src="assets/pills/location.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show properties near me</button>
                                 <button type="button" class="chat-pill pill-stroke-blue"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>3 BHK properties between ₹2 - 2.5 Cr</button>
                                 <button type="button" class="chat-pill pill-stroke-yellow-strong"><span class="chat-pill-icon"><img src="assets/pills/trending.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show trending localities in my area</button>
+                                <button type="button" class="chat-pill pill-stroke-blue"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>Buy 3 BHK in Gurgaon under 3 Cr</button>
                                 <button type="button" class="chat-pill pill-stroke-green"><span class="chat-pill-icon"><img src="assets/pills/furnished.svg" width="16" height="16" alt="" aria-hidden="true"></span>2 BHK fully furnished properties for rent</button>
                                 <button type="button" class="chat-pill pill-stroke-coral"><span class="chat-pill-icon"><img src="assets/pills/location.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show properties near me</button>
                                 <button type="button" class="chat-pill pill-stroke-blue"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>3 BHK properties between ₹2 - 2.5 Cr</button>
                                 <button type="button" class="chat-pill pill-stroke-yellow-strong"><span class="chat-pill-icon"><img src="assets/pills/trending.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show trending localities in my area</button>
+                                <button type="button" class="chat-pill pill-stroke-blue"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>Buy 3 BHK in Gurgaon under 3 Cr</button>
                                 <button type="button" class="chat-pill pill-stroke-green"><span class="chat-pill-icon"><img src="assets/pills/furnished.svg" width="16" height="16" alt="" aria-hidden="true"></span>2 BHK fully furnished properties for rent</button>
                                 <button type="button" class="chat-pill pill-stroke-coral"><span class="chat-pill-icon"><img src="assets/pills/location.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show properties near me</button>
                                 <button type="button" class="chat-pill pill-stroke-blue"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>3 BHK properties between ₹2 - 2.5 Cr</button>
@@ -416,14 +420,17 @@
                                 <button type="button" class="chat-pill pill-stroke-yellow"><span class="chat-pill-icon"><img src="assets/pills/review.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality reviews</button>
                                 <button type="button" class="chat-pill pill-stroke-purple"><span class="chat-pill-icon"><img src="assets/pills/variant9.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show me under construction projects</button>
                                 <button type="button" class="chat-pill pill-stroke-pink"><span class="chat-pill-icon"><img src="assets/pills/price.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality price trends</button>
+                                <button type="button" class="chat-pill pill-stroke-blue"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show project pictures of Opus</button>
                                 <button type="button" class="chat-pill pill-stroke-coral"><span class="chat-pill-icon"><img src="assets/pills/compare.svg" width="16" height="16" alt="" aria-hidden="true"></span>Compare localities</button>
                                 <button type="button" class="chat-pill pill-stroke-yellow"><span class="chat-pill-icon"><img src="assets/pills/review.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality reviews</button>
                                 <button type="button" class="chat-pill pill-stroke-purple"><span class="chat-pill-icon"><img src="assets/pills/variant9.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show me under construction projects</button>
                                 <button type="button" class="chat-pill pill-stroke-pink"><span class="chat-pill-icon"><img src="assets/pills/price.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality price trends</button>
+                                <button type="button" class="chat-pill pill-stroke-blue"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show project pictures of Opus</button>
                                 <button type="button" class="chat-pill pill-stroke-coral"><span class="chat-pill-icon"><img src="assets/pills/compare.svg" width="16" height="16" alt="" aria-hidden="true"></span>Compare localities</button>
                                 <button type="button" class="chat-pill pill-stroke-yellow"><span class="chat-pill-icon"><img src="assets/pills/review.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality reviews</button>
                                 <button type="button" class="chat-pill pill-stroke-purple"><span class="chat-pill-icon"><img src="assets/pills/variant9.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show me under construction projects</button>
                                 <button type="button" class="chat-pill pill-stroke-pink"><span class="chat-pill-icon"><img src="assets/pills/price.svg" width="16" height="16" alt="" aria-hidden="true"></span>Check locality price trends</button>
+                                <button type="button" class="chat-pill pill-stroke-blue"><span class="chat-pill-icon"><img src="assets/pills/bhk.svg" width="16" height="16" alt="" aria-hidden="true"></span>Show project pictures of Opus</button>
                             </div>
                         </div>
                     </div>
@@ -463,6 +470,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=20260402"></script>
+    <script src="script.js?v=20260804n"></script>
 </body>
 </html>

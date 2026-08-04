@@ -258,6 +258,16 @@ window.addEventListener('resize', debounce(checkMobileDevice, 150));
 // Property type selection
 document.addEventListener('DOMContentLoaded', function() {
     initDOMCache();
+
+    // Allow continuing the mobile demo on desktop (property cards / Houzy flows)
+    const desktopContinueBtn = document.getElementById('desktop-continue-btn');
+    if (desktopContinueBtn) {
+        desktopContinueBtn.addEventListener('click', function() {
+            document.body.classList.add('force-mobile-demo');
+            const blocker = document.getElementById('desktop-blocker');
+            if (blocker) blocker.style.display = 'none';
+        });
+    }
     
     // Land on homepage on load/refresh; chat opens when user taps Houzy in bottom nav
     const chatScreenEl = document.getElementById('chat-screen');
@@ -2124,6 +2134,390 @@ document.addEventListener('DOMContentLoaded', function() {
                 triggerHapticFeedback('medium');
             }, delay);
         }
+
+        function normalizePropertyKey(name) {
+            return (name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+        }
+
+        function isPropertyPicturesRequest(text) {
+            const normalized = normalizeText(text);
+            return /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(?:property\s+|project\s+)?(?:pictures?|photos?|images?)/i.test(normalized) ||
+                /(?:show|see|view)\s+(?:me\s+)?(?:the\s+)?project\s+(?:pictures?|photos?|images?)/i.test(normalized) ||
+                /(?:pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?/.test(normalized) ||
+                /(?:can\s+i\s+see|want\s+to\s+see)\s+(?:the\s+)?(?:project\s+)?(?:pictures?|photos?|images?)/i.test(normalized) ||
+                /\bproject\s+(?:pictures?|photos?|images?)\b/i.test(normalized);
+        }
+
+        function isProjectPicturesContext(text) {
+            return /\bproject\b/i.test(text || '');
+        }
+
+        function cleanExtractedProjectName(rawName) {
+            return (rawName || '')
+                .replace(/\b(please|thanks|thank you|pics?|associated|related)\b/gi, '')
+                .replace(/\s+project\s*$/i, '')
+                .replace(/^project\s+/i, '')
+                .replace(/^(the|a|an)\s+/i, '')
+                .replace(/[?.!,]+$/g, '')
+                .trim();
+        }
+
+        function extractPropertyNameFromPicturesRequest(text) {
+            const raw = (text || '').trim();
+            const patterns = [
+                /(?:show|see|view)\s+(?:me\s+)?(?:the\s+)?project\s+(?:pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?(.+)/i,
+                /(?:pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?(.+?)(?:\s+project)?[?.!,]*$/i,
+                /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(?:project\s+)?(?:pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?(.+)/i,
+                /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(.+?)\s+project\s+(?:pictures?|photos?|images?)/i,
+                /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(.+?)\s+(?:pictures?|photos?|images?)/i
+            ];
+            for (let i = 0; i < patterns.length; i++) {
+                const match = raw.match(patterns[i]);
+                if (match && match[1]) {
+                    const cleaned = cleanExtractedProjectName(match[1]);
+                    if (cleaned.length >= 2) return cleaned;
+                }
+            }
+            return '';
+        }
+
+        function toProjectPictureResult(project, overrides) {
+            return {
+                id: project.id,
+                name: project.name,
+                location: project.location,
+                developer: project.developer || null,
+                status: project.status || null,
+                priceRange: project.priceRange || null,
+                isProject: project.isProject !== false,
+                image: project.gallery[0],
+                gallery: project.gallery,
+                ...(overrides || {})
+            };
+        }
+
+        function buildGalleryForProperty(name, seedImage) {
+            const startIndex = hashPropertyId(name || 'property') % PROPERTY_IMAGE_POOL.length;
+            const gallery = [];
+            const used = new Set();
+            for (let i = 0; i < EXTENDED_GALLERY_IMAGES.length; i++) {
+                const image = EXTENDED_GALLERY_IMAGES[(startIndex + i) % EXTENDED_GALLERY_IMAGES.length];
+                if (!used.has(image)) {
+                    gallery.push(image);
+                    used.add(image);
+                }
+            }
+            if (seedImage && !used.has(seedImage)) {
+                gallery.unshift(seedImage);
+            }
+            return gallery.slice(0, 10);
+        }
+
+        function cardToProjectPictureData(card) {
+            if (!card) return null;
+            const gallery = (card.gallery && card.gallery.length >= 5)
+                ? card.gallery
+                : buildGalleryForProperty(card.name, card.image);
+            const priceLabel = card.price != null
+                ? ('₹' + card.price + (card.priceUnit ? ' ' + card.priceUnit : ''))
+                : (card.priceRange || null);
+            return {
+                id: card.id,
+                name: card.name,
+                location: card.locality || card.location || 'India',
+                developer: card.developer || null,
+                status: card.status || null,
+                priceRange: priceLabel,
+                isProject: true,
+                image: card.image || gallery[0],
+                gallery: gallery
+            };
+        }
+
+        function projectNameTokens(name) {
+            return normalizePropertyKey(name)
+                .split(' ')
+                .filter(function(token) {
+                    return token.length > 2 && !/^(the|and|for|bhk|flat|apartment|project)$/.test(token);
+                });
+        }
+
+        function scoreProjectNameMatch(query, candidateName) {
+            const q = normalizePropertyKey(query);
+            const c = normalizePropertyKey(candidateName);
+            if (!q || !c) return 0;
+            if (q === c) return 100;
+            if (c.includes(q) || q.includes(c)) return 80;
+            const qTokens = projectNameTokens(q);
+            const cTokens = projectNameTokens(c);
+            if (!qTokens.length || !cTokens.length) return 0;
+            let hits = 0;
+            qTokens.forEach(function(token) {
+                if (cTokens.some(function(ct) { return ct.includes(token) || token.includes(ct); })) {
+                    hits += 1;
+                }
+            });
+            if (!hits) return 0;
+            return Math.round((hits / qTokens.length) * 60);
+        }
+
+        function findBestCardForPictures(query) {
+            if (!lastShownPropertyCards.length) return null;
+            let best = null;
+            let bestScore = 0;
+            lastShownPropertyCards.forEach(function(card) {
+                const score = scoreProjectNameMatch(query, card.name);
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = card;
+                }
+            });
+            return bestScore >= 40 ? best : null;
+        }
+
+        function resolvePropertyForPictures(propertyName) {
+            const query = normalizePropertyKey(propertyName);
+            if (!query) {
+                if (lastMentionedProject) {
+                    return { ...lastMentionedProject };
+                }
+                if (lastShownPropertyCards.length > 0) {
+                    return cardToProjectPictureData(lastShownPropertyCards[0]);
+                }
+                return null;
+            }
+
+            // Prefer the carousel the user just saw (this projects view)
+            const matchedCard = findBestCardForPictures(query);
+            if (matchedCard) {
+                return cardToProjectPictureData(matchedCard);
+            }
+
+            const predefined = PROPERTY_PICTURE_PROJECTS[query];
+            if (predefined) {
+                return toProjectPictureResult(predefined);
+            }
+
+            let bestKey = null;
+            let bestScore = 0;
+            for (const key in PROPERTY_PICTURE_PROJECTS) {
+                const score = scoreProjectNameMatch(query, key);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestKey = key;
+                }
+            }
+            if (bestKey && bestScore >= 40) {
+                return toProjectPictureResult(PROPERTY_PICTURE_PROJECTS[bestKey]);
+            }
+
+            const brochureMatch = findBrochureProjectMatch(query);
+            if (brochureMatch) {
+                return toProjectPictureResult(brochureMatch);
+            }
+
+            return {
+                id: 'project-' + query.replace(/\s+/g, '-'),
+                name: propertyName.trim().replace(/\b\w/g, function(ch) { return ch.toUpperCase(); }),
+                location: conversationState.locality || 'India',
+                developer: null,
+                status: 'Under construction',
+                isProject: true,
+                image: PROPERTY_IMAGE_POOL[hashPropertyId(query) % PROPERTY_IMAGE_POOL.length],
+                gallery: buildGalleryForProperty(query)
+            };
+        }
+
+        function findBrochureProjectMatch(query) {
+            const names = typeof BROCHURE_PROJECT_NAMES !== 'undefined' ? BROCHURE_PROJECT_NAMES : [];
+            for (let i = 0; i < names.length; i++) {
+                const key = normalizePropertyKey(names[i]);
+                if (key.includes(query) || query.includes(key)) {
+                    const existing = PROPERTY_PICTURE_PROJECTS[key];
+                    if (existing) return existing;
+                    return {
+                        id: key.replace(/\s+/g, '-'),
+                        name: names[i],
+                        location: conversationState.locality || 'India',
+                        developer: getRandomItem(INDIAN_DEVELOPER_NAMES),
+                        status: 'New launch',
+                        priceRange: BROCHURE_PRICE_RANGES[i % BROCHURE_PRICE_RANGES.length],
+                        isProject: true,
+                        gallery: buildGalleryForProperty(names[i])
+                    };
+                }
+            }
+            return null;
+        }
+
+        function createPropertyPicturesPreview(propertyData) {
+            const preview = document.createElement('div');
+            preview.className = 'property-pictures-preview';
+
+            const header = document.createElement('div');
+            header.className = 'property-pictures-preview__header';
+
+            if (propertyData.isProject !== false) {
+                const badge = document.createElement('span');
+                badge.className = 'property-pictures-preview__badge';
+                badge.textContent = 'Project';
+                header.appendChild(badge);
+            }
+
+            const title = document.createElement('h2');
+            title.className = 'property-pictures-preview__title';
+            title.textContent = propertyData.name;
+
+            const meta = document.createElement('div');
+            meta.className = 'property-pictures-preview__meta';
+
+            if (propertyData.developer) {
+                const developer = document.createElement('p');
+                developer.className = 'property-pictures-preview__developer bot-reply-muted';
+                developer.textContent = 'by ' + propertyData.developer;
+                meta.appendChild(developer);
+            }
+
+            const location = document.createElement('p');
+            location.className = 'property-pictures-preview__location bot-reply-muted';
+            location.textContent = '📍 ' + propertyData.location;
+            meta.appendChild(location);
+
+            if (propertyData.priceRange) {
+                const price = document.createElement('p');
+                price.className = 'property-pictures-preview__price';
+                price.textContent = propertyData.priceRange;
+                meta.appendChild(price);
+            }
+
+            header.appendChild(title);
+            header.appendChild(meta);
+            preview.appendChild(header);
+
+            const grid = document.createElement('div');
+            grid.className = 'property-pictures-grid';
+            const gallery = propertyData.gallery && propertyData.gallery.length
+                ? propertyData.gallery
+                : [propertyData.image];
+            const previewImages = gallery.slice(0, 4);
+            const remainingCount = Math.max(0, gallery.length - 4);
+
+            previewImages.forEach(function(url, index) {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'property-pictures-item';
+                item.style.setProperty('--reveal-index', String(index));
+                item.setAttribute('aria-label', propertyData.name + ' photo ' + (index + 1));
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = propertyData.name + ' – photo ' + (index + 1);
+                img.loading = index < 2 ? 'eager' : 'lazy';
+                img.onerror = function() {
+                    if (!this.dataset.failed) {
+                        this.dataset.failed = '1';
+                        this.src = PROPERTY_IMAGE_POOL[0];
+                    }
+                };
+                item.appendChild(img);
+
+                if (index === 3 && remainingCount > 0) {
+                    const overlay = document.createElement('span');
+                    overlay.className = 'property-pictures-item__overlay';
+                    overlay.textContent = '+' + remainingCount;
+                    item.appendChild(overlay);
+                }
+
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openPropertyGallery(propertyData, index);
+                });
+                grid.appendChild(item);
+            });
+            preview.appendChild(grid);
+
+            if (gallery.length > 4) {
+                const seeMoreBtn = document.createElement('button');
+                seeMoreBtn.type = 'button';
+                seeMoreBtn.className = 'property-pictures-see-more';
+                seeMoreBtn.innerHTML = 'See all ' + gallery.length + ' photos <span aria-hidden="true">&gt;</span>';
+                seeMoreBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openPropertyGallery(propertyData, 0);
+                });
+                preview.appendChild(seeMoreBtn);
+            }
+
+            preview.classList.add('property-pictures-preview--pending');
+            return preview;
+        }
+
+        function revealPropertyPicturesPreview(previewEl) {
+            if (!previewEl || previewEl.classList.contains('property-pictures-preview--revealing')) return;
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    previewEl.classList.remove('property-pictures-preview--pending');
+                    previewEl.classList.add('property-pictures-preview--revealing');
+                });
+            });
+        }
+
+        function showPropertyPicturesPreview(propertyName, userText) {
+            showTypingIndicator();
+            const delay = 1800 + Math.random() * 800;
+            const isProjectContext = isProjectPicturesContext(userText || propertyName);
+            setTimeout(function() {
+                hideTypingIndicator();
+                const propertyData = resolvePropertyForPictures(propertyName);
+                if (!propertyData) {
+                    addBotMessage('Which project would you like to see pictures of? Try something like "Show project pictures of Opus".');
+                    return;
+                }
+
+                lastMentionedProject = { ...propertyData };
+                const totalPhotos = propertyData.gallery ? propertyData.gallery.length : 1;
+                const subjectLabel = propertyData.isProject !== false || isProjectContext ? 'project' : 'property';
+                const introText = 'Here are photos of the ' + propertyData.name + ' ' + subjectLabel + '. Showing 4 of ' + totalPhotos + ' pictures.';
+                const msgId = generateMessageId();
+                const message = {
+                    id: msgId,
+                    role: 'bot',
+                    text: introText,
+                    timestamp: Date.now(),
+                    hasPicturesPreview: true
+                };
+                messages.push(message);
+                triggerHapticFeedback('medium');
+
+                const msgDiv = document.createElement('div');
+                msgDiv.id = msgId;
+                msgDiv.className = 'msg msg-bot';
+
+                const botContent = document.createElement('div');
+                botContent.className = 'bot-message-content';
+
+                const botText = document.createElement('div');
+                botText.className = 'bot-text';
+                const preview = createPropertyPicturesPreview(propertyData);
+
+                botContent.appendChild(botText);
+                botContent.appendChild(preview);
+                streamTextIntoElement(botText, introText, STREAM_WORD_MS, function() {
+                    revealPropertyPicturesPreview(preview);
+                    botContent.appendChild(createFeedbackButtons(msgId));
+                });
+
+                msgDiv.appendChild(botContent);
+                const stack = domCache.chatStack;
+                if (stack) {
+                    stack.appendChild(msgDiv);
+                    requestAnimationFrame(function() {
+                        scrollMessageIntoView(msgDiv);
+                    });
+                }
+            }, delay);
+        }
         
         // Detect if message is a greeting
         function isGreeting(text) {
@@ -2434,6 +2828,10 @@ document.addEventListener('DOMContentLoaded', function() {
             city: null, // major city
             isComplete: false
         };
+
+        // Last property cards shown in chat – used for "show pictures of …" follow-ups
+        let lastShownPropertyCards = [];
+        let lastMentionedProject = null;
         
         // User location state
         let userLocation = {
@@ -2452,6 +2850,149 @@ document.addEventListener('DOMContentLoaded', function() {
             'HOUSE 4.jpg',
             'HOUSE 5.jpg'
         ];
+
+        const EXTENDED_GALLERY_IMAGES = [
+            ...PROPERTY_IMAGE_POOL,
+            'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop&q=80',
+            'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop&q=80'
+        ];
+
+        const PROPERTY_PICTURE_PROJECTS = {
+            'opus': {
+                id: 'opus',
+                name: 'Opus',
+                location: 'Golf Course Road, Gurgaon',
+                developer: 'DLF Limited',
+                status: 'Ready to move',
+                priceRange: '₹2.5 Cr – ₹3.5 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(0, 10)
+            },
+            'm3m solitude ralph estate': {
+                id: 'm3m-solitude-ralph-estate',
+                name: 'M3M Solitude Ralph Estate',
+                location: 'Sector 33, Sohna, Gurgaon',
+                developer: 'M3M India',
+                status: 'Ready to move',
+                priceRange: '₹3 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(0, 10)
+            },
+            'm3m solitude': {
+                id: 'm3m-solitude-ralph-estate',
+                name: 'M3M Solitude Ralph Estate',
+                location: 'Sector 33, Sohna, Gurgaon',
+                developer: 'M3M India',
+                status: 'Ready to move',
+                priceRange: '₹3 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(0, 10)
+            },
+            'luxury heights': {
+                id: 'luxury-heights',
+                name: 'Luxury Heights',
+                location: 'Sector 44, Noida',
+                developer: 'Godrej Properties',
+                status: 'Under construction',
+                priceRange: '₹3.2 Cr – ₹4.5 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(1, 11)
+            },
+            'green valley': {
+                id: 'green-valley',
+                name: 'Green Valley',
+                location: 'Sector 62, Noida',
+                developer: 'Prestige Group',
+                status: 'New launch',
+                priceRange: '₹2.8 Cr – ₹3.8 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(2, 12)
+            },
+            'dlf gardencity': {
+                id: 'dlf-gardencity',
+                name: 'DLF Gardencity',
+                location: 'Sector 81, Gurgaon',
+                developer: 'DLF Limited',
+                status: 'Under construction',
+                priceRange: '₹1.8 Cr – ₹2.5 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(0, 9)
+            },
+            'godrej nature plus': {
+                id: 'godrej-nature-plus',
+                name: 'Godrej Nature Plus',
+                location: 'Sector 89, Gurgaon',
+                developer: 'Godrej Properties',
+                status: 'New launch',
+                priceRange: '₹3.2 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(3, 11)
+            },
+            'prestige sunrise park': {
+                id: 'prestige-sunrise-park',
+                name: 'Prestige Sunrise Park',
+                location: 'Electronic City, Bangalore',
+                developer: 'Prestige Group',
+                status: 'Ready to move',
+                priceRange: '₹2.1 Cr – ₹3.0 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(4, 11)
+            },
+            'm3m golf estate': {
+                id: 'm3m-golf-estate',
+                name: 'M3M Golf Estate',
+                location: 'Golf Course Extension, Gurgaon',
+                developer: 'M3M India',
+                status: 'Under construction',
+                priceRange: '₹2.8 Cr – ₹4.2 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(1, 10)
+            },
+            'emaar palm heights': {
+                id: 'emaar-palm-heights',
+                name: 'Emaar Palm Heights',
+                location: 'Sector 77, Gurgaon',
+                developer: 'Emaar India',
+                status: 'Ready to move',
+                priceRange: '₹3.5 Cr – ₹4.8 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(2, 11)
+            },
+            'sobha city': {
+                id: 'sobha-city',
+                name: 'Sobha City',
+                location: 'Sector 108, Gurgaon',
+                developer: 'Sobha Limited',
+                status: 'Under construction',
+                priceRange: '₹1.9 Cr – ₹2.8 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(0, 8)
+            },
+            'sunset residency': {
+                id: 'sunset-residency',
+                name: 'Sunset Residency',
+                location: 'Dwarka, New Delhi',
+                developer: 'Raheja Developers',
+                status: 'Ready to move',
+                priceRange: '₹1.2 Cr – ₹1.9 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(0, 8)
+            },
+            'park view apartments': {
+                id: 'park-view-apartments',
+                name: 'Park View Apartments',
+                location: 'Rohini, Delhi',
+                developer: 'Ansal API',
+                status: 'Ready to move',
+                priceRange: '₹85 L – ₹1.4 Cr',
+                isProject: true,
+                gallery: EXTENDED_GALLERY_IMAGES.slice(2, 10)
+            }
+        };
         
         // Memoization cache for stable image selection across re-renders
         // Key: carouselId, Value: Map<propertyId, imageUrl> - final mapping for that carousel
@@ -2961,7 +3502,37 @@ document.addEventListener('DOMContentLoaded', function() {
             return updates;
         }
         
-        // Check if conversation state is complete (very lenient - shows properties if we have extracted info)
+        // Check if conversation state is complete (lenient – fill sensible defaults for demos)
+        function fillSearchDefaults(text) {
+            const normalized = normalizeText(text || '');
+            const hasPriceCue = /\b(k|lakh|lac|cr|crore|budget|under|between)\b|\b\d{2,}/i.test(normalized);
+            const hasRentCue = /\brent|rental\b/i.test(normalized);
+            const hasBuyCue = /\bbuy|purchase|sale|flat|apartment|villa|project\b/i.test(normalized);
+
+            if (!conversationState.intent) {
+                if (hasRentCue) conversationState.intent = 'rent';
+                else if (hasBuyCue || hasPriceCue) conversationState.intent = 'buy';
+                else conversationState.intent = 'buy';
+            }
+            if (!conversationState.bhk) {
+                conversationState.bhk = 3;
+            }
+            if (!conversationState.price && !conversationState.priceMin) {
+                if (conversationState.intent === 'rent') {
+                    conversationState.price = 0.3; // ~30k in lakh units used elsewhere
+                    conversationState.priceMin = 0.15;
+                    conversationState.priceMax = 0.9;
+                } else {
+                    conversationState.price = 3;
+                    conversationState.priceMin = 2;
+                    conversationState.priceMax = 4;
+                }
+            }
+            if (!conversationState.locality || conversationState.locality.length < 3) {
+                conversationState.locality = conversationState.city || 'Gurgaon';
+            }
+        }
+
         function isConversationComplete() {
             // Be very lenient - if we have extracted values (even with typos/grammar mistakes), consider complete
             const hasIntent = !!conversationState.intent;
@@ -2975,6 +3546,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return hasIntent && hasBHK && hasPrice;
             }
             
+            // Demo-friendly: BHK + (price or locality) is enough to show cards
+            if (hasBHK && (hasPrice || hasLocality)) {
+                return true;
+            }
+
             // Otherwise, need all fields including locality
             return hasIntent && hasBHK && hasPrice && hasLocality;
         }
@@ -3687,16 +4263,36 @@ document.addEventListener('DOMContentLoaded', function() {
             // Clean up old cache entries
             cleanupImageCache();
             
-            // Property names (will be customized based on locality)
+            // Property names – match the projects carousel style users see in chat
             const propertyNames = [
+                'M3M Solitude Ralph Estate',
+                'DLF The Camellias',
+                'Godrej Aria',
+                'Emaar Palm Heights',
+                'Sobha City',
+                'Prestige Sunrise Park',
                 'Luxury Heights',
-                'Green Valley',
-                'Sunset Residency',
-                'Park View Apartments',
-                'Garden Estate',
-                'Modern Living',
-                'Elite Homes',
-                'Premium Residences'
+                'Green Valley'
+            ];
+            const developers = [
+                'M3M India',
+                'DLF Limited',
+                'Godrej Properties',
+                'Emaar India',
+                'Sobha Limited',
+                'Prestige Group',
+                'Godrej Properties',
+                'Prestige Group'
+            ];
+            const localities = [
+                'Sector 33, Sohna, Gurgaon',
+                'Golf Course Road, Gurgaon',
+                'Sector 79, Gurgaon',
+                'Sector 77, Gurgaon',
+                'Sector 108, Gurgaon',
+                'Electronic City, Bangalore',
+                'Sector 44, Noida',
+                'Sector 62, Noida'
             ];
             
             // Property types and statuses
@@ -3711,6 +4307,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const imageUrl = getNextAvailableImage(usedImageUrls, false);
                 
                 const propertyName = propertyNames[i % propertyNames.length];
+                const developerName = developers[i % developers.length];
+                const localityName = conversationState.locality
+                    ? (conversationState.locality + (conversationState.city ? ', ' + conversationState.city : ''))
+                    : localities[i % localities.length];
                 
                 // Generate price based on property type (rent vs buy/project)
                 let priceValue;
@@ -3797,34 +4397,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Generate built-up area (realistic range: 1200-3500 sq.ft)
                 const builtUpArea = Math.floor(1200 + Math.random() * 2300);
                 
-                // Generate gallery images (3-5 images per property) - ensure unique images within this gallery
-                const numGalleryImages = 3 + Math.floor(Math.random() * 3);
-                
-                // Generate unique gallery images - use all 5 images, ensuring no duplicates in this gallery
-                const galleryImages = [imageUrl]; // Always include main image as first
-                const galleryUsedImages = new Set([imageUrl]); // Track images used in THIS gallery only
-                
-                // Get additional unique images for gallery - cycle through all 5 images
-                // Ensure no duplicate within this property's gallery
-                for (let galleryIndex = 1; galleryIndex < numGalleryImages; galleryIndex++) {
-                    // Try each image in the pool until we find one not used in this gallery
-                    let found = false;
-                    for (let poolIdx = 0; poolIdx < PROPERTY_IMAGE_POOL.length; poolIdx++) {
-                        const candidateImage = PROPERTY_IMAGE_POOL[poolIdx];
-                        if (!galleryUsedImages.has(candidateImage)) {
-                            galleryImages.push(candidateImage);
-                            galleryUsedImages.add(candidateImage);
-                            found = true;
-                    break;
-                }
-            }
-                    // If all 5 images already used in this gallery (shouldn't happen with 3-5 gallery images)
-                    // Just skip adding more (we already have main image)
-                    if (!found && galleryImages.length < PROPERTY_IMAGE_POOL.length) {
-                        // This shouldn't happen, but safety check
-                        break;
-                    }
-                }
+                // Full project gallery (8–10 photos) so "show pictures" can render 2×2 + See more
+                const galleryImages = buildGalleryForProperty(propertyName, imageUrl);
                 
                 // Generate random coordinates for property (if using location)
                 let propertyLat = null;
@@ -3844,17 +4418,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 cards.push({
                     id: propertyId,
                     name: propertyName,
+                    developer: developerName,
                     image: imageUrl,
-                    gallery: galleryImages, // Array of gallery images (all unique)
+                    gallery: galleryImages,
                     price: price.value,
                     priceUnit: price.unit,
                     bhk: conversationState.bhk || 3,
-                    locality: conversationState.locality || 'Location',
+                    locality: localityName,
                     type: conversationState.intent === 'rent' ? 'rent' : 'sale',
                     propertyType: propertyTypes[i % propertyTypes.length],
                     status: propertyStatuses[i % propertyStatuses.length],
                     builtUpArea: builtUpArea,
-                    distance: distance // Distance in km
+                    distance: distance
                 });
             }
             
@@ -5383,12 +5958,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 image.setAttribute('data-gallery-images', JSON.stringify(card.gallery || [card.image]));
                 image.setAttribute('data-card-image', card.image);
                 
-                // Image click → open gallery (fullscreen)
+                // Image click → open Figma PDP (same as card / Learn more)
                 function handleImageClick(e) {
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
-                    openPropertyGallery(card);
+                    lastMentionedProject = cardToProjectPictureData(card);
+                    openPropertyDetailPage(card);
                     return false;
                 }
                 
@@ -5509,6 +6085,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 learnMoreBtn.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    lastMentionedProject = cardToProjectPictureData(card);
                     openPropertyDetailPage(card);
                 });
                 const contactBtn = document.createElement('button');
@@ -5556,37 +6133,250 @@ document.addEventListener('DOMContentLoaded', function() {
             return wrapper;
         }
         
-        // Open Property Detail Page (PDP) as full page (no bottom sheet)
+        // Open Property Detail Page as bottom sheet → expands to full page on scroll/drag
+        function appendBotMessageSync(text, options) {
+            const opts = options || {};
+            const fullText = (text || '').trim();
+            const msgId = generateMessageId();
+            messages.push({ id: msgId, role: 'bot', text: fullText, timestamp: Date.now() });
+
+            const msgDiv = document.createElement('div');
+            msgDiv.id = msgId;
+            msgDiv.className = 'msg msg-bot';
+
+            const botContent = document.createElement('div');
+            botContent.className = 'bot-message-content';
+
+            const botText = document.createElement('div');
+            botText.className = 'bot-text';
+            botText.textContent = fullText;
+            botContent.appendChild(botText);
+
+            if (opts.withFeedback !== false) {
+                botContent.appendChild(createFeedbackButtons(msgId));
+            }
+
+            msgDiv.appendChild(botContent);
+
+            const stack = domCache.chatStack || document.getElementById('chat-stack');
+            if (stack) {
+                stack.appendChild(msgDiv);
+                if (opts.scroll !== false) {
+                    requestAnimationFrame(function() {
+                        scrollMessageIntoView(msgDiv);
+                    });
+                }
+            }
+            return msgId;
+        }
+
+        function flushPDPConversationToChat(card, turns) {
+            if (!turns || !turns.length) return;
+
+            const chatScreenEl = document.getElementById('chat-screen');
+            if (chatScreenEl) {
+                chatScreenEl.classList.add('chat-started');
+                if (typeof setChatOffsets === 'function') setChatOffsets();
+            }
+
+            const stack = domCache.chatStack || document.getElementById('chat-stack');
+            if (!stack) return;
+
+            const projectName = (card && card.name) ? card.name : 'this project';
+            const ctx = document.createElement('div');
+            ctx.className = 'chat-project-context';
+            ctx.innerHTML =
+                '<img class="chat-project-context__icon" src="assets/figma/pdp/reply-arrow.svg" alt="" width="16" height="16">' +
+                '<span class="chat-project-context__name"></span>';
+            ctx.querySelector('.chat-project-context__name').textContent = projectName;
+            stack.appendChild(ctx);
+
+            turns.forEach(function(turn, index) {
+                addUserMessage(turn.query);
+                appendBotMessageSync(turn.answer, {
+                    withFeedback: index === turns.length - 1,
+                    scroll: index === turns.length - 1
+                });
+            });
+
+            const chatInputEl = document.getElementById('chat-input');
+            if (chatInputEl) {
+                chatInputEl.placeholder = 'Reply to Houzy';
+            }
+            if (typeof updateSendButtonState === 'function') {
+                updateSendButtonState();
+            }
+            triggerHapticFeedback('subtle');
+        }
+
         function openPropertyDetailPage(card) {
             removeElementById('property-detail-bottom-sheet');
             removeElementById('property-detail-fullpage');
-            
-            function closePDPFullPage() {
-                const el = document.getElementById('property-detail-fullpage');
-                if (el) {
-                    el.remove();
-                    document.body.style.overflow = '';
-                }
+            removeElementById('houzy-pdp-backdrop');
+            lastMentionedProject = cardToProjectPictureData(card);
+
+            const gallery = (card.gallery && card.gallery.length) ? card.gallery : [card.image];
+            const photoCount = Math.max(gallery.length, 8);
+            const priceUnit = card.priceUnit || 'Cr';
+            let priceMain = '';
+            let pricePerSqft = '₹15K / sq.ft.';
+            if (priceUnit === 'k') {
+                const priceNum = parseFloat(card.price);
+                priceMain = priceNum >= 100000
+                    ? '₹' + (priceNum / 100000).toFixed(1) + 'L'
+                    : '₹' + (priceNum / 1000).toFixed(0) + 'k';
+            } else {
+                const base = parseFloat(card.price) || 2.25;
+                priceMain = '₹' + base.toFixed(2) + ' Cr - ' + (base + 2).toFixed(2) + ' Cr';
             }
-            
+            const bhkLabel = card.bhk
+                ? '(' + Math.max(2, card.bhk - 1) + ', ' + card.bhk + ', ' + (card.bhk + 1) + ' BHK Apartment & Villa)'
+                : '(2, 3, 4 BHK Apartment & Villa)';
+            const possessionYear = card.status === 'Ready to move' ? '2025' : '2028';
+            const statusBadge = 'New Launch';
+            const sellerName = card.sellerName || 'Krishna Kumar';
+            const sellerRole = 'Seller';
+
+            const backdrop = document.createElement('div');
+            backdrop.id = 'houzy-pdp-backdrop';
+            backdrop.className = 'houzy-pdp-backdrop';
+
             const overlay = document.createElement('div');
             overlay.id = 'property-detail-fullpage';
-            overlay.className = 'pdp-fullpage-overlay';
-            
-            const backBtn = document.createElement('button');
-            backBtn.className = 'pdp-bottom-sheet-back';
-            backBtn.setAttribute('aria-label', 'Back');
-            backBtn.innerHTML = '<img src="back.svg" alt="" class="pdp-back-icon" width="20" height="20">';
-            backBtn.onclick = closePDPFullPage;
-            
-            const scrollContent = document.createElement('div');
-            scrollContent.className = 'pdp-fullpage-scroll';
-            
-            // Hero Image (click opens gallery)
-            const heroImage = document.createElement('div');
-            heroImage.className = 'pdp-hero-image';
-            heroImage.style.cursor = 'pointer';
+            overlay.className = 'houzy-pdp';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-label', card.name + ' details');
+
+            let isExpanded = false;
+            let isClosing = false;
+            let askTimer = null;
+            let suggestExpandTimer = null;
+            let setBottomStickyMode = function() {};
+            const pdpTurns = [];
+            let askState = 'idle'; // idle | thinking | answer
+            let lastAskQuery = '';
+            let bottomStickyMode = 'compact'; // compact | suggest
+
+            function getPDPAnswer(query) {
+                const projectLabel = card.name || 'this project';
+                const possessionYr = card.status === 'Ready to move' ? '2025' : '2028';
+                const AMENITIES_ANSWER =
+                    'This project offers a thoughtfully curated range of amenities designed for comfort, convenience, and recreation. Residents can enjoy a swimming pool, a fully equipped gymnasium, a modern clubhouse, landscaped gardens, a children\'s play area, a jogging and cycling track, indoor games, a multipurpose hall, 24×7 security with CCTV surveillance, power backup, covered parking, and high-speed elevators.';
+                const q = (query || '').toLowerCase();
+                if (/picture|photo|gallery|image/.test(q)) {
+                    return 'Here are the latest project visuals for ' + projectLabel + '. Tap the hero image or “See all photos” anytime to browse the full gallery.';
+                }
+                if (/park/.test(q)) {
+                    return projectLabel + ' offers covered parking for residents, with visitor parking available nearby. Exact allotment depends on the configuration you choose.';
+                }
+                if (/possess|ready|handover|completion/.test(q)) {
+                    return projectLabel + ' is targeted for possession by ' + possessionYr + '. Timelines can vary by tower — I can help you compare ready-to-move vs under-construction options.';
+                }
+                return AMENITIES_ANSWER;
+            }
+
+            function returnToParentChat() {
+                if (isClosing) return;
+                if (askTimer) {
+                    clearTimeout(askTimer);
+                    askTimer = null;
+                }
+                if (suggestExpandTimer) {
+                    clearTimeout(suggestExpandTimer);
+                    suggestExpandTimer = null;
+                }
+                if (askState === 'thinking' && lastAskQuery) {
+                    pdpTurns.push({
+                        query: lastAskQuery,
+                        answer: getPDPAnswer(lastAskQuery)
+                    });
+                }
+                const turns = pdpTurns.slice();
+                if (turns.length) {
+                    flushPDPConversationToChat(card, turns);
+                }
+                closePDPFullPage();
+            }
+
+            function closePDPFullPage() {
+                if (isClosing) return;
+                isClosing = true;
+                if (askTimer) {
+                    clearTimeout(askTimer);
+                    askTimer = null;
+                }
+                if (suggestExpandTimer) {
+                    clearTimeout(suggestExpandTimer);
+                    suggestExpandTimer = null;
+                }
+                overlay.classList.add('houzy-pdp--closing');
+                backdrop.classList.add('houzy-pdp-backdrop--closing');
+                setTimeout(function() {
+                    overlay.remove();
+                    backdrop.remove();
+                    document.body.style.overflow = '';
+                }, 420);
+            }
+
+            function getPeekTranslateY() {
+                const vh = window.innerHeight || 700;
+                const peek = Math.min(vh * 0.82, 720);
+                return Math.max(0, vh - peek);
+            }
+
+            function clearSheetInlineTransform() {
+                overlay.style.transition = '';
+                overlay.style.transform = '';
+            }
+
+            function expandToFullPage() {
+                if (isExpanded || isClosing) return;
+                isExpanded = true;
+                clearSheetInlineTransform();
+                overlay.classList.add('houzy-pdp--expanding');
+                // Double rAF so the browser applies peek styles before animating to expanded
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        overlay.classList.add('houzy-pdp--expanded');
+                        backdrop.classList.add('houzy-pdp-backdrop--dimmed');
+                    });
+                });
+                window.setTimeout(function() {
+                    overlay.classList.remove('houzy-pdp--expanding');
+                }, 500);
+                setBottomStickyMode('suggest');
+                updateStickyTopNav();
+                triggerHapticFeedback('subtle');
+            }
+
+            function collapseToSheet() {
+                if (!isExpanded || isClosing) return;
+                isExpanded = false;
+                clearSheetInlineTransform();
+                overlay.classList.add('houzy-pdp--expanding');
+                overlay.classList.remove('houzy-pdp--expanded');
+                backdrop.classList.remove('houzy-pdp-backdrop--dimmed');
+                stickyTop.classList.remove('houzy-pdp__topnav--visible');
+                stickyTop.setAttribute('aria-hidden', 'true');
+                window.setTimeout(function() {
+                    overlay.classList.remove('houzy-pdp--expanding');
+                }, 500);
+                setBottomStickyMode('compact');
+            }
+
+            const grabber = document.createElement('div');
+            grabber.className = 'houzy-pdp__grabber';
+            grabber.innerHTML = '<div class="houzy-pdp__handle" aria-hidden="true"></div>';
+
+            const scroll = document.createElement('div');
+            scroll.className = 'houzy-pdp__scroll';
+
+            // —— Hero ——
+            const hero = document.createElement('div');
+            hero.className = 'houzy-pdp__hero';
             const heroImg = document.createElement('img');
+            heroImg.className = 'houzy-pdp__hero-img';
             heroImg.src = card.image;
             heroImg.alt = card.name;
             heroImg.loading = 'eager';
@@ -5594,139 +6384,581 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (!this.dataset.failed) {
                     this.dataset.failed = '1';
                     this.src = PROPERTY_IMAGE_POOL[0];
-                    this.onerror = null;
                 }
             };
-            heroImage.appendChild(heroImg);
-            heroImage.onclick = function() { openPropertyGallery(card); };
-            
-            // Content Wrapper
-            const contentWrapper = document.createElement('div');
-            contentWrapper.className = 'pdp-content-wrapper';
-            
-            // Property Name
-            const propertyName = document.createElement('h1');
-            propertyName.className = 'pdp-property-name';
-            propertyName.textContent = card.name;
-            
-            // Location
-            const location = document.createElement('div');
-            location.className = 'pdp-location';
-            location.innerHTML = `
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                <span>${card.locality}</span>
-            `;
-            
-            // Price
-            const price = document.createElement('div');
-            price.className = 'pdp-price';
-            // Format price with appropriate unit (k, L, or Cr)
-            const priceUnit = card.priceUnit || 'Cr';
-            if (priceUnit === 'k') {
-                const priceNum = parseFloat(card.price);
-                if (priceNum >= 100000) {
-                    price.textContent = `₹${(priceNum / 100000).toFixed(1)}L`;
-                } else {
-                    price.textContent = `₹${(priceNum / 1000).toFixed(0)}k`;
+            hero.appendChild(heroImg);
+
+            let isShortlisted = false;
+
+            function shareProperty(e) {
+                if (e) e.stopPropagation();
+                if (navigator.share) {
+                    navigator.share({
+                        title: card.name,
+                        text: card.name + ' – ' + (card.locality || ''),
+                        url: window.location.href
+                    }).catch(function() {});
                 }
-                } else {
-                price.textContent = `₹${card.price} ${priceUnit}`;
             }
-            
-            // Details Grid
-            const detailsGrid = document.createElement('div');
-            detailsGrid.className = 'pdp-details-grid';
-            
-            const detailItems = [
-                { label: 'BHK', value: `${card.bhk} BHK` },
-                { label: 'Built-up Area', value: `${card.builtUpArea.toLocaleString()} sq.ft` },
-                { label: 'Type', value: card.propertyType },
-                { label: 'Status', value: card.status }
+
+            function syncShortlistUI() {
+                if (heartBtn) {
+                    heartBtn.classList.toggle('is-active', isShortlisted);
+                    const img = heartBtn.querySelector('img');
+                    if (img) img.src = isShortlisted ? 'assets/figma/pdp/heart-filled.svg' : 'assets/figma/pdp/heart.svg';
+                }
+                if (stickyHeartBtn) {
+                    stickyHeartBtn.classList.toggle('is-active', isShortlisted);
+                    const img = stickyHeartBtn.querySelector('img');
+                    if (img) img.src = isShortlisted ? 'assets/figma/pdp/heart-filled.svg' : 'assets/figma/pdp/heart.svg';
+                }
+            }
+
+            function toggleShortlist(e) {
+                if (e) e.stopPropagation();
+                isShortlisted = !isShortlisted;
+                syncShortlistUI();
+                triggerHapticFeedback('subtle');
+            }
+
+            const heroTop = document.createElement('div');
+            heroTop.className = 'houzy-pdp__hero-top';
+
+            const backBtn = document.createElement('button');
+            backBtn.type = 'button';
+            backBtn.className = 'houzy-pdp__icon-btn';
+            backBtn.setAttribute('aria-label', 'Close');
+            backBtn.innerHTML = '<img src="assets/figma/pdp/back.svg" alt="" width="16" height="16">';
+            backBtn.onclick = function(e) {
+                e.stopPropagation();
+                returnToParentChat();
+            };
+
+            const heroActions = document.createElement('div');
+            heroActions.className = 'houzy-pdp__hero-actions';
+            const heartBtn = document.createElement('button');
+            heartBtn.type = 'button';
+            heartBtn.className = 'houzy-pdp__icon-btn';
+            heartBtn.setAttribute('aria-label', 'Shortlist');
+            heartBtn.innerHTML = '<img src="assets/figma/pdp/heart.svg" alt="" width="16" height="16">';
+            heartBtn.onclick = toggleShortlist;
+            const shareBtn = document.createElement('button');
+            shareBtn.type = 'button';
+            shareBtn.className = 'houzy-pdp__icon-btn';
+            shareBtn.setAttribute('aria-label', 'Share');
+            shareBtn.innerHTML = '<img src="assets/figma/pdp/share.svg" alt="" width="16" height="16">';
+            shareBtn.onclick = shareProperty;
+            const callBtn = document.createElement('button');
+            callBtn.type = 'button';
+            callBtn.className = 'houzy-pdp__icon-btn houzy-pdp__icon-btn--brand';
+            callBtn.setAttribute('aria-label', 'Call');
+            callBtn.innerHTML = '<img src="assets/figma/pdp/call.svg" alt="" width="16" height="16">';
+            callBtn.onclick = function(e) {
+                e.stopPropagation();
+                showLoginBottomSheet();
+            };
+            heroActions.appendChild(heartBtn);
+            heroActions.appendChild(shareBtn);
+            heroActions.appendChild(callBtn);
+            heroTop.appendChild(backBtn);
+            heroTop.appendChild(heroActions);
+
+            // Figma scroll-state sticky top bar (X + name/price + heart/share)
+            const stickyTop = document.createElement('div');
+            stickyTop.className = 'houzy-pdp__topnav';
+            stickyTop.setAttribute('aria-hidden', 'true');
+
+            const stickyClose = document.createElement('button');
+            stickyClose.type = 'button';
+            stickyClose.className = 'houzy-pdp__topnav-close';
+            stickyClose.setAttribute('aria-label', 'Close');
+            stickyClose.innerHTML = '<img src="assets/figma/pdp/close.svg" alt="" width="20" height="20">';
+            stickyClose.onclick = function(e) {
+                e.stopPropagation();
+                returnToParentChat();
+            };
+
+            const stickyInfo = document.createElement('div');
+            stickyInfo.className = 'houzy-pdp__topnav-info';
+            stickyInfo.innerHTML =
+                '<p class="houzy-pdp__topnav-title"></p>' +
+                '<p class="houzy-pdp__topnav-price"></p>';
+            stickyInfo.querySelector('.houzy-pdp__topnav-title').textContent = card.name;
+            stickyInfo.querySelector('.houzy-pdp__topnav-price').textContent = priceMain;
+
+            const stickyActions = document.createElement('div');
+            stickyActions.className = 'houzy-pdp__topnav-actions';
+            const stickyHeartBtn = document.createElement('button');
+            stickyHeartBtn.type = 'button';
+            stickyHeartBtn.className = 'houzy-pdp__topnav-btn houzy-pdp__topnav-btn--fav';
+            stickyHeartBtn.setAttribute('aria-label', 'Shortlist');
+            stickyHeartBtn.innerHTML = '<img src="assets/figma/pdp/heart.svg" alt="" width="16" height="16">';
+            stickyHeartBtn.onclick = toggleShortlist;
+            const stickyShareBtn = document.createElement('button');
+            stickyShareBtn.type = 'button';
+            stickyShareBtn.className = 'houzy-pdp__topnav-btn';
+            stickyShareBtn.setAttribute('aria-label', 'Share');
+            stickyShareBtn.innerHTML = '<img src="assets/figma/pdp/share-sticky.svg" alt="" width="16" height="16">';
+            stickyShareBtn.onclick = shareProperty;
+            stickyActions.appendChild(stickyHeartBtn);
+            stickyActions.appendChild(stickyShareBtn);
+
+            stickyTop.appendChild(stickyClose);
+            stickyTop.appendChild(stickyInfo);
+            stickyTop.appendChild(stickyActions);
+
+            function updateStickyTopNav() {
+                const heroH = hero.offsetHeight || 280;
+                const show = isExpanded && scroll.scrollTop > Math.max(120, heroH * 0.55);
+                stickyTop.classList.toggle('houzy-pdp__topnav--visible', show);
+                stickyTop.setAttribute('aria-hidden', show ? 'false' : 'true');
+            }
+
+            const heroBottom = document.createElement('div');
+            heroBottom.className = 'houzy-pdp__hero-bottom';
+            const countBadge = document.createElement('div');
+            countBadge.className = 'houzy-pdp__count-badge';
+            countBadge.innerHTML = '<span>1/' + photoCount + '</span><span class="houzy-pdp__dots" aria-hidden="true"><i class="is-active"></i><i></i><i></i><i></i><i></i></span>';
+            const tagBadge = document.createElement('div');
+            tagBadge.className = 'houzy-pdp__tag-badge';
+            tagBadge.textContent = 'Elevation';
+            heroBottom.appendChild(countBadge);
+            heroBottom.appendChild(tagBadge);
+
+            hero.appendChild(heroTop);
+            hero.appendChild(heroBottom);
+            hero.addEventListener('click', function(e) {
+                if (e.target.closest('button')) return;
+                openPropertyGallery(card, 0);
+            });
+
+            // —— Project info ——
+            const info = document.createElement('div');
+            info.className = 'houzy-pdp__info';
+
+            const badges = document.createElement('div');
+            badges.className = 'houzy-pdp__badges';
+            badges.innerHTML =
+                '<span class="houzy-pdp__badge houzy-pdp__badge--launch"><img src="assets/figma/pdp/new-launch.svg" alt="" width="12" height="12">' + statusBadge + '</span>' +
+                '<span class="houzy-pdp__badge houzy-pdp__badge--rera"><img src="assets/figma/pdp/rera.svg" alt="" width="12" height="12">RERA</span>' +
+                '<span class="houzy-pdp__badge">Possession by <strong>' + possessionYear + '</strong></span>';
+
+            const titleRow = document.createElement('div');
+            titleRow.className = 'houzy-pdp__title-row';
+            const titleBlock = document.createElement('div');
+            titleBlock.className = 'houzy-pdp__title-block';
+            const title = document.createElement('h1');
+            title.className = 'houzy-pdp__title';
+            title.textContent = card.name;
+            const loc = document.createElement('p');
+            loc.className = 'houzy-pdp__location';
+            loc.textContent = card.locality || 'India';
+            titleBlock.appendChild(title);
+            titleBlock.appendChild(loc);
+
+            const mapBtn = document.createElement('button');
+            mapBtn.type = 'button';
+            mapBtn.className = 'houzy-pdp__map';
+            mapBtn.innerHTML = '<span class="houzy-pdp__map-icon"><img src="assets/figma/pdp/location-pin.svg" alt="" width="16" height="16"></span><span>View Map</span>';
+            mapBtn.onclick = function() {
+                const q = encodeURIComponent((card.name || '') + ' ' + (card.locality || ''));
+                window.open('https://maps.google.com/?q=' + q, '_blank');
+            };
+            titleRow.appendChild(titleBlock);
+            titleRow.appendChild(mapBtn);
+
+            const priceRow = document.createElement('div');
+            priceRow.className = 'houzy-pdp__price-row';
+            priceRow.innerHTML =
+                '<p class="houzy-pdp__price">' + priceMain + ' <span>(' + pricePerSqft + ')</span>' +
+                '<img src="assets/figma/pdp/info.svg" alt="" width="16" height="16"></p>' +
+                '<p class="houzy-pdp__bhk">' + bhkLabel + '</p>';
+
+            const seller = document.createElement('div');
+            seller.className = 'houzy-pdp__seller';
+            seller.innerHTML =
+                '<div class="houzy-pdp__seller-left">' +
+                    '<img class="houzy-pdp__seller-avatar" src="https://ui-avatars.com/api/?name=' + encodeURIComponent(sellerName) + '&background=f0f0f0&color=666&size=64" alt="">' +
+                    '<div class="houzy-pdp__seller-meta">' +
+                        '<button type="button" class="houzy-pdp__seller-name">' + sellerName + ' <span aria-hidden="true">›</span></button>' +
+                        '<span class="houzy-pdp__seller-role">' + sellerRole + '</span>' +
+                    '</div>' +
+                '</div>';
+            const viewPhoneBtn = document.createElement('button');
+            viewPhoneBtn.type = 'button';
+            viewPhoneBtn.className = 'houzy-pdp__view-phone';
+            viewPhoneBtn.textContent = 'View phone';
+            viewPhoneBtn.onclick = function() {
+                showLoginBottomSheet();
+            };
+            seller.appendChild(viewPhoneBtn);
+
+            info.appendChild(badges);
+            info.appendChild(titleRow);
+            info.appendChild(priceRow);
+            info.appendChild(seller);
+
+            const more = document.createElement('div');
+            more.className = 'houzy-pdp__more';
+            more.innerHTML =
+                '<h2 class="houzy-pdp__section-title">About this project</h2>' +
+                '<p class="houzy-pdp__about">This ' + (card.propertyType || 'apartment').toLowerCase() +
+                ' is ' + (card.status || 'ready to move').toLowerCase() +
+                ' and offers ' + (card.bhk || 3) + ' bedrooms with a built-up area of ' +
+                ((card.builtUpArea || 1800).toLocaleString()) + ' sq.ft. Located in ' +
+                (card.locality || 'a prime locality') + '.</p>' +
+                '<h2 class="houzy-pdp__section-title">Floor Plan &amp; Pricing</h2>' +
+                '<p class="houzy-pdp__about">Browse layouts and pricing for available configurations. Tap See all photos to explore the full project gallery.</p>' +
+                '<button type="button" class="houzy-pdp__see-photos">See all photos ›</button>';
+            const seePhotos = more.querySelector('.houzy-pdp__see-photos');
+            seePhotos.onclick = function() { openPropertyGallery(card, 0); };
+
+            scroll.appendChild(hero);
+            scroll.appendChild(info);
+            scroll.appendChild(more);
+
+            // Figma Bottom navigation: start Ask-only → swap to pills on full PDP
+            const sticky = document.createElement('div');
+            sticky.className = 'houzy-pdp__sticky houzy-pdp__sticky--compact';
+
+            const projectLabel = card.name || 'this project';
+            const pdpPills = [
+                { label: 'What amenities are there?', query: 'What amenities are there?', icon: true },
+                { label: 'Is parking available nearby?', query: 'Is parking available nearby?' },
+                { label: 'Show project pictures', query: 'Show project pictures of ' + projectLabel },
+                { label: 'When is possession?', query: 'When is possession?' }
             ];
-            
-            detailItems.forEach(item => {
-                const detailItem = document.createElement('div');
-                detailItem.className = 'pdp-detail-item';
-                detailItem.innerHTML = `
-                    <div class="pdp-detail-label">${item.label}</div>
-                    <div class="pdp-detail-value">${item.value}</div>
-                `;
-                detailsGrid.appendChild(detailItem);
-            });
-            
-            // Description
-            const description = document.createElement('div');
-            description.className = 'pdp-description';
-            description.innerHTML = `
-                <h2>About this property</h2>
-                <p>This beautiful ${card.propertyType.toLowerCase()} is ${card.status.toLowerCase()} and offers ${card.bhk} bedrooms with a built-up area of ${card.builtUpArea.toLocaleString()} sq.ft. Located in the prime area of ${card.locality}, this property is perfect for modern living.</p>
-            `;
-            
-            // Gallery Section
-            const gallerySection = document.createElement('div');
-            gallerySection.className = 'pdp-gallery-section';
-            gallerySection.innerHTML = '<h2>Gallery</h2>';
-            const galleryGrid = document.createElement('div');
-            galleryGrid.className = 'pdp-gallery-grid';
-            const galleryImages = (card.gallery && card.gallery.length > 0) ? card.gallery : [card.image];
-            galleryImages.slice(0, 6).forEach((url, idx) => {
-                const galleryItem = document.createElement('div');
-                galleryItem.className = 'pdp-gallery-item';
-                const galleryImg = document.createElement('img');
-                galleryImg.src = url;
-                galleryImg.alt = `${card.name} - Image ${idx + 1}`;
-                galleryImg.loading = 'lazy';
-                galleryImg.onerror = function() {
-                    if (!this.dataset.failed) {
-                        this.dataset.failed = '1';
-                        this.src = PROPERTY_IMAGE_POOL[0];
-                        this.onerror = null;
-                    }
+
+            const thinkingRow = document.createElement('div');
+            thinkingRow.className = 'houzy-pdp__thinking';
+            thinkingRow.hidden = true;
+            thinkingRow.innerHTML =
+                '<div class="houzy-pdp__thinking-left">' +
+                    '<img class="houzy-pdp__thinking-sparkle" src="assets/figma/pdp/sparkle.svg" alt="" width="16" height="16">' +
+                    '<span>Thinking...</span>' +
+                '</div>' +
+                '<button type="button" class="houzy-pdp__sheet-close" aria-label="Cancel">×</button>';
+
+            const answerPanel = document.createElement('div');
+            answerPanel.className = 'houzy-pdp__answer';
+            answerPanel.hidden = true;
+            answerPanel.innerHTML =
+                '<button type="button" class="houzy-pdp__sheet-close houzy-pdp__answer-close" aria-label="Close answer">×</button>' +
+                '<p class="houzy-pdp__answer-text"></p>';
+            const answerTextEl = answerPanel.querySelector('.houzy-pdp__answer-text');
+
+            function applyBottomStickyMode() {
+                const compact = bottomStickyMode === 'compact' && askState === 'idle';
+                const suggest = bottomStickyMode === 'suggest' && askState === 'idle';
+                sticky.classList.toggle('houzy-pdp__sticky--compact', compact);
+                sticky.classList.toggle('houzy-pdp__sticky--suggest', suggest || askState !== 'idle');
+                if (pillsRow) {
+                    pillsRow.classList.toggle('is-suppressed', askState !== 'idle');
+                    pillsRow.setAttribute('aria-hidden', suggest ? 'false' : 'true');
+                }
+                if (askInput && askState === 'idle') {
+                    askInput.placeholder = compact ? 'Reply to Houzy' : 'Ask Houzy anything';
+                }
+            }
+
+            setBottomStickyMode = function(mode) {
+                if (mode !== 'compact' && mode !== 'suggest') return;
+                bottomStickyMode = mode;
+                applyBottomStickyMode();
+            };
+
+            function scheduleSuggestExpand(delayMs) {
+                if (suggestExpandTimer) {
+                    clearTimeout(suggestExpandTimer);
+                    suggestExpandTimer = null;
+                }
+                suggestExpandTimer = setTimeout(function() {
+                    suggestExpandTimer = null;
+                    if (askState !== 'idle' || isClosing) return;
+                    setBottomStickyMode('suggest');
+                    triggerHapticFeedback('subtle');
+                }, typeof delayMs === 'number' ? delayMs : 520);
+            }
+
+            function setAskIdle(options) {
+                const fromResponse = !!(options && options.fromResponse);
+                askState = 'idle';
+                if (askTimer) {
+                    clearTimeout(askTimer);
+                    askTimer = null;
+                }
+                if (suggestExpandTimer) {
+                    clearTimeout(suggestExpandTimer);
+                    suggestExpandTimer = null;
+                }
+
+                sticky.classList.remove('houzy-pdp__sticky--thinking', 'houzy-pdp__sticky--answer');
+                thinkingRow.hidden = true;
+
+                if (fromResponse && !answerPanel.hidden) {
+                    answerPanel.classList.add('houzy-pdp__answer--out');
+                    window.setTimeout(function() {
+                        answerPanel.hidden = true;
+                        answerPanel.classList.remove('houzy-pdp__answer--out');
+                    }, 280);
+                } else {
+                    answerPanel.hidden = true;
+                    answerPanel.classList.remove('houzy-pdp__answer--out');
+                }
+
+                askInput.value = '';
+                askInput.readOnly = false;
+                askSend.disabled = true;
+                askSend.classList.remove('is-ready');
+
+                // State 0: compact Reply to Houzy only
+                bottomStickyMode = 'compact';
+                applyBottomStickyMode();
+
+                // Then smoothly expand to suggestion pills
+                if (fromResponse || isExpanded) {
+                    scheduleSuggestExpand(fromResponse ? 480 : 520);
+                }
+            }
+
+            function setAskThinking(query) {
+                askState = 'thinking';
+                lastAskQuery = query;
+                if (suggestExpandTimer) {
+                    clearTimeout(suggestExpandTimer);
+                    suggestExpandTimer = null;
+                }
+                sticky.classList.add('houzy-pdp__sticky--thinking');
+                sticky.classList.remove('houzy-pdp__sticky--answer', 'houzy-pdp__sticky--compact');
+                sticky.classList.add('houzy-pdp__sticky--suggest');
+                thinkingRow.hidden = false;
+                answerPanel.hidden = true;
+                answerPanel.classList.remove('houzy-pdp__answer--out');
+                pillsRow.classList.add('is-suppressed');
+                askInput.value = query;
+                askInput.readOnly = true;
+                askInput.placeholder = 'Ask Houzy anything';
+                askSend.disabled = false;
+                askSend.classList.add('is-ready');
+                expandToFullPage();
+                triggerHapticFeedback('subtle');
+            }
+
+            function setAskAnswer(query) {
+                askState = 'answer';
+                if (suggestExpandTimer) {
+                    clearTimeout(suggestExpandTimer);
+                    suggestExpandTimer = null;
+                }
+                const answer = getPDPAnswer(query);
+                pdpTurns.push({ query: query, answer: answer });
+                sticky.classList.remove('houzy-pdp__sticky--thinking', 'houzy-pdp__sticky--compact');
+                sticky.classList.add('houzy-pdp__sticky--answer', 'houzy-pdp__sticky--suggest');
+                thinkingRow.hidden = true;
+                answerPanel.hidden = false;
+                answerPanel.classList.remove('houzy-pdp__answer--out');
+                pillsRow.classList.add('is-suppressed');
+                answerTextEl.textContent = answer;
+                askInput.value = '';
+                askInput.readOnly = false;
+                askInput.placeholder = 'Ask Houzy anything';
+                askSend.disabled = true;
+                askSend.classList.remove('is-ready');
+                expandToFullPage();
+                if (scroll.scrollTop < 80) {
+                    scroll.scrollTop = 0;
+                    updateStickyTopNav();
+                }
+                triggerHapticFeedback('medium');
+
+                if (/picture|photo|gallery|image/.test((query || '').toLowerCase())) {
+                    setTimeout(function() {
+                        if (askState === 'answer') openPropertyGallery(card, 0);
+                    }, 900);
+                }
+            }
+
+            function askFromPDP(query) {
+                const q = (query || '').trim();
+                if (!q || askState === 'thinking') return;
+                setAskThinking(q);
+                if (askTimer) clearTimeout(askTimer);
+                askTimer = setTimeout(function() {
+                    askTimer = null;
+                    if (askState !== 'thinking') return;
+                    setAskAnswer(q);
+                }, 1200);
+            }
+
+            thinkingRow.querySelector('.houzy-pdp__sheet-close').onclick = function(e) {
+                e.stopPropagation();
+                setAskIdle({ fromResponse: true });
+            };
+            answerPanel.querySelector('.houzy-pdp__answer-close').onclick = function(e) {
+                e.stopPropagation();
+                setAskIdle({ fromResponse: true });
+            };
+
+            const pillsRow = document.createElement('div');
+            pillsRow.className = 'houzy-pdp__pills';
+            pillsRow.setAttribute('role', 'list');
+            pillsRow.setAttribute('aria-hidden', 'true');
+            pdpPills.forEach(function(pill) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'houzy-pdp__pill';
+                btn.setAttribute('role', 'listitem');
+                if (pill.icon) {
+                    btn.innerHTML = '<img src="assets/figma/pdp/reply-arrow.svg" alt="" width="16" height="16"><span></span>';
+                    btn.querySelector('span').textContent = pill.label;
+                } else {
+                    btn.textContent = pill.label;
+                }
+                btn.onclick = function(e) {
+                    e.stopPropagation();
+                    askFromPDP(pill.query);
                 };
-                galleryItem.appendChild(galleryImg);
-                galleryItem.style.cursor = 'pointer';
-                galleryItem.onclick = function() { openPropertyGallery(card); };
-                galleryGrid.appendChild(galleryItem);
+                pillsRow.appendChild(btn);
             });
-            gallerySection.appendChild(galleryGrid);
-            
-            // CTA Section
-            const ctaSection = document.createElement('div');
-            ctaSection.className = 'pdp-bottom-sheet-cta';
-            const contactBtn = document.createElement('button');
-            contactBtn.className = 'pdp-cta-primary';
-            contactBtn.textContent = 'Contact Owner';
-            const scheduleBtn = document.createElement('button');
-            scheduleBtn.className = 'pdp-cta-secondary';
-            scheduleBtn.textContent = 'Schedule Visit';
-            ctaSection.appendChild(contactBtn);
-            ctaSection.appendChild(scheduleBtn);
-            
-            contentWrapper.appendChild(propertyName);
-            contentWrapper.appendChild(location);
-            contentWrapper.appendChild(price);
-            contentWrapper.appendChild(detailsGrid);
-            contentWrapper.appendChild(description);
-            contentWrapper.appendChild(gallerySection);
-            
-            scrollContent.appendChild(heroImage);
-            scrollContent.appendChild(contentWrapper);
-            overlay.appendChild(backBtn);
-            overlay.appendChild(scrollContent);
-            overlay.appendChild(ctaSection);
+
+            const askBar = document.createElement('form');
+            askBar.className = 'houzy-pdp__ask';
+            askBar.setAttribute('autocomplete', 'off');
+            askBar.innerHTML =
+                '<input type="text" class="houzy-pdp__ask-input" placeholder="Ask Houzy anything" aria-label="Ask Houzy anything" enterkeyhint="send">' +
+                '<button type="submit" class="houzy-pdp__ask-send" aria-label="Send" disabled>' +
+                    '<span class="houzy-pdp__ask-send-bg" aria-hidden="true"></span>' +
+                    '<img src="assets/figma/pdp/send-icon.svg" alt="" width="18" height="18">' +
+                '</button>';
+            const askInput = askBar.querySelector('.houzy-pdp__ask-input');
+            const askSend = askBar.querySelector('.houzy-pdp__ask-send');
+            askInput.addEventListener('input', function() {
+                if (askState === 'thinking') return;
+                const has = askInput.value.trim().length > 0;
+                askSend.disabled = !has;
+                askSend.classList.toggle('is-ready', has);
+            });
+            askBar.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (askState === 'thinking') return;
+                const q = askInput.value.trim() || lastAskQuery;
+                if (!q) return;
+                askFromPDP(q);
+            });
+
+            sticky.appendChild(thinkingRow);
+            sticky.appendChild(answerPanel);
+            sticky.appendChild(pillsRow);
+            sticky.appendChild(askBar);
+            applyBottomStickyMode();
+
+            overlay.appendChild(stickyTop);
+            overlay.appendChild(grabber);
+            overlay.appendChild(scroll);
+            overlay.appendChild(sticky);
+
+            // Any upward scroll / swipe expands sheet → full page (stays full until closed)
+            scroll.addEventListener('scroll', function() {
+                if (scroll.scrollTop > 2) {
+                    expandToFullPage();
+                }
+                updateStickyTopNav();
+            }, { passive: true });
+
+            scroll.addEventListener('wheel', function(e) {
+                if (!isExpanded && e.deltaY > 0) {
+                    expandToFullPage();
+                }
+            }, { passive: true });
+
+            let sheetTouchY = 0;
+            scroll.addEventListener('touchstart', function(e) {
+                sheetTouchY = e.touches[0].clientY;
+            }, { passive: true });
+            scroll.addEventListener('touchmove', function(e) {
+                if (isExpanded || isClosing) return;
+                const dy = sheetTouchY - e.touches[0].clientY;
+                // Finger moving up → expand to full page
+                if (dy > 12) {
+                    clearSheetInlineTransform();
+                    expandToFullPage();
+                }
+            }, { passive: true });
+
+            // Drag handle / sheet gesture — follow finger with translateY (same axis as CSS snap)
+            let dragStartY = 0;
+            let dragDelta = 0;
+            let dragging = false;
+
+            function onDragStart(clientY) {
+                dragging = true;
+                dragStartY = clientY;
+                dragDelta = 0;
+                overlay.style.transition = 'none';
+            }
+
+            function onDragMove(clientY) {
+                if (!dragging) return;
+                dragDelta = clientY - dragStartY;
+                const vh = window.innerHeight || 700;
+                if (!isExpanded) {
+                    const peekY = getPeekTranslateY();
+                    // Up shrinks offset toward 0 (fullscreen); down grows toward dismiss
+                    const nextY = Math.max(0, Math.min(vh * 0.92, peekY + dragDelta));
+                    overlay.style.transform = 'translate3d(0, ' + nextY + 'px, 0)';
+                } else if (dragDelta > 0 && scroll.scrollTop <= 0) {
+                    overlay.style.transform = 'translate3d(0, ' + Math.min(dragDelta, vh * 0.85) + 'px, 0)';
+                }
+            }
+
+            function onDragEnd() {
+                if (!dragging) return;
+                dragging = false;
+                clearSheetInlineTransform();
+
+                if (dragDelta < -28) {
+                    expandToFullPage();
+                } else if (dragDelta > 110 && scroll.scrollTop <= 0) {
+                    closePDPFullPage();
+                } else if (dragDelta > 64 && isExpanded && scroll.scrollTop <= 0) {
+                    collapseToSheet();
+                }
+            }
+
+            grabber.addEventListener('touchstart', function(e) {
+                onDragStart(e.touches[0].clientY);
+            }, { passive: true });
+            grabber.addEventListener('touchmove', function(e) {
+                onDragMove(e.touches[0].clientY);
+            }, { passive: true });
+            grabber.addEventListener('touchend', onDragEnd);
+            grabber.addEventListener('mousedown', function(e) {
+                onDragStart(e.clientY);
+                function move(ev) { onDragMove(ev.clientY); }
+                function up() {
+                    onDragEnd();
+                    window.removeEventListener('mousemove', move);
+                    window.removeEventListener('mouseup', up);
+                }
+                window.addEventListener('mousemove', move);
+                window.addEventListener('mouseup', up);
+            });
+
+            backdrop.addEventListener('click', closePDPFullPage);
+
+            document.body.appendChild(backdrop);
             document.body.appendChild(overlay);
             document.body.style.overflow = 'hidden';
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) closePDPFullPage();
+            requestAnimationFrame(function() {
+                backdrop.classList.add('houzy-pdp-backdrop--open');
+                overlay.classList.add('houzy-pdp--open');
             });
-            scrollContent.scrollTop = 0;
+            triggerHapticFeedback('medium');
         }
         
         // Open property gallery in fullscreen
-        function openPropertyGallery(card) {
+        function openPropertyGallery(card, startIndex) {
+            const initialIndex = typeof startIndex === 'number' && startIndex >= 0 ? startIndex : 0;
             // Create gallery overlay
             const galleryOverlay = document.createElement('div');
             galleryOverlay.className = 'property-gallery-overlay';
@@ -5861,7 +7093,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.style.overflow = 'hidden'; // Prevent body scroll
             
             // Show first image
-            showImage(0);
+            showImage(initialIndex);
         }
         
         // Close property gallery
@@ -6291,6 +7523,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Generate cards
             const cards = generatePropertyCards();
+            lastShownPropertyCards = cards;
+            if (cards.length > 0) {
+                lastMentionedProject = cardToProjectPictureData(cards[0]);
+            }
             
             // Add delay before showing properties (realistic processing time)
             const delay = 1800 + Math.random() * 1000; // 1800-2800ms delay
@@ -6334,6 +7570,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 botContent.appendChild(carousel);
                 streamTextIntoElement(botText, message.text, STREAM_WORD_MS, function() {
                     botContent.appendChild(createPropertyCardsFeedbackRow());
+                    const chatInputEl = document.getElementById('chat-input');
+                    if (chatInputEl) {
+                        chatInputEl.placeholder = 'Reply to Houzy';
+                    }
                 });
                 
                 msgDiv.appendChild(botContent);
@@ -6801,6 +8041,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (window.__CHAT_DEBUG__) console.log('[Intent] Handled: Brochure request');
                 return true;
             }
+
+            // INTENT CHECK 2b: Property / project pictures request
+            if (isPropertyPicturesRequest(text)) {
+                if (window.__CHAT_DEBUG__) console.log('[Intent] Handled: Property pictures request');
+                return true;
+            }
             
             // INTENT CHECK 3: Strict housing-related check
             // Only consider it handled if it's clearly about properties/homes
@@ -6894,6 +8140,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         showBrochureMessage();
                     return;
                 }
+
+                    // Property / project pictures – 4-up preview grid with full gallery on "See more"
+                    if (isPropertyPicturesRequest(text)) {
+                        if (window.__CHAT_DEBUG__) console.log('[Intent] Routing to property pictures preview');
+                        const propertyName = extractPropertyNameFromPicturesRequest(text);
+                        showPropertyPicturesPreview(propertyName, text);
+                        return;
+                    }
                 
                     // "Tell me about [place]" – show locality info card (Figma Case 1 structure)
                     const tellMeAboutMatch = normalized.match(/tell me about\s+(.+)/i);
@@ -6941,6 +8195,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }
                     }
+
+                    // Clear searches (or nearly complete ones) get defaults so cards always appear
+                    if (isClearPropertySearch(normalized) || conversationState.bhk) {
+                        fillSearchDefaults(text);
+                    }
                     
                     // If location is requested but not yet granted, show dialog
                     if (updates.useLocation && !userLocation.hasLocation) {
@@ -6962,14 +8221,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         } else {
                             // If no follow-up needed but not complete, something might be wrong
                             // Show properties anyway if we have most info
-                            const hasIntent = !!conversationState.intent;
-                            const hasBHK = !!conversationState.bhk;
-                            const hasPrice = !!(conversationState.price || conversationState.priceMin);
-                            if (hasIntent && hasBHK && hasPrice) {
-                                // We have enough info, show properties
-                                conversationState.isComplete = true;
-                                showPropertyCards();
-                            }
+                            fillSearchDefaults(text);
+                            conversationState.isComplete = true;
+                            showPropertyCards();
                         }
                     }
                 }
