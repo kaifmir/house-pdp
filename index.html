@@ -10,7 +10,7 @@
     <meta name="theme-color" content="#F7F2EC">
     <title>Housing.com - Home</title>
     <link rel="icon" href="Favicon.png" type="image/png">
-    <link rel="stylesheet" href="styles.css?v=20260804n">
+    <link rel="stylesheet" href="styles.css?v=20260809al">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500&display=swap" rel="stylesheet">
@@ -394,7 +394,10 @@
             <!-- Hero Intro Block (Figma 492:1508) - heading + pills, centre-aligned, infinite slow marquee both rows -->
             <div id="chat-intro" class="chat-intro initial-load">
                 <div class="chat-pills-wrapper" id="chat-pills-wrapper">
-                <h1 class="chat-hero-title">Hey, how can I<br>help you today?</h1>
+                <h1 class="chat-hero-title">
+                    <span class="chat-hero-title__mobile">Hey, how can I<br>help you today?</span>
+                    <span class="chat-hero-title__desktop">How can I help you</span>
+                </h1>
                 <div class="chips-marquee" id="chipsRail">
                     <div class="chips-track" id="chipsTrack">
                         <div class="chips-set">
@@ -451,6 +454,32 @@
         </div>
     </div>
 
+    <!-- Desktop stage (chat left | listings / PDP right) — shown at ≥1024px -->
+    <aside class="desktop-stage" id="desktop-stage" aria-label="Property workspace" hidden>
+        <div class="desktop-stage__empty" id="desktop-stage-empty">
+            <p class="desktop-stage__eyebrow">Housing · Houzy</p>
+            <h2 class="desktop-stage__title">Continue on Housing</h2>
+            <p class="desktop-stage__copy">When you open a property from chat, details and Housing.com handoff appear here.</p>
+        </div>
+        <div class="desktop-stage__listings" id="desktop-stage-listings" hidden>
+            <div class="desktop-stage__listings-head">
+                <h2 class="desktop-stage__listings-title">Matching properties</h2>
+                <p class="desktop-stage__listings-meta" id="desktop-stage-listings-meta"></p>
+            </div>
+            <div class="desktop-stage__grid" id="desktop-stage-grid"></div>
+        </div>
+        <div class="desktop-stage__photos" id="desktop-stage-photos" hidden>
+            <div class="desktop-stage__photos-head">
+                <p class="desktop-stage__photos-eyebrow" id="desktop-stage-photos-eyebrow">Photos</p>
+                <h2 class="desktop-stage__photos-title" id="desktop-stage-photos-title"></h2>
+                <p class="desktop-stage__photos-meta" id="desktop-stage-photos-meta"></p>
+            </div>
+            <div class="desktop-stage__photos-mosaic" id="desktop-stage-photos-mosaic"></div>
+        </div>
+        <div class="desktop-stage__housing" id="desktop-stage-housing" hidden></div>
+        <div class="desktop-stage__pdp" id="desktop-stage-pdp" hidden></div>
+    </aside>
+
     <!-- Info bottom sheet (Figma: About the responses) – opens when header info icon is clicked -->
     <div class="info-bottom-sheet" id="info-bottom-sheet" aria-hidden="true">
         <div class="info-bottom-sheet-overlay"></div>
@@ -470,6 +499,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=20260804n"></script>
+    <script src="script.js?v=20260809al"></script>
 </body>
 </html>

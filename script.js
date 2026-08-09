@@ -37,6 +37,326 @@ function debounce(fn, ms) {
 
 // Constants
 const MOBILE_MAX_WIDTH = 480;
+const DESKTOP_LAYOUT_MIN = 1024;
+/** Shared desktop split motion — keep in sync with CSS --houzy-split-* */
+var DESKTOP_SPLIT_MS = 560;
+var DESKTOP_SPLIT_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+function isDesktopLayout() {
+    return window.innerWidth >= DESKTOP_LAYOUT_MIN
+        && !document.body.classList.contains('force-mobile-demo');
+}
+
+function isDesktopSplit() {
+    return isDesktopLayout() && document.body.classList.contains('desktop-split');
+}
+
+/** Split only for property / Housing.com handoff — Claude-style 50:50 from the side */
+var __houzySplitExitTimer = null;
+
+function enterDesktopSplit() {
+    if (!isDesktopLayout()) return;
+    ensureDesktopComposerDocked();
+
+    if (__houzySplitExitTimer) {
+        clearTimeout(__houzySplitExitTimer);
+        __houzySplitExitTimer = null;
+    }
+
+    const wasSplit = document.body.classList.contains('desktop-split');
+    const stage = document.getElementById('desktop-stage');
+    const chat = document.querySelector('.chat-screen');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (stage) {
+        stage.hidden = false;
+        stage.removeAttribute('hidden');
+        stage.setAttribute('aria-hidden', 'false');
+    }
+
+    if (!wasSplit) {
+        document.body.classList.add('desktop-splitting');
+        if (!reduceMotion) {
+            document.body.classList.add('desktop-split-willchange');
+            if (stage) stage.style.willChange = 'transform, opacity';
+            if (chat) chat.style.willChange = 'width, max-width, min-width';
+        }
+        if (stage) stage.classList.remove('desktop-stage--entered');
+        // Park stage off-canvas, then open — lets width + slide share one easing curve
+        document.body.classList.add('desktop-split');
+        void (stage && stage.offsetWidth);
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                if (stage) stage.classList.add('desktop-stage--entered');
+                document.body.classList.add('desktop-split--open');
+                document.body.classList.remove('desktop-splitting');
+                if (!reduceMotion) {
+                    setTimeout(clearDesktopSplitWillChange, DESKTOP_SPLIT_MS + 40);
+                }
+            });
+        });
+    } else {
+        document.body.classList.add('desktop-split', 'desktop-split--open');
+        if (stage) stage.classList.add('desktop-stage--entered');
+    }
+
+    if (typeof setChatOffsets === 'function') setChatOffsets();
+    if (typeof window.__houzyRemeasureChips === 'function') {
+        requestAnimationFrame(function() {
+            window.__houzyRemeasureChips();
+        });
+    }
+}
+
+function exitDesktopSplit() {
+    const stage = document.getElementById('desktop-stage');
+    const wasOpen = document.body.classList.contains('desktop-split');
+
+    document.body.classList.remove('desktop-split--open', 'desktop-splitting');
+    if (stage) stage.classList.remove('desktop-stage--entered');
+    document.body.classList.remove('desktop-split');
+
+    function finishExit() {
+        __houzySplitExitTimer = null;
+        if (document.body.classList.contains('desktop-split')) return;
+        if (stage) {
+            stage.hidden = true;
+            stage.setAttribute('aria-hidden', 'true');
+        }
+        ['desktop-stage-listings', 'desktop-stage-photos', 'desktop-stage-pdp', 'desktop-stage-housing'].forEach(function(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.hidden = true;
+            if (id === 'desktop-stage-pdp' || id === 'desktop-stage-housing') el.innerHTML = '';
+            if (id === 'desktop-stage-photos') {
+                const mosaic = document.getElementById('desktop-stage-photos-mosaic');
+                if (mosaic) mosaic.innerHTML = '';
+            }
+        });
+        const empty = document.getElementById('desktop-stage-empty');
+        if (empty) empty.hidden = false;
+        if (typeof setChatOffsets === 'function') setChatOffsets();
+        if (typeof window.__houzyRemeasureChips === 'function') {
+            requestAnimationFrame(function() {
+                window.__houzyRemeasureChips();
+            });
+        }
+    }
+
+    if (wasOpen) {
+        if (__houzySplitExitTimer) clearTimeout(__houzySplitExitTimer);
+        __houzySplitExitTimer = setTimeout(finishExit, DESKTOP_SPLIT_MS);
+    } else {
+        finishExit();
+    }
+}
+
+/** Layout rect of el as if ancestor's current transform were identity (final split pose). */
+function getSplitSettledRect(el, transformedAncestor) {
+    const rect = el.getBoundingClientRect();
+    if (!transformedAncestor) {
+        return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    }
+    const t = getComputedStyle(transformedAncestor).transform;
+    if (!t || t === 'none') {
+        return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    }
+    const m = new DOMMatrixReadOnly(t);
+    return {
+        left: rect.left - m.m41,
+        top: rect.top - m.m42,
+        width: rect.width,
+        height: rect.height
+    };
+}
+
+function clearDesktopSplitWillChange() {
+    const stage = document.getElementById('desktop-stage');
+    const chat = document.querySelector('.chat-screen');
+    if (stage) stage.style.willChange = '';
+    if (chat) chat.style.willChange = '';
+    document.body.classList.remove('desktop-split-willchange');
+}
+
+/** Soft fly from a property card image into the stage hero (shared easing with split). */
+function animateCardIntoDesktopSplit(sourceEl) {
+    if (!isDesktopLayout() || !sourceEl || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        return null;
+    }
+    const img = sourceEl.matches && sourceEl.matches('img')
+        ? sourceEl
+        : (sourceEl.querySelector && sourceEl.querySelector('img.property-card__img, img'));
+    if (!img) return null;
+    const from = img.getBoundingClientRect();
+    if (from.width < 12 || from.height < 12) return null;
+
+    document.querySelectorAll('.desktop-split-ghost').forEach(function(g) { g.remove(); });
+
+    const prevImgOpacity = img.style.opacity;
+    const prevImgTransition = img.style.transition;
+    img.style.transition = 'opacity 0.18s ease';
+    img.style.opacity = '0.35';
+
+    const dur = (DESKTOP_SPLIT_MS / 1000) + 's';
+    const ease = DESKTOP_SPLIT_EASE;
+    const ghost = document.createElement('img');
+    ghost.className = 'desktop-split-ghost';
+    ghost.src = img.currentSrc || img.src;
+    ghost.alt = '';
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.style.cssText = [
+        'position:fixed',
+        'left:' + from.left + 'px',
+        'top:' + from.top + 'px',
+        'width:' + from.width + 'px',
+        'height:' + from.height + 'px',
+        'object-fit:cover',
+        'border-radius:14px',
+        'z-index:10050',
+        'margin:0',
+        'pointer-events:none',
+        'box-shadow:0 18px 48px rgba(40,20,80,0.22)',
+        'transform:translateZ(0)',
+        'opacity:1',
+        'will-change:left, top, width, height, border-radius, opacity, box-shadow',
+        'transition:left ' + dur + ' ' + ease +
+            ', top ' + dur + ' ' + ease +
+            ', width ' + dur + ' ' + ease +
+            ', height ' + dur + ' ' + ease +
+            ', border-radius ' + dur + ' ' + ease +
+            ', box-shadow ' + dur + ' ' + ease +
+            ', opacity 0.16s ease ' + ((DESKTOP_SPLIT_MS - 150) / 1000) + 's'
+    ].join(';');
+    document.body.appendChild(ghost);
+
+    var settled = false;
+    function restoreSourceImg() {
+        img.style.transition = prevImgTransition || '';
+        img.style.opacity = prevImgOpacity || '';
+    }
+
+    return function settleGhost(heroImgEl) {
+        if (settled) return;
+        settled = true;
+        const hero = heroImgEl || document.querySelector(
+            '#desktop-stage-pdp .houzy-pdp__hero-img, #desktop-stage-housing .desktop-housing__hero img'
+        );
+        const stage = document.getElementById('desktop-stage');
+        var to = null;
+        if (hero) {
+            to = getSplitSettledRect(hero, stage);
+        } else if (stage) {
+            const stageTo = getSplitSettledRect(stage, stage);
+            to = {
+                left: stageTo.left,
+                top: stageTo.top + 48,
+                width: Math.max(240, stageTo.width),
+                height: Math.min(320, Math.max(240, window.innerHeight * 0.42))
+            };
+        }
+        if (!to || to.width < 8) {
+            restoreSourceImg();
+            ghost.remove();
+            if (hero) {
+                hero.style.opacity = '1';
+            }
+            const pdpFail = document.querySelector('#desktop-stage-pdp .houzy-pdp--desktop');
+            if (pdpFail) pdpFail.classList.remove('houzy-pdp--morphing');
+            const housingFail = document.querySelector('#desktop-stage-housing .desktop-housing');
+            if (housingFail) housingFail.classList.remove('desktop-housing--morphing');
+            clearDesktopSplitWillChange();
+            return;
+        }
+
+        // Ensure the browser commits the "from" styles before animating to the settled hero.
+        void ghost.offsetWidth;
+        requestAnimationFrame(function() {
+            ghost.style.left = to.left + 'px';
+            ghost.style.top = to.top + 'px';
+            ghost.style.width = to.width + 'px';
+            ghost.style.height = to.height + 'px';
+            ghost.style.borderRadius = '0';
+            ghost.style.boxShadow = '0 8px 28px rgba(40,20,80,0.1)';
+            ghost.style.opacity = '0';
+        });
+
+        const revealAt = Math.max(0, DESKTOP_SPLIT_MS - 140);
+        setTimeout(function() {
+            if (hero) {
+                hero.style.transition = 'opacity 0.18s ease';
+                hero.style.opacity = '1';
+            }
+            const pdp = document.querySelector('#desktop-stage-pdp .houzy-pdp--desktop');
+            if (pdp) pdp.classList.remove('houzy-pdp--morphing');
+            const housing = document.querySelector('#desktop-stage-housing .desktop-housing');
+            if (housing) housing.classList.remove('desktop-housing--morphing');
+        }, revealAt);
+
+        setTimeout(function() {
+            restoreSourceImg();
+            ghost.style.willChange = '';
+            if (ghost.parentNode) ghost.remove();
+            clearDesktopSplitWillChange();
+        }, DESKTOP_SPLIT_MS + 80);
+    };
+}
+
+/**
+ * Desktop: soft-animate Ask Houzy from mid-screen → sticky bottom footer
+ * (triggered when the user sends their first message).
+ */
+function ensureDesktopComposerDocked() {
+    if (!isDesktopLayout()) return;
+    const chat = document.getElementById('chat-screen');
+    if (!chat || chat.classList.contains('composer-docked')) return;
+
+    const bar = chat.querySelector('.chat-input-bar');
+    const first = bar ? bar.getBoundingClientRect() : null;
+
+    chat.classList.add('composer-docked', 'composer-docking');
+
+    if (bar && first && first.height > 0) {
+        const last = bar.getBoundingClientRect();
+        const dy = first.top - last.top;
+        if (Math.abs(dy) > 2) {
+            bar.style.transition = 'none';
+            bar.style.transform = 'translateY(' + dy + 'px)';
+            // Force reflow, then ease into place
+            void bar.offsetWidth;
+            requestAnimationFrame(function() {
+                bar.style.transition = 'transform 0.48s cubic-bezier(0.22, 1, 0.36, 1)';
+                bar.style.transform = 'translateY(0)';
+            });
+            const clearDockAnim = function() {
+                bar.style.transition = '';
+                bar.style.transform = '';
+                chat.classList.remove('composer-docking');
+                bar.removeEventListener('transitionend', clearDockAnim);
+            };
+            bar.addEventListener('transitionend', clearDockAnim);
+            setTimeout(clearDockAnim, 600);
+        } else {
+            chat.classList.remove('composer-docking');
+        }
+    } else {
+        chat.classList.remove('composer-docking');
+    }
+
+    if (typeof setChatOffsets === 'function') {
+        requestAnimationFrame(function() {
+            setChatOffsets();
+        });
+    }
+}
+
+function buildHousingRedirectUrl(card) {
+    const locality = encodeURIComponent((card && (card.locality || card.location)) || 'India');
+    const name = encodeURIComponent((card && card.name) || '');
+    if (name) {
+        return 'https://housing.com/in/buy/search/' + locality + '?q=' + name;
+    }
+    return 'https://housing.com/in/buy/search/' + locality;
+}
 const SLIDER_WIDTH = 52;
 const SLIDER_HEIGHT = 36;
 const DRAG_CLOSE_THRESHOLD = 80;
@@ -214,11 +534,56 @@ let desktopBlocker, mobileContainer, bottomSheet, bottomSheetContent, bottomShee
 let bottomSheetHandle, bottomSheetBody, scoutyGreetingText, scoutyCTA;
 let navItems, navSliderBg, bottomNav;
 
-// Mobile-only: show blocker when viewport is wider than largest phone width
+// Viewport gate: phone ≤480, tablet blocker 481–1023, split d-web ≥1024
 function checkMobileDevice() {
-    const isWideViewport = window.innerWidth > MOBILE_MAX_WIDTH;
-    if (desktopBlocker) desktopBlocker.style.display = isWideViewport ? 'flex' : '';
-    if (mobileContainer) mobileContainer.style.display = isWideViewport ? 'none' : '';
+    const width = window.innerWidth;
+    const forcePhone = document.body.classList.contains('force-mobile-demo');
+    const desktop = width >= DESKTOP_LAYOUT_MIN && !forcePhone;
+    const showBlocker = width > MOBILE_MAX_WIDTH && !forcePhone && !desktop;
+
+    document.body.classList.toggle('desktop-layout', desktop);
+
+    if (desktopBlocker) {
+        desktopBlocker.style.display = showBlocker ? 'flex' : 'none';
+    }
+    if (mobileContainer) {
+        mobileContainer.style.display = (desktop || showBlocker) ? 'none' : '';
+    }
+
+    const stage = document.getElementById('desktop-stage');
+    const chat = document.getElementById('chat-screen');
+
+    if (desktop) {
+        if (chat) {
+            chat.classList.add('active');
+            chat.classList.remove('slide-from-right');
+        }
+        if (bottomNav) bottomNav.style.display = 'none';
+        if (typeof setChatOffsets === 'function') setChatOffsets();
+        // Full-width conversation by default; stage only while split (property / Housing)
+        if (stage) {
+            stage.hidden = !document.body.classList.contains('desktop-split');
+        }
+        const intro = document.getElementById('chat-intro');
+        if (intro && intro.classList.contains('initial-load') && !intro.classList.contains('revealed')) {
+            requestAnimationFrame(function() {
+                intro.classList.add('revealed');
+            });
+        }
+        if (typeof window.__houzyRemeasureChips === 'function') {
+            requestAnimationFrame(function() {
+                window.__houzyRemeasureChips();
+            });
+        }
+        if (document.body.classList.contains('desktop-split') &&
+            window.__houzyDesktop && typeof window.__houzyDesktop.syncListings === 'function') {
+            window.__houzyDesktop.syncListings();
+        }
+    } else {
+        document.body.classList.remove('desktop-split');
+        if (stage) stage.hidden = true;
+        if (bottomNav && !showBlocker) bottomNav.style.display = '';
+    }
 }
 
 // Debounce utility
@@ -269,12 +634,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Land on homepage on load/refresh; chat opens when user taps Houzy in bottom nav
+    // Land on homepage on phone; d-web opens chat with floating pills immediately
     const chatScreenEl = document.getElementById('chat-screen');
     const chatIntroEl = document.getElementById('chat-intro');
     if (chatScreenEl) {
-        chatScreenEl.classList.remove('active');
-        // When user later opens chat, primeViewport and intro reveal run from nav handler
+        if (typeof isDesktopLayout === 'function' && isDesktopLayout()) {
+            chatScreenEl.classList.add('active');
+            chatScreenEl.classList.remove('slide-from-right');
+            document.body.classList.add('desktop-layout');
+            if (chatIntroEl && chatIntroEl.classList.contains('initial-load')) {
+                requestAnimationFrame(function() {
+                    chatIntroEl.classList.add('revealed');
+                });
+            }
+        } else {
+            chatScreenEl.classList.remove('active');
+        }
+        // When user later opens chat on mobile, primeViewport and intro reveal run from nav handler
     }
     
     const propertyTypeCards = document.querySelectorAll('.property-type-card');
@@ -1228,6 +1604,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
         requestAnimationFrame(tick);
 
+        // Rebuild track fill when chat column width changes (desktop split)
+        function remeasureChips() {
+            const vw = marquee.getBoundingClientRect().width;
+            if (vw < 40) return;
+            if (Math.abs(vw - viewportWidthCached) < 8) return;
+            track1.innerHTML = '';
+            track2.innerHTML = '';
+            const nr1 = fillTrack(track1, pills1);
+            fillTrack(track2, pills2Shifted);
+            viewportWidthCached = vw;
+            trackWidthCached = track1.scrollWidth;
+            loopWidthCached = nr1.segmentWidth || loopWidthCached;
+            duplicateCountCached = loopWidthCached
+                ? Math.round(track1.scrollWidth / loopWidthCached)
+                : duplicateCountCached;
+            x = wrapX(x);
+            applyX(x);
+        }
+        window.__houzyRemeasureChips = remeasureChips;
+        window.addEventListener('resize', debounce(remeasureChips, 150));
+
         if (window.__CHIPS_DEBUG__) {
             const debugEl = document.createElement('div');
             debugEl.style.cssText = 'position:fixed;top:10px;right:10px;background:rgba(0,0,0,0.8);color:#fff;padding:8px;font-size:11px;font-family:monospace;z-index:99999;border-radius:4px;max-width:220px;';
@@ -1246,83 +1643,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     })();
     
-    // Step 3: Reliable keyboard detection for pills hide/show – smooth fade-out/in, no snap
+    // Floating pills stay visible until Send — never hide on focus / keyboard alone.
     (function () {
         const pillsWrapper = document.getElementById('chat-pills-wrapper');
         if (!pillsWrapper) return;
 
-        let baseVVH = null;
-        let keyboardOpen = false;
-        let pointerTimeout = null;
-
-        function setHiddenState(isOpen) {
-            if (isOpen === keyboardOpen) return;
-            keyboardOpen = isOpen;
-
-            if (pointerTimeout) {
-                clearTimeout(pointerTimeout);
-                pointerTimeout = null;
-            }
-
-            if (isOpen) {
-                pillsWrapper.classList.add('pills--hidden');
-                /* Disable pointer-events at ~50% of fade-out (140ms of 280ms) to avoid accidental taps */
-                pointerTimeout = setTimeout(function () {
-                    pillsWrapper.style.pointerEvents = 'none';
-                    pointerTimeout = null;
-                }, 140);
-            } else {
-                pillsWrapper.classList.remove('pills--hidden');
-                pillsWrapper.style.pointerEvents = 'none';
-                /* Restore pointer-events only after opacity > 0.6 (~70% of 300ms fade-in) */
-                pointerTimeout = setTimeout(function () {
-                    pillsWrapper.style.pointerEvents = '';
-                    pointerTimeout = null;
-                }, 240);
-            }
+        function clearKeyboardHide() {
+            pillsWrapper.classList.remove('pills--hidden');
+            pillsWrapper.style.pointerEvents = '';
         }
 
-        function onVVResize() {
-            if (!window.visualViewport) return;
-
-            const vv = window.visualViewport;
-            if (baseVVH == null) baseVVH = vv.height;
-
-            const delta = baseVVH - vv.height;
-            /* Trigger at 80px so fade starts as keyboard begins opening, not after full open */
-            const isOpen = delta > 80;
-
-            setHiddenState(isOpen);
-        }
-
-        function prime() {
-            if (window.visualViewport && baseVVH == null) {
-                baseVVH = window.visualViewport.height;
-                onVVResize();
-            }
-        }
-
-        window.addEventListener('load', prime);
-        window.addEventListener('touchstart', prime, { once: true, passive: true });
-        window.addEventListener('pointerdown', prime, { once: true, passive: true });
-
+        clearKeyboardHide();
+        window.addEventListener('resize', clearKeyboardHide);
         if (window.visualViewport) {
-            window.visualViewport.addEventListener('resize', onVVResize);
-            window.visualViewport.addEventListener('scroll', onVVResize);
+            window.visualViewport.addEventListener('resize', clearKeyboardHide);
+            window.visualViewport.addEventListener('scroll', clearKeyboardHide);
         }
-
-        document.addEventListener('focusin', (e) => {
-            if (!e.target.matches || !e.target.matches('input, textarea')) return;
-            const isChatInput = e.target.id === 'chat-input' || e.target.closest('.chat-input-bar');
-            if (isChatInput) {
-                /* Trigger immediately at focus start – don't wait for keyboard to fully open */
-                requestAnimationFrame(() => setHiddenState(true));
-            }
-            if (!window.visualViewport && e.target.matches('input,textarea')) setHiddenState(true);
-        });
-        document.addEventListener('focusout', (e) => {
-            if (!window.visualViewport && e.target.matches('input,textarea')) setHiddenState(false);
-        });
     })();
     
     // Back button is disabled on AI chat (not clickable) – no handler
@@ -1809,7 +2145,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Remove any existing typing indicator
             const existing = document.getElementById('typing-indicator');
             if (existing) existing.remove();
-            
+
             // Subtle haptic feedback when bot starts thinking
             triggerHapticFeedback('subtle');
             
@@ -2141,11 +2477,99 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function isPropertyPicturesRequest(text) {
             const normalized = normalizeText(text);
-            return /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(?:property\s+|project\s+)?(?:pictures?|photos?|images?)/i.test(normalized) ||
-                /(?:show|see|view)\s+(?:me\s+)?(?:the\s+)?project\s+(?:pictures?|photos?|images?)/i.test(normalized) ||
-                /(?:pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?/.test(normalized) ||
-                /(?:can\s+i\s+see|want\s+to\s+see)\s+(?:the\s+)?(?:project\s+)?(?:pictures?|photos?|images?)/i.test(normalized) ||
-                /\bproject\s+(?:pictures?|photos?|images?)\b/i.test(normalized);
+            return /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(?:property\s+|project\s+)?(?:pics?|pictures?|photos?|images?)/i.test(normalized) ||
+                /(?:show|see|view)\s+(?:me\s+)?(?:the\s+)?project\s+(?:pics?|pictures?|photos?|images?)/i.test(normalized) ||
+                /(?:pics?|pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?/.test(normalized) ||
+                /(?:can\s+i\s+see|want\s+to\s+see)\s+(?:the\s+)?(?:project\s+)?(?:pics?|pictures?|photos?|images?)/i.test(normalized) ||
+                /\bproject\s+(?:pics?|pictures?|photos?|images?)\b/i.test(normalized);
+        }
+
+        const ROOM_PICTURE_ALIASES = [
+            { room: 'master bedroom', re: /\bmaster\s*bedrooms?\b/i },
+            { room: 'bedroom', re: /\bbedrooms?\b/i },
+            { room: 'living room', re: /\bliving\s*rooms?\b/i },
+            { room: 'kitchen', re: /\bkitchens?\b/i },
+            { room: 'bathroom', re: /\b(bathrooms?|washrooms?|toilets?)\b/i },
+            { room: 'balcony', re: /\bbalcon(?:y|ies)\b/i },
+            { room: 'dining', re: /\bdining(?:\s*rooms?)?\b/i },
+            { room: 'hall', re: /\bhalls?\b/i }
+        ];
+
+        // Demo counts so each mosaic layout is reachable from natural room asks
+        const ROOM_PHOTO_DISPLAY_COUNTS = {
+            kitchen: 1,
+            dining: 2,
+            'living room': 2,
+            hall: 3,
+            balcony: 3,
+            bathroom: 3,
+            bedroom: 16,
+            'master bedroom': 16
+        };
+
+        function extractRoomFromPicturesRequest(text) {
+            const raw = text || '';
+            for (let i = 0; i < ROOM_PICTURE_ALIASES.length; i++) {
+                if (ROOM_PICTURE_ALIASES[i].re.test(raw)) {
+                    return ROOM_PICTURE_ALIASES[i].room;
+                }
+            }
+            return '';
+        }
+
+        function padGalleryImages(gallery, minCount) {
+            const images = (gallery && gallery.length) ? gallery.slice() : [];
+            if (!images.length && typeof PROPERTY_IMAGE_POOL !== 'undefined') {
+                images.push(PROPERTY_IMAGE_POOL[0]);
+            }
+            let i = 0;
+            while (images.length < minCount && typeof PROPERTY_IMAGE_POOL !== 'undefined' && PROPERTY_IMAGE_POOL.length) {
+                images.push(PROPERTY_IMAGE_POOL[i % PROPERTY_IMAGE_POOL.length]);
+                i += 1;
+            }
+            return images;
+        }
+
+        function resolvePictureDisplayPlan(propertyData, room) {
+            const baseGallery = (propertyData.gallery && propertyData.gallery.length)
+                ? propertyData.gallery
+                : (propertyData.image ? [propertyData.image] : []);
+            let total = baseGallery.length || 1;
+            if (room && ROOM_PHOTO_DISPLAY_COUNTS[room]) {
+                total = ROOM_PHOTO_DISPLAY_COUNTS[room];
+            }
+            const images = padGalleryImages(baseGallery, Math.max(total, 4));
+            const layout = total >= 4 ? 4 : Math.max(1, total);
+            const visible = images.slice(0, layout);
+            const remaining = total > 4 ? total - 4 : 0;
+            return {
+                room: room || '',
+                layout: layout,
+                visible: visible,
+                remaining: remaining,
+                total: total,
+                gallery: images.slice(0, Math.max(total, images.length))
+            };
+        }
+
+        function buildPicturesIntroText(propertyData, plan) {
+            const room = plan.room;
+            const projectName = propertyData.name || 'this project';
+            if (room === 'kitchen' && plan.layout === 1) {
+                return 'Showcasing one picture of the kitchen';
+            }
+            if (room) {
+                const roomLabel = room === 'bedroom' || room === 'master bedroom' ? 'bedroom' : room;
+                return 'Here are the ' + roomLabel + ' pictures of ' + projectName;
+            }
+            return 'Here are photos of ' + projectName + '.';
+        }
+
+        function buildPicturesFollowupText(plan) {
+            if (plan.layout === 4 && plan.remaining > 0) {
+                return "Anything else you'd like a look at — kitchen, living room, bathroom?";
+            }
+            return 'Want to check photos of other rooms of the same project?';
         }
 
         function isProjectPicturesContext(text) {
@@ -2155,21 +2579,23 @@ document.addEventListener('DOMContentLoaded', function() {
         function cleanExtractedProjectName(rawName) {
             return (rawName || '')
                 .replace(/\b(please|thanks|thank you|pics?|associated|related)\b/gi, '')
+                .replace(/\b(master\s*bedrooms?|bedrooms?|living\s*rooms?|kitchens?|bathrooms?|washrooms?|toilets?|balcon(?:y|ies)|dining(?:\s*rooms?)?|halls?)\b/gi, '')
                 .replace(/\s+project\s*$/i, '')
                 .replace(/^project\s+/i, '')
-                .replace(/^(the|a|an)\s+/i, '')
+                .replace(/^(the|a|an|of|for)\s+/i, '')
                 .replace(/[?.!,]+$/g, '')
+                .replace(/\s+/g, ' ')
                 .trim();
         }
 
         function extractPropertyNameFromPicturesRequest(text) {
             const raw = (text || '').trim();
             const patterns = [
-                /(?:show|see|view)\s+(?:me\s+)?(?:the\s+)?project\s+(?:pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?(.+)/i,
-                /(?:pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?(.+?)(?:\s+project)?[?.!,]*$/i,
-                /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(?:project\s+)?(?:pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?(.+)/i,
-                /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(.+?)\s+project\s+(?:pictures?|photos?|images?)/i,
-                /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(.+?)\s+(?:pictures?|photos?|images?)/i
+                /(?:show|see|view)\s+(?:me\s+)?(?:the\s+)?project\s+(?:pics?|pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?(.+)/i,
+                /(?:pics?|pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?(.+?)(?:\s+project)?[?.!,]*$/i,
+                /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(?:project\s+)?(?:pics?|pictures?|photos?|images?)\s+(?:of|for)\s+(?:the\s+)?(.+)/i,
+                /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(.+?)\s+project\s+(?:pics?|pictures?|photos?|images?)/i,
+                /(?:show|see|view|get|display|share|send)\s+(?:me\s+)?(?:the\s+)?(.+?)\s+(?:pics?|pictures?|photos?|images?)/i
             ];
             for (let i = 0; i < patterns.length; i++) {
                 const match = raw.match(patterns[i]);
@@ -2350,67 +2776,73 @@ document.addEventListener('DOMContentLoaded', function() {
             return null;
         }
 
-        function createPropertyPicturesPreview(propertyData) {
+        function applyNativeSingleImageBounds(img, item) {
+            const nw = img.naturalWidth;
+            const nh = img.naturalHeight;
+            if (!nw || !nh) return;
+
+            const ratio = nw / nh;
+            const maxW = 240;
+            const maxH = 320;
+            const minH = 120;
+
+            // Fit inside max box while keeping native ratio (no crop)
+            let w = nw;
+            let h = nh;
+            const down = Math.min(1, maxW / w, maxH / h);
+            w *= down;
+            h *= down;
+
+            // Enforce min-height without cropping — may letterbox via object-fit:contain if capped
+            if (h < minH) {
+                h = minH;
+                w = h * ratio;
+                if (w > maxW) {
+                    w = maxW;
+                    h = w / ratio;
+                }
+                if (h > maxH) {
+                    h = maxH;
+                    w = h * ratio;
+                }
+            }
+
+            item.style.aspectRatio = String(ratio);
+            item.style.width = Math.round(w) + 'px';
+            item.style.height = Math.round(h) + 'px';
+            item.style.maxWidth = maxW + 'px';
+            item.style.maxHeight = maxH + 'px';
+            item.style.minHeight = Math.min(minH, Math.round(h)) + 'px';
+            item.dataset.nativeRatio = String(ratio);
+        }
+
+        function createPropertyPicturesPreview(propertyData, plan, options) {
+            const opts = options || {};
+            const displayPlan = plan || resolvePictureDisplayPlan(propertyData, '');
             const preview = document.createElement('div');
-            preview.className = 'property-pictures-preview';
+            preview.className = 'property-pictures-preview property-pictures-preview--mosaic' +
+                (opts.desktop ? ' property-pictures-preview--desktop' : '');
 
-            const header = document.createElement('div');
-            header.className = 'property-pictures-preview__header';
-
-            if (propertyData.isProject !== false) {
-                const badge = document.createElement('span');
-                badge.className = 'property-pictures-preview__badge';
-                badge.textContent = 'Project';
-                header.appendChild(badge);
-            }
-
-            const title = document.createElement('h2');
-            title.className = 'property-pictures-preview__title';
-            title.textContent = propertyData.name;
-
-            const meta = document.createElement('div');
-            meta.className = 'property-pictures-preview__meta';
-
-            if (propertyData.developer) {
-                const developer = document.createElement('p');
-                developer.className = 'property-pictures-preview__developer bot-reply-muted';
-                developer.textContent = 'by ' + propertyData.developer;
-                meta.appendChild(developer);
-            }
-
-            const location = document.createElement('p');
-            location.className = 'property-pictures-preview__location bot-reply-muted';
-            location.textContent = '📍 ' + propertyData.location;
-            meta.appendChild(location);
-
-            if (propertyData.priceRange) {
-                const price = document.createElement('p');
-                price.className = 'property-pictures-preview__price';
-                price.textContent = propertyData.priceRange;
-                meta.appendChild(price);
-            }
-
-            header.appendChild(title);
-            header.appendChild(meta);
-            preview.appendChild(header);
+            const galleryData = Object.assign({}, propertyData, {
+                gallery: displayPlan.gallery && displayPlan.gallery.length
+                    ? displayPlan.gallery
+                    : (propertyData.gallery || [propertyData.image])
+            });
 
             const grid = document.createElement('div');
-            grid.className = 'property-pictures-grid';
-            const gallery = propertyData.gallery && propertyData.gallery.length
-                ? propertyData.gallery
-                : [propertyData.image];
-            const previewImages = gallery.slice(0, 4);
-            const remainingCount = Math.max(0, gallery.length - 4);
+            grid.className = 'property-pictures-grid property-pictures-grid--' + displayPlan.layout;
+            grid.setAttribute('data-layout', String(displayPlan.layout));
 
-            previewImages.forEach(function(url, index) {
+            displayPlan.visible.forEach(function(url, index) {
                 const item = document.createElement('button');
                 item.type = 'button';
-                item.className = 'property-pictures-item';
+                item.className = 'property-pictures-item' +
+                    (displayPlan.layout === 1 ? ' property-pictures-item--native' : '');
                 item.style.setProperty('--reveal-index', String(index));
-                item.setAttribute('aria-label', propertyData.name + ' photo ' + (index + 1));
+                item.setAttribute('aria-label', (propertyData.name || 'Property') + ' photo ' + (index + 1));
                 const img = document.createElement('img');
                 img.src = url;
-                img.alt = propertyData.name + ' – photo ' + (index + 1);
+                img.alt = (propertyData.name || 'Property') + ' – photo ' + (index + 1);
                 img.loading = index < 2 ? 'eager' : 'lazy';
                 img.onerror = function() {
                     if (!this.dataset.failed) {
@@ -2418,35 +2850,40 @@ document.addEventListener('DOMContentLoaded', function() {
                         this.src = PROPERTY_IMAGE_POOL[0];
                     }
                 };
+                if (displayPlan.layout === 1) {
+                    const applyBounds = function() {
+                        applyNativeSingleImageBounds(img, item);
+                    };
+                    if (img.complete && img.naturalWidth) {
+                        applyBounds();
+                    } else {
+                        img.addEventListener('load', applyBounds, { once: true });
+                    }
+                }
                 item.appendChild(img);
 
-                if (index === 3 && remainingCount > 0) {
+                if (index === 3 && displayPlan.remaining > 0) {
                     const overlay = document.createElement('span');
                     overlay.className = 'property-pictures-item__overlay';
-                    overlay.textContent = '+' + remainingCount;
+                    overlay.textContent = '+' + displayPlan.remaining;
                     item.appendChild(overlay);
                 }
 
                 item.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                    openPropertyGallery(propertyData, index);
+                    // Lightbox (PDP prod gallery) — full project gallery from this image
+                    openPropertyGallery(galleryData, index);
                 });
                 grid.appendChild(item);
             });
             preview.appendChild(grid);
 
-            if (gallery.length > 4) {
-                const seeMoreBtn = document.createElement('button');
-                seeMoreBtn.type = 'button';
-                seeMoreBtn.className = 'property-pictures-see-more';
-                seeMoreBtn.innerHTML = 'See all ' + gallery.length + ' photos <span aria-hidden="true">&gt;</span>';
-                seeMoreBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    openPropertyGallery(propertyData, 0);
-                });
-                preview.appendChild(seeMoreBtn);
+            if (!opts.omitFollowup) {
+                const followup = document.createElement('p');
+                followup.className = 'property-pictures-followup';
+                followup.textContent = buildPicturesFollowupText(displayPlan);
+                preview.appendChild(followup);
             }
 
             preview.classList.add('property-pictures-preview--pending');
@@ -2463,22 +2900,150 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
+        function hideDesktopStagePanels(exceptId) {
+            ['desktop-stage-empty', 'desktop-stage-listings', 'desktop-stage-photos', 'desktop-stage-pdp', 'desktop-stage-housing'].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (id === exceptId) {
+                    el.hidden = false;
+                } else {
+                    el.hidden = true;
+                    if (id === 'desktop-stage-pdp' || id === 'desktop-stage-housing') el.innerHTML = '';
+                }
+            });
+        }
+
+        function openHousingRedirectPanel(card, sourceEl) {
+            if (!isDesktopLayout()) {
+                window.open(buildHousingRedirectUrl(card), '_blank', 'noopener');
+                return;
+            }
+            const settleGhost = animateCardIntoDesktopSplit(sourceEl);
+            enterDesktopSplit();
+            const stage = document.getElementById('desktop-stage');
+            const housing = document.getElementById('desktop-stage-housing');
+            if (!stage || !housing) {
+                window.open(buildHousingRedirectUrl(card), '_blank', 'noopener');
+                return;
+            }
+            const url = buildHousingRedirectUrl(card);
+            const priceLabel = card && card.price != null
+                ? ('₹' + card.price + (card.priceUnit ? ' ' + card.priceUnit : ''))
+                : (card && card.priceRange) || '';
+            const imgSrc = (card && (card.image || (card.gallery && card.gallery[0]))) || '';
+            hideDesktopStagePanels('desktop-stage-housing');
+            housing.innerHTML =
+                '<div class="desktop-housing desktop-housing--enter">' +
+                    '<div class="desktop-housing__chrome">' +
+                        '<button type="button" class="desktop-housing__cancel" aria-label="Cancel">' +
+                            '<img src="assets/figma/pdp/close.svg" alt="" width="18" height="18">' +
+                            '<span>Cancel</span>' +
+                        '</button>' +
+                        '<span class="desktop-housing__brand">housing.com</span>' +
+                        '<a class="desktop-housing__open" href="' + url + '" target="_blank" rel="noopener">Open in new tab</a>' +
+                    '</div>' +
+                    (imgSrc
+                        ? '<div class="desktop-housing__hero"><img src="" alt=""></div>'
+                        : '') +
+                    '<div class="desktop-housing__body">' +
+                        '<p class="desktop-housing__eyebrow">Property details</p>' +
+                        '<h2 class="desktop-housing__title"></h2>' +
+                        '<p class="desktop-housing__meta"></p>' +
+                        '<p class="desktop-housing__copy">Continue on Housing.com for full details, photos, floor plans, and seller contact.</p>' +
+                        '<a class="desktop-housing__cta" href="' + url + '" target="_blank" rel="noopener">Continue on Housing.com</a>' +
+                    '</div>' +
+                '</div>';
+            housing.querySelector('.desktop-housing__title').textContent = (card && card.name) || 'Property';
+            housing.querySelector('.desktop-housing__meta').textContent =
+                [(card && (card.locality || card.location)) || '', priceLabel].filter(Boolean).join(' · ');
+            const heroImg = housing.querySelector('.desktop-housing__hero img');
+            const housingRoot = housing.querySelector('.desktop-housing');
+            if (heroImg && imgSrc) {
+                heroImg.src = imgSrc;
+                heroImg.alt = (card && card.name) || '';
+                if (settleGhost) {
+                    heroImg.style.opacity = '0';
+                    if (housingRoot) housingRoot.classList.add('desktop-housing--morphing');
+                }
+            }
+            const cancelBtn = housing.querySelector('.desktop-housing__cancel');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    exitDesktopSplit();
+                });
+            }
+            // Settle fly-in after layout paints the 50% stage (same timing as PDP)
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    if (typeof settleGhost === 'function') {
+                        settleGhost(heroImg);
+                    } else if (heroImg) {
+                        heroImg.style.opacity = '';
+                    }
+                });
+            });
+        }
+
+        function renderDesktopPhotoMosaic(propertyData, plan, introText) {
+            if (!isDesktopSplit()) return;
+            enterDesktopSplit();
+            const stage = document.getElementById('desktop-stage');
+            const photos = document.getElementById('desktop-stage-photos');
+            const mosaicHost = document.getElementById('desktop-stage-photos-mosaic');
+            const titleEl = document.getElementById('desktop-stage-photos-title');
+            const eyebrowEl = document.getElementById('desktop-stage-photos-eyebrow');
+            const metaEl = document.getElementById('desktop-stage-photos-meta');
+            if (!stage || !photos || !mosaicHost) return;
+
+            hideDesktopStagePanels('desktop-stage-photos');
+
+            if (eyebrowEl) {
+                eyebrowEl.textContent = plan.room
+                    ? ('Photos · ' + plan.room)
+                    : 'Photos · project';
+            }
+            if (titleEl) {
+                titleEl.textContent = propertyData.name || 'Property photos';
+            }
+            if (metaEl) {
+                const bits = [];
+                if (plan.layout === 1) bits.push('1 photo');
+                else if (plan.layout < 4) bits.push(plan.layout + ' photos');
+                else bits.push(plan.total + ' photos');
+                if (propertyData.location) bits.push(propertyData.location);
+                metaEl.textContent = bits.join(' · ');
+            }
+
+            mosaicHost.innerHTML = '';
+            const preview = createPropertyPicturesPreview(propertyData, plan, {
+                desktop: true,
+                omitFollowup: true
+            });
+            mosaicHost.appendChild(preview);
+            revealPropertyPicturesPreview(preview);
+        }
+
         function showPropertyPicturesPreview(propertyName, userText) {
             showTypingIndicator();
             const delay = 1800 + Math.random() * 800;
-            const isProjectContext = isProjectPicturesContext(userText || propertyName);
+            const room = extractRoomFromPicturesRequest(userText || '');
             setTimeout(function() {
                 hideTypingIndicator();
                 const propertyData = resolvePropertyForPictures(propertyName);
                 if (!propertyData) {
-                    addBotMessage('Which project would you like to see pictures of? Try something like "Show project pictures of Opus".');
+                    addBotMessage(room
+                        ? 'Which project\'s ' + room + ' photos should I show? Try asking after you\'ve looked at a project, or say "Show project pictures of Opus".'
+                        : 'Which project would you like to see pictures of? Try something like "Show project pictures of Opus".');
                     return;
                 }
 
                 lastMentionedProject = { ...propertyData };
-                const totalPhotos = propertyData.gallery ? propertyData.gallery.length : 1;
-                const subjectLabel = propertyData.isProject !== false || isProjectContext ? 'project' : 'property';
-                const introText = 'Here are photos of the ' + propertyData.name + ' ' + subjectLabel + '. Showing 4 of ' + totalPhotos + ' pictures.';
+                const plan = resolvePictureDisplayPlan(propertyData, room);
+                const introText = buildPicturesIntroText(propertyData, plan);
+                const followupText = buildPicturesFollowupText(plan);
+                const useStagePhotos = isDesktopSplit();
                 const msgId = generateMessageId();
                 const message = {
                     id: msgId,
@@ -2499,14 +3064,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const botText = document.createElement('div');
                 botText.className = 'bot-text';
-                const preview = createPropertyPicturesPreview(propertyData);
-
                 botContent.appendChild(botText);
-                botContent.appendChild(preview);
-                streamTextIntoElement(botText, introText, STREAM_WORD_MS, function() {
-                    revealPropertyPicturesPreview(preview);
-                    botContent.appendChild(createFeedbackButtons(msgId));
-                });
+
+                let preview = null;
+                if (useStagePhotos) {
+                    const followup = document.createElement('p');
+                    followup.className = 'property-pictures-followup property-pictures-followup--chat';
+                    followup.textContent = followupText;
+                    followup.hidden = true;
+                    botContent.appendChild(followup);
+                    msgDiv._desktopFollowup = followup;
+                } else {
+                    preview = createPropertyPicturesPreview(propertyData, plan);
+                    botContent.appendChild(preview);
+                }
 
                 msgDiv.appendChild(botContent);
                 const stack = domCache.chatStack;
@@ -2515,6 +3086,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     requestAnimationFrame(function() {
                         scrollMessageIntoView(msgDiv);
                     });
+                }
+
+                streamTextIntoElement(botText, introText, STREAM_WORD_MS, function() {
+                    if (useStagePhotos) {
+                        if (msgDiv._desktopFollowup) msgDiv._desktopFollowup.hidden = false;
+                        renderDesktopPhotoMosaic(propertyData, plan, introText);
+                    } else if (preview) {
+                        revealPropertyPicturesPreview(preview);
+                    }
+                    botContent.appendChild(createFeedbackButtons(msgId));
+                });
+
+                const chatInputEl = document.getElementById('chat-input');
+                if (chatInputEl) {
+                    chatInputEl.placeholder = 'Reply to Houzy';
                 }
             }, delay);
         }
@@ -5932,11 +6518,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     viewPropertyBtn.onclick = function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        // Close gallery first
                         overlay.remove();
                         document.body.style.overflow = '';
-                        // Open PDP
-                        openPropertyDetailPage(card);
+                        lastMentionedProject = cardToProjectPictureData(card);
+                        openPropertyDetailPage(card, cardElement);
                     };
                     
                     overlay.appendChild(closeBtn);
@@ -5958,13 +6543,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 image.setAttribute('data-gallery-images', JSON.stringify(card.gallery || [card.image]));
                 image.setAttribute('data-card-image', card.image);
                 
-                // Image click → open Figma PDP (same as card / Learn more)
+                // Image click → Housing split on d-web, PDP on mobile
                 function handleImageClick(e) {
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
                     lastMentionedProject = cardToProjectPictureData(card);
-                    openPropertyDetailPage(card);
+                    openPropertyDetailPage(card, imageWrapper || image);
                     return false;
                 }
                 
@@ -5988,6 +6573,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     e.preventDefault();
                     e.stopPropagation();
+                    if (isDesktopLayout()) {
+                        lastMentionedProject = cardToProjectPictureData(card);
+                        openPropertyDetailPage(card, imageWrapper || cardElement);
+                        return;
+                    }
                     if (window.__CHAT_DEBUG__) console.log('✅ WRAPPER CLICKED - Opening gallery');
                     createGallery();
                 }
@@ -6086,7 +6676,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     e.preventDefault();
                     e.stopPropagation();
                     lastMentionedProject = cardToProjectPictureData(card);
-                    openPropertyDetailPage(card);
+                    openPropertyDetailPage(card, cardElement);
                 });
                 const contactBtn = document.createElement('button');
                 contactBtn.className = 'property-card__view-btn property-card__view-btn--primary';
@@ -6100,7 +6690,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ctaSection.appendChild(contactBtn);
                 body.appendChild(ctaSection);
                 
-                // Make entire card clickable (except image) to open PDP
+                // Make entire card clickable (except image) to open PDP / Housing split
                 cardElement.style.cursor = 'pointer';
                 cardElement.addEventListener('click', function(e) {
                     // Don't open PDP if clicking on image or image wrapper (those open gallery)
@@ -6113,10 +6703,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (e.target.closest('.property-card__view-btn')) {
                         return;
                     }
-                    // Open PDP for any other click on the card
                     e.preventDefault();
                     e.stopPropagation();
-                    openPropertyDetailPage(card);
+                    lastMentionedProject = cardToProjectPictureData(card);
+                    openPropertyDetailPage(card, cardElement);
                 });
                 
                 cardElement.appendChild(imageWrapper);
@@ -6170,18 +6760,25 @@ document.addEventListener('DOMContentLoaded', function() {
             return msgId;
         }
 
-        function flushPDPConversationToChat(card, turns) {
-            if (!turns || !turns.length) return;
-
+        function ensureChatStartedForPDP() {
             const chatScreenEl = document.getElementById('chat-screen');
-            if (chatScreenEl) {
+            if (chatScreenEl && !chatScreenEl.classList.contains('chat-started')) {
                 chatScreenEl.classList.add('chat-started');
                 if (typeof setChatOffsets === 'function') setChatOffsets();
             }
+            ensureDesktopComposerDocked();
+            const chatInputEl = document.getElementById('chat-input');
+            if (chatInputEl) chatInputEl.placeholder = 'Reply to Houzy';
+            if (typeof updateSendButtonState === 'function') updateSendButtonState();
+        }
 
+        /**
+         * Project context chip above a chat turn (mobile + desktop parity).
+         * Shows reply-arrow + project name over the user list item.
+         */
+        function appendChatProjectContext(card) {
             const stack = domCache.chatStack || document.getElementById('chat-stack');
-            if (!stack) return;
-
+            if (!stack) return null;
             const projectName = (card && card.name) ? card.name : 'this project';
             const ctx = document.createElement('div');
             ctx.className = 'chat-project-context';
@@ -6190,6 +6787,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 '<span class="chat-project-context__name"></span>';
             ctx.querySelector('.chat-project-context__name').textContent = projectName;
             stack.appendChild(ctx);
+            return ctx;
+        }
+
+        function flushPDPConversationToChat(card, turns) {
+            if (!turns || !turns.length) return;
+
+            ensureChatStartedForPDP();
+            // One project context chip over the flushed turn(s) — same as mobile Cancel
+            appendChatProjectContext(card);
 
             turns.forEach(function(turn, index) {
                 addUserMessage(turn.query);
@@ -6199,17 +6805,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
 
-            const chatInputEl = document.getElementById('chat-input');
-            if (chatInputEl) {
-                chatInputEl.placeholder = 'Reply to Houzy';
-            }
-            if (typeof updateSendButtonState === 'function') {
-                updateSendButtonState();
-            }
             triggerHapticFeedback('subtle');
         }
 
-        function openPropertyDetailPage(card) {
+        function openPropertyDetailPage(card, sourceEl) {
             removeElementById('property-detail-bottom-sheet');
             removeElementById('property-detail-fullpage');
             removeElementById('houzy-pdp-backdrop');
@@ -6236,6 +6835,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const statusBadge = 'New Launch';
             const sellerName = card.sellerName || 'Krishna Kumar';
             const sellerRole = 'Seller';
+            const desktopPDP = isDesktopLayout();
 
             const backdrop = document.createElement('div');
             backdrop.id = 'houzy-pdp-backdrop';
@@ -6243,12 +6843,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const overlay = document.createElement('div');
             overlay.id = 'property-detail-fullpage';
-            overlay.className = 'houzy-pdp';
+            overlay.className = 'houzy-pdp' + (desktopPDP ? ' houzy-pdp--desktop' : '');
             overlay.setAttribute('role', 'dialog');
             overlay.setAttribute('aria-modal', 'true');
             overlay.setAttribute('aria-label', card.name + ' details');
 
-            let isExpanded = false;
+            let isExpanded = !!desktopPDP;
             let isClosing = false;
             let askTimer = null;
             let suggestExpandTimer = null;
@@ -6256,7 +6856,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const pdpTurns = [];
             let askState = 'idle'; // idle | thinking | answer
             let lastAskQuery = '';
-            let bottomStickyMode = 'compact'; // compact | suggest
+            let bottomStickyMode = desktopPDP ? 'suggest' : 'compact'; // compact | suggest
+            function restoreDesktopStageAfterPDP() {
+                // Cancel on desktop closes the 50:50 split and returns to full-width chat
+                if (desktopPDP) {
+                    exitDesktopSplit();
+                    return;
+                }
+                const housing = document.getElementById('desktop-stage-housing');
+                const mosaic = document.getElementById('desktop-stage-photos-mosaic');
+                const listings = document.getElementById('desktop-stage-listings');
+                if (housing && housing.querySelector('.desktop-housing')) {
+                    hideDesktopStagePanels('desktop-stage-housing');
+                } else if (mosaic && mosaic.children.length) {
+                    hideDesktopStagePanels('desktop-stage-photos');
+                } else if (listings && listings.querySelector('.desktop-listing-card')) {
+                    hideDesktopStagePanels('desktop-stage-listings');
+                } else {
+                    hideDesktopStagePanels('desktop-stage-empty');
+                }
+            }
 
             function getPDPAnswer(query) {
                 const projectLabel = card.name || 'this project';
@@ -6286,12 +6905,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     clearTimeout(suggestExpandTimer);
                     suggestExpandTimer = null;
                 }
+                // Finish in-flight ask so Cancel still retains full context
                 if (askState === 'thinking' && lastAskQuery) {
                     pdpTurns.push({
                         query: lastAskQuery,
                         answer: getPDPAnswer(lastAskQuery)
                     });
                 }
+                // Parent chat context appears only on Cancel/Close (mobile + desktop parity)
                 const turns = pdpTurns.slice();
                 if (turns.length) {
                     flushPDPConversationToChat(card, turns);
@@ -6316,7 +6937,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     overlay.remove();
                     backdrop.remove();
                     document.body.style.overflow = '';
-                }, 420);
+                    if (desktopPDP) restoreDesktopStageAfterPDP();
+                }, desktopPDP ? 240 : 420);
             }
 
             function getPeekTranslateY() {
@@ -6331,6 +6953,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             function expandToFullPage() {
+                if (desktopPDP) {
+                    isExpanded = true;
+                    setBottomStickyMode('suggest');
+                    return;
+                }
                 if (isExpanded || isClosing) return;
                 isExpanded = true;
                 clearSheetInlineTransform();
@@ -6351,6 +6978,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             function collapseToSheet() {
+                if (desktopPDP) return;
                 if (!isExpanded || isClosing) return;
                 isExpanded = false;
                 clearSheetInlineTransform();
@@ -6457,15 +7085,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.stopPropagation();
                 showLoginBottomSheet();
             };
-            heroActions.appendChild(heartBtn);
+            // Order: share, fav, call — right-aligned via .houzy-pdp__hero-actions
             heroActions.appendChild(shareBtn);
+            heroActions.appendChild(heartBtn);
             heroActions.appendChild(callBtn);
-            heroTop.appendChild(backBtn);
+            // Desktop: mobile hero chrome (heart/share/call) but no close over the image
+            if (!desktopPDP) {
+                heroTop.appendChild(backBtn);
+            }
             heroTop.appendChild(heroActions);
 
-            // Figma scroll-state sticky top bar (X + name/price + heart/share)
+            // Sticky top bar
             const stickyTop = document.createElement('div');
-            stickyTop.className = 'houzy-pdp__topnav';
+            stickyTop.className = 'houzy-pdp__topnav' + (desktopPDP ? ' houzy-pdp__topnav--desktop houzy-pdp__topnav--close-only' : '');
             stickyTop.setAttribute('aria-hidden', 'true');
 
             const stickyClose = document.createElement('button');
@@ -6503,11 +7135,22 @@ document.addEventListener('DOMContentLoaded', function() {
             stickyActions.appendChild(stickyHeartBtn);
             stickyActions.appendChild(stickyShareBtn);
 
-            stickyTop.appendChild(stickyClose);
-            stickyTop.appendChild(stickyInfo);
-            stickyTop.appendChild(stickyActions);
+            if (desktopPDP) {
+                // Desktop: white strip with close only (top right)
+                stickyTop.appendChild(stickyClose);
+            } else {
+                // Mobile scroll sticky: close left + title/price + actions
+                stickyTop.appendChild(stickyClose);
+                stickyTop.appendChild(stickyInfo);
+                stickyTop.appendChild(stickyActions);
+            }
 
             function updateStickyTopNav() {
+                if (desktopPDP) {
+                    stickyTop.classList.add('houzy-pdp__topnav--visible');
+                    stickyTop.setAttribute('aria-hidden', 'false');
+                    return;
+                }
                 const heroH = hero.offsetHeight || 280;
                 const show = isExpanded && scroll.scrollTop > Math.max(120, heroH * 0.55);
                 stickyTop.classList.toggle('houzy-pdp__topnav--visible', show);
@@ -6654,7 +7297,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 sticky.classList.toggle('houzy-pdp__sticky--suggest', suggest || askState !== 'idle');
                 if (pillsRow) {
                     pillsRow.classList.toggle('is-suppressed', askState !== 'idle');
-                    pillsRow.setAttribute('aria-hidden', suggest ? 'false' : 'true');
+                    pillsRow.setAttribute('aria-hidden', (suggest || desktopPDP) && askState === 'idle' ? 'false' : 'true');
                 }
                 if (askInput && askState === 'idle') {
                     askInput.placeholder = compact ? 'Reply to Houzy' : 'Ask Houzy anything';
@@ -6755,10 +7398,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 sticky.classList.remove('houzy-pdp__sticky--thinking', 'houzy-pdp__sticky--compact');
                 sticky.classList.add('houzy-pdp__sticky--answer', 'houzy-pdp__sticky--suggest');
                 thinkingRow.hidden = true;
+                // Right panel: pills → thinking → response (context flushes to parent chat on Cancel)
                 answerPanel.hidden = false;
                 answerPanel.classList.remove('houzy-pdp__answer--out');
-                pillsRow.classList.add('is-suppressed');
                 answerTextEl.textContent = answer;
+                pillsRow.classList.add('is-suppressed');
                 askInput.value = '';
                 askInput.readOnly = false;
                 askInput.placeholder = 'Ask Houzy anything';
@@ -6925,34 +7569,70 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            grabber.addEventListener('touchstart', function(e) {
-                onDragStart(e.touches[0].clientY);
-            }, { passive: true });
-            grabber.addEventListener('touchmove', function(e) {
-                onDragMove(e.touches[0].clientY);
-            }, { passive: true });
-            grabber.addEventListener('touchend', onDragEnd);
-            grabber.addEventListener('mousedown', function(e) {
-                onDragStart(e.clientY);
-                function move(ev) { onDragMove(ev.clientY); }
-                function up() {
-                    onDragEnd();
-                    window.removeEventListener('mousemove', move);
-                    window.removeEventListener('mouseup', up);
-                }
-                window.addEventListener('mousemove', move);
-                window.addEventListener('mouseup', up);
-            });
-
             backdrop.addEventListener('click', closePDPFullPage);
 
-            document.body.appendChild(backdrop);
-            document.body.appendChild(overlay);
-            document.body.style.overflow = 'hidden';
-            requestAnimationFrame(function() {
-                backdrop.classList.add('houzy-pdp-backdrop--open');
-                overlay.classList.add('houzy-pdp--open');
-            });
+            if (!desktopPDP) {
+                grabber.addEventListener('touchstart', function(e) {
+                    onDragStart(e.touches[0].clientY);
+                }, { passive: true });
+                grabber.addEventListener('touchmove', function(e) {
+                    onDragMove(e.touches[0].clientY);
+                }, { passive: true });
+                grabber.addEventListener('touchend', onDragEnd);
+                grabber.addEventListener('mousedown', function(e) {
+                    onDragStart(e.clientY);
+                    function move(ev) { onDragMove(ev.clientY); }
+                    function up() {
+                        onDragEnd();
+                        window.removeEventListener('mousemove', move);
+                        window.removeEventListener('mouseup', up);
+                    }
+                    window.addEventListener('mousemove', move);
+                    window.addEventListener('mouseup', up);
+                });
+            }
+
+            if (desktopPDP) {
+                const settleGhost = animateCardIntoDesktopSplit(sourceEl);
+                enterDesktopSplit();
+                const existing = document.getElementById('property-detail-fullpage');
+                if (existing && existing !== overlay) existing.remove();
+                const pdpHost = document.getElementById('desktop-stage-pdp');
+                hideDesktopStagePanels('desktop-stage-pdp');
+                if (pdpHost) {
+                    pdpHost.innerHTML = '';
+                    pdpHost.appendChild(overlay);
+                } else {
+                    document.body.appendChild(overlay);
+                }
+                if (settleGhost && heroImg) {
+                    heroImg.style.opacity = '0';
+                    overlay.classList.add('houzy-pdp--morphing');
+                }
+                // Parent-chat context is flushed only when user hits Cancel/Close
+                // Double rAF: layout in 50% stage, then open + ghost → settled hero rect.
+                requestAnimationFrame(function() {
+                    requestAnimationFrame(function() {
+                        overlay.classList.add('houzy-pdp--open', 'houzy-pdp--expanded');
+                        if (typeof settleGhost === 'function') {
+                            settleGhost(heroImg);
+                        } else if (heroImg) {
+                            heroImg.style.opacity = '';
+                        }
+                    });
+                });
+                setBottomStickyMode('suggest');
+                stickyTop.classList.add('houzy-pdp__topnav--visible');
+                stickyTop.setAttribute('aria-hidden', 'false');
+            } else {
+                document.body.appendChild(backdrop);
+                document.body.appendChild(overlay);
+                document.body.style.overflow = 'hidden';
+                requestAnimationFrame(function() {
+                    backdrop.classList.add('houzy-pdp-backdrop--open');
+                    overlay.classList.add('houzy-pdp--open');
+                });
+            }
             triggerHapticFeedback('medium');
         }
         
@@ -7517,6 +8197,74 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Show property cards with loading indicator
+        function renderDesktopListings(cards) {
+            if (!isDesktopLayout()) return;
+            enterDesktopSplit();
+            const stage = document.getElementById('desktop-stage');
+            const listings = document.getElementById('desktop-stage-listings');
+            const grid = document.getElementById('desktop-stage-grid');
+            const meta = document.getElementById('desktop-stage-listings-meta');
+            if (!stage || !grid || !listings) return;
+
+            hideDesktopStagePanels('desktop-stage-listings');
+            const photosMosaic = document.getElementById('desktop-stage-photos-mosaic');
+            if (photosMosaic) photosMosaic.innerHTML = '';
+            grid.innerHTML = '';
+            if (meta) {
+                meta.textContent = cards.length
+                    ? cards.length + ' matches · open a card or continue on Housing.com'
+                    : '';
+            }
+
+            cards.slice(0, 12).forEach(function(card) {
+                const tile = document.createElement('button');
+                tile.type = 'button';
+                tile.className = 'desktop-listing-card';
+                tile.setAttribute('aria-label', (card.name || 'Property') + ' details');
+                const priceLabel = card.priceUnit === 'k'
+                    ? ('₹' + card.price)
+                    : ('₹' + card.price + ' ' + (card.priceUnit || 'Cr'));
+                tile.innerHTML =
+                    '<div class="desktop-listing-card__media">' +
+                        '<img src="" alt="" loading="lazy">' +
+                    '</div>' +
+                    '<div class="desktop-listing-card__body">' +
+                        '<p class="desktop-listing-card__name"></p>' +
+                        '<p class="desktop-listing-card__loc"></p>' +
+                        '<p class="desktop-listing-card__price"></p>' +
+                        '<p class="desktop-listing-card__meta"></p>' +
+                    '</div>';
+                const img = tile.querySelector('img');
+                img.src = card.image || (typeof PROPERTY_IMAGE_POOL !== 'undefined' ? PROPERTY_IMAGE_POOL[0] : '');
+                img.alt = card.name || '';
+                img.onerror = function() {
+                    if (!this.dataset.failed && typeof PROPERTY_IMAGE_POOL !== 'undefined') {
+                        this.dataset.failed = '1';
+                        this.src = PROPERTY_IMAGE_POOL[0];
+                    }
+                };
+                tile.querySelector('.desktop-listing-card__name').textContent = card.name || 'Property';
+                tile.querySelector('.desktop-listing-card__loc').textContent = card.locality || '';
+                tile.querySelector('.desktop-listing-card__price').textContent = priceLabel;
+                tile.querySelector('.desktop-listing-card__meta').textContent =
+                    (card.bhk ? card.bhk + ' BHK' : '') +
+                    (card.status ? ' · ' + card.status : '');
+                tile.addEventListener('click', function() {
+                    lastMentionedProject = cardToProjectPictureData(card);
+                    openPropertyDetailPage(card, tile);
+                });
+                grid.appendChild(tile);
+            });
+        }
+
+        window.__houzyDesktop = {
+            syncListings: function() {
+                if (lastShownPropertyCards && lastShownPropertyCards.length && isDesktopSplit()) {
+                    renderDesktopListings(lastShownPropertyCards);
+                }
+            }
+        };
+
         function showPropertyCards() {
             // Show typing indicator first
             showTypingIndicator();
@@ -7589,6 +8337,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         scrollMessageIntoView(msgDiv);
                     });
                 }
+
+                // d-web stays full-width here; split opens only on Housing.com handoff
             }, delay);
             
             return 'loading';
@@ -8141,7 +8891,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
 
-                    // Property / project pictures – 4-up preview grid with full gallery on "See more"
+                    // Property / room pictures – adaptive mosaic (1 / 2 / 3 / 4+)
                     if (isPropertyPicturesRequest(text)) {
                         if (window.__CHAT_DEBUG__) console.log('[Intent] Routing to property pictures preview');
                         const propertyName = extractPropertyNameFromPicturesRequest(text);
@@ -8244,7 +8994,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chatInput.addEventListener('input', updateSendButtonState);
         chatInput.addEventListener('change', updateSendButtonState);
 
-        // Basic send button handler
+        // Basic send button handler — this is when floating pills / intro dismiss
         chatSendBtn.addEventListener('click', () => {
             const text = chatInput.value.trim();
             if (!text) return;
@@ -8253,11 +9003,12 @@ document.addEventListener('DOMContentLoaded', function() {
             chatInput.value = '';
             updateSendButtonState();
             
-            // Hide intro on first message
-            if (messages.length === 0 && chatScreen) {
+            // Hide intro + floating pills; dock Ask Houzy to sticky footer (desktop)
+            if (chatScreen && !chatScreen.classList.contains('chat-started')) {
                 chatScreen.classList.add('chat-started');
                 if (typeof setChatOffsets === 'function') setChatOffsets();
             }
+            ensureDesktopComposerDocked();
             
             // Handle the message
             handleUserMessage(text);
@@ -8270,20 +9021,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Pill click: delegation so cloned pills (used to fill 2nd row gap) also work
+        // Pill click: fill Ask Houzy — pills stay until Send is clicked
         document.body.addEventListener('click', function pillClickDelegated(e) {
             const pill = e.target && e.target.closest('.chat-pill');
             if (!pill) return;
+            if (!pill.closest('#chat-intro') && !pill.closest('#chipsRail') && !pill.closest('.chips-tracks-wrapper')) {
+                return;
+            }
             const text = pill.textContent.trim();
             if (!text) return;
-
-            // Hide intro on first message
-            if (messages.length === 0 && chatScreen) {
-                chatScreen.classList.add('chat-started');
-                if (typeof setChatOffsets === 'function') setChatOffsets();
-            }
-
-            handleUserMessage(text);
+            e.preventDefault();
+            e.stopPropagation();
+            chatInput.value = text;
+            updateSendButtonState();
+            chatInput.focus();
         });
         
         // ============================================================================

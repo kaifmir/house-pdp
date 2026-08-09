@@ -310,8 +310,8 @@ body.force-mobile-demo .chat-screen {
     width: 100%;
 }
 
-/* Above largest phone width (~480px): show "mobile only" message, hide app */
-@media (min-width: 481px) {
+/* Tablet (481–1023): mobile-only blocker; d-web split starts at 1024 */
+@media (min-width: 481px) and (max-width: 1023px) {
     .desktop-blocker {
         display: flex !important;
     }
@@ -319,6 +319,10 @@ body.force-mobile-demo .chat-screen {
     .mobile-container {
         display: none !important;
     }
+}
+
+body.force-mobile-demo .desktop-stage {
+    display: none !important;
 }
 
 /* Mobile Container */
@@ -3021,6 +3025,15 @@ html, body {
     animation: houzy-pdp-fade-in 0.32s ease;
 }
 
+/* Keep project context tight above the user bubble (mobile + desktop) */
+.chat-project-context + .msg-user {
+    margin-top: 0;
+}
+
+.chat-stack > .chat-project-context {
+    padding-bottom: 4px;
+}
+
 .chat-project-context__icon {
     width: 14px;
     height: 14px;
@@ -3041,6 +3054,14 @@ html, body {
     text-overflow: ellipsis;
     max-width: 70%;
 }
+
+/* Desktop chat column: same project-context alignment as mobile */
+body.desktop-layout .chat-project-context {
+    padding-left: 0;
+    padding-right: 0;
+    justify-content: flex-end;
+}
+
 
 /* Feedback row – thumbs up, thumbs down, copy (Figma Frame 2147261418) */
 /* Only show on the last bot message */
@@ -4515,30 +4536,19 @@ html, body {
     }
 }
 
-/* Property pictures preview in chat – 2×2 grid + See more */
+/* Property pictures in chat — adaptive mosaic: 1 / 2 / 3 / 4+ */
 .property-pictures-preview {
     width: 100%;
     max-width: 100%;
-    margin-top: 12px;
+    margin-top: 10px;
     box-sizing: border-box;
-}
-
-@keyframes projectPicturesHeaderIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 @keyframes projectPicturesTileIn {
     from {
         opacity: 0;
-        transform: scale(0.9) translateY(12px);
-        filter: blur(3px);
+        transform: scale(0.94) translateY(8px);
+        filter: blur(2px);
     }
     to {
         opacity: 1;
@@ -4547,123 +4557,136 @@ html, body {
     }
 }
 
-@keyframes projectPicturesSeeMoreIn {
+@keyframes projectPicturesFollowupIn {
     from {
         opacity: 0;
-        transform: translateX(-6px);
+        transform: translateY(6px);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateY(0);
     }
 }
 
-.property-pictures-preview--pending .property-pictures-preview__header,
 .property-pictures-preview--pending .property-pictures-item,
-.property-pictures-preview--pending .property-pictures-see-more {
+.property-pictures-preview--pending .property-pictures-followup {
     opacity: 0;
     pointer-events: none;
 }
 
-.property-pictures-preview--revealing .property-pictures-preview__header {
-    animation: projectPicturesHeaderIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
 .property-pictures-preview--revealing .property-pictures-item {
-    animation: projectPicturesTileIn 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    animation-delay: calc(60ms + var(--reveal-index, 0) * 72ms);
+    animation: projectPicturesTileIn 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(40ms + var(--reveal-index, 0) * 64ms);
     will-change: transform, opacity, filter;
 }
 
-.property-pictures-preview--revealing .property-pictures-see-more {
-    animation: projectPicturesSeeMoreIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    animation-delay: calc(60ms + 4 * 72ms + 48ms);
+.property-pictures-preview--revealing .property-pictures-followup {
+    animation: projectPicturesFollowupIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(80ms + 4 * 64ms);
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .property-pictures-preview--pending .property-pictures-preview__header,
     .property-pictures-preview--pending .property-pictures-item,
-    .property-pictures-preview--pending .property-pictures-see-more {
+    .property-pictures-preview--pending .property-pictures-followup {
         opacity: 1;
         pointer-events: auto;
     }
 
-    .property-pictures-preview--revealing .property-pictures-preview__header,
     .property-pictures-preview--revealing .property-pictures-item,
-    .property-pictures-preview--revealing .property-pictures-see-more,
+    .property-pictures-preview--revealing .property-pictures-followup,
     .property-pictures-preview--revealing .property-pictures-item__overlay {
         animation: none;
     }
 }
 
-.property-pictures-preview__header {
-    margin-bottom: 12px;
-}
-
-.property-pictures-preview__badge {
-    display: inline-block;
-    margin-bottom: 6px;
-    padding: 2px 8px;
-    border-radius: 6px;
-    background: #f3edff;
-    color: #5e23dc;
-    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 11px;
-    font-weight: 500;
-    line-height: 16px;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-}
-
-.property-pictures-preview__title {
-    margin: 0 0 4px;
-    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 16px;
-    font-weight: 500;
-    line-height: 24px;
-    color: #0a0a0a;
-}
-
-.property-pictures-preview__meta {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.property-pictures-preview__developer,
-.property-pictures-preview__location {
-    margin: 0;
-}
-
-.property-pictures-preview__price {
-    margin: 4px 0 0;
-    font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 21px;
-    color: #0a0a0a;
-}
-
 .property-pictures-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: 6px;
     width: 100%;
+}
+
+/* 1 image — native aspect from metadata; no crop */
+.property-pictures-grid--1 {
+    grid-template-columns: max-content;
+    justify-content: start;
+    width: auto;
+    max-width: 100%;
+}
+
+.property-pictures-grid--1 .property-pictures-item,
+.property-pictures-grid--1 .property-pictures-item--native {
+    aspect-ratio: auto;
+    width: auto;
+    height: auto;
+    max-width: 240px;
+    max-height: 320px;
+    min-height: 120px;
+    border-radius: 16px;
+    background: #f2f2f2;
+    overflow: hidden;
+}
+
+.property-pictures-grid--1 .property-pictures-item img {
+    width: 100%;
+    height: 100%;
+    max-width: 240px;
+    max-height: 320px;
+    min-height: 120px;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+}
+
+/* 2 images — equal side-by-side */
+.property-pictures-grid--2 {
+    grid-template-columns: 1fr 1fr;
+}
+
+.property-pictures-grid--2 .property-pictures-item {
+    aspect-ratio: 4 / 5;
+    border-radius: 14px;
+}
+
+/* 3 images — large left + two stacked right */
+.property-pictures-grid--3 {
+    grid-template-columns: 1.55fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    aspect-ratio: 4 / 3;
+}
+
+.property-pictures-grid--3 .property-pictures-item {
+    aspect-ratio: auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    border-radius: 12px;
+}
+
+.property-pictures-grid--3 .property-pictures-item:nth-child(1) {
+    grid-row: 1 / span 2;
+}
+
+/* 4 / 4+ — 2×2; overlay on last tile when more remain */
+.property-pictures-grid--4 {
+    grid-template-columns: 1fr 1fr;
+}
+
+.property-pictures-grid--4 .property-pictures-item {
+    aspect-ratio: 1;
+    border-radius: 14px;
 }
 
 .property-pictures-item {
     position: relative;
-    aspect-ratio: 1;
     overflow: hidden;
-    border-radius: 12px;
     border: none;
     padding: 0;
     margin: 0;
-    background: #f2f2f2;
+    background: #ebebeb;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease;
 }
 
 .property-pictures-item:active {
@@ -4687,40 +4710,23 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(0, 0, 0, 0.48);
     color: #ffffff;
     font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 500;
     line-height: 1;
+    letter-spacing: 0.01em;
     pointer-events: none;
 }
 
-.property-pictures-see-more {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-top: 12px;
-    padding: 0;
-    border: none;
-    background: none;
-    color: #5e23dc;
+.property-pictures-followup {
+    margin: 12px 0 0;
     font-family: 'Rubik', -apple-system, BlinkMacSystemFont, sans-serif;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 400;
     line-height: 21px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-}
-
-.property-pictures-see-more:active {
-    opacity: 0.7;
-}
-
-.property-pictures-see-more span {
-    font-size: 16px;
-    line-height: 1;
+    color: #0a0a0a;
 }
 
 /* Property Detail Page (PDP) */
@@ -5305,6 +5311,7 @@ html, body {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-left: auto;
 }
 
 .houzy-pdp__icon-btn {
@@ -10449,4 +10456,1155 @@ body.force-mobile-demo .houzy-pdp-backdrop {
 .ai-send-btn:active {
     background: #000;
     transform: scale(0.95);
+}
+
+/* ========== Desktop: full-width Houzy; split only for property / Housing ========== */
+@media (min-width: 1024px) {
+    .desktop-blocker {
+        display: none !important;
+    }
+}
+
+body.desktop-layout {
+    --desktop-chat-w: 100%;
+    --houzy-grid-max: 1200px;
+    --houzy-grid-gutter: 32px;
+    --houzy-grid-cols: 12;
+    /* Chat column (messages + Ask Houzy) — 40% of the page grid, centered */
+    --houzy-content-width: 40%;
+    /* One curve for chat shrink + stage slide + card→hero morph */
+    --houzy-split-dur: 0.56s;
+    --houzy-split-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    background: #fafafa;
+}
+
+body.desktop-layout.desktop-split {
+    --desktop-chat-w: 50vw;
+    --houzy-grid-max: 100%;
+    --houzy-grid-gutter: 20px;
+    --houzy-content-width: calc(100% - 32px);
+    background: #f0eef6;
+}
+
+body.desktop-layout:has(.chat-screen.active) {
+    overflow: hidden !important;
+    height: 100% !important;
+    position: fixed !important;
+    width: 100% !important;
+}
+
+body.desktop-layout .mobile-container,
+body.desktop-layout .bottom-nav {
+    display: none !important;
+}
+
+/* Standalone conversation — full width grid shell */
+body.desktop-layout .chat-screen {
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    border-right: none;
+    box-shadow: none;
+    z-index: 20;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    transition:
+        width var(--houzy-split-dur) var(--houzy-split-ease),
+        max-width var(--houzy-split-dur) var(--houzy-split-ease),
+        min-width var(--houzy-split-dur) var(--houzy-split-ease),
+        box-shadow calc(var(--houzy-split-dur) - 0.08s) ease,
+        border-color calc(var(--houzy-split-dur) - 0.08s) ease;
+}
+
+/* Empty / waiting state: hero + Ask Houzy closer to the header */
+body.desktop-layout .chat-screen:not(.composer-docked) .chat-messages {
+    margin-top: 160px !important;
+    margin-bottom: 0 !important;
+    flex: 0 1 auto !important;
+    min-height: 0;
+    justify-content: flex-start;
+    align-items: stretch;
+    padding-top: 0 !important;
+    padding-bottom: 16px !important;
+    overflow: visible;
+}
+
+body.desktop-layout .chat-screen:not(.composer-docked) .chat-input-bar {
+    position: relative;
+    bottom: auto;
+    margin-top: 0 !important;
+    margin-bottom: auto !important;
+    flex: 0 0 auto;
+    padding-top: 0;
+    will-change: transform;
+}
+
+body.desktop-layout .chat-screen:not(.composer-docked) .chat-stack {
+    min-height: 0 !important;
+    padding-bottom: 0;
+}
+
+/* After user sends: sticky footer composer + messages from the top */
+body.desktop-layout .chat-screen.composer-docked {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+body.desktop-layout .chat-screen.composer-docked .chat-header.chat-top-bar {
+    grid-row: 1;
+}
+
+body.desktop-layout .chat-screen.composer-docked .chat-messages {
+    grid-row: 2;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    flex: unset;
+    min-height: 0;
+    overflow: auto;
+    justify-content: flex-start;
+    align-items: stretch !important;
+    padding-top: 20px !important;
+    padding-bottom: 24px !important;
+    scroll-behavior: smooth;
+}
+
+body.desktop-layout .chat-screen.composer-docked .chat-stack {
+    min-height: 0 !important;
+    justify-content: flex-start;
+    padding-bottom: 28px;
+    width: var(--houzy-content-width) !important;
+    max-width: var(--houzy-grid-max);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Soft enter for new turns (ChatGPT / Claude style) */
+body.desktop-layout .chat-screen.composer-docked .chat-stack > .msg {
+    animation: houzyMsgIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes houzyMsgIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+body.desktop-layout .chat-screen.composer-docked .chat-input-bar {
+    grid-row: 3;
+    position: relative;
+    z-index: 50;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 16px 0 calc(18px + env(safe-area-inset-bottom));
+    /* Soft sticky-footer veil so messages scroll underneath */
+    background: linear-gradient(
+        to top,
+        #fafafa 55%,
+        rgba(250, 250, 250, 0.92) 78%,
+        rgba(250, 250, 250, 0)
+    );
+    will-change: transform;
+}
+
+body.desktop-layout .chat-screen.composer-docking .chat-messages {
+    animation: houzyThreadReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes houzyThreadReveal {
+    from {
+        opacity: 0.55;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.desktop-layout .chat-screen.composer-docked .chat-stack > .msg,
+    body.desktop-layout .chat-screen.composer-docking .chat-messages {
+        animation: none;
+    }
+}
+
+body.desktop-layout.desktop-split .chat-screen {
+    right: auto;
+    width: 50%;
+    max-width: 50%;
+    min-width: 50%;
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 4px 0 28px rgba(40, 20, 80, 0.08);
+}
+
+body.desktop-layout.desktop-split-willchange .chat-screen {
+    will-change: width, max-width, min-width;
+}
+
+body.desktop-layout .chat-screen.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: none;
+}
+
+/* Shared content grid track */
+body.desktop-layout .chat-header.chat-top-bar,
+body.desktop-layout .chat-messages,
+body.desktop-layout .chat-input-bar {
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+body.desktop-layout .chat-header.chat-top-bar {
+    position: relative;
+    left: 0;
+    right: 0;
+    width: 100%;
+    margin-left: 0;
+    height: 64px;
+    min-height: 64px;
+    padding: 0;
+    justify-content: stretch;
+    align-items: center;
+    transform: none;
+    -webkit-transform: none;
+    flex-shrink: 0;
+}
+
+body.desktop-layout .chat-header-bg {
+    height: 64px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.92) 0%, rgba(250, 250, 250, 0.4) 100%);
+}
+
+/* Header chrome: full 100% width */
+body.desktop-layout .chat-header-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0 var(--houzy-grid-gutter);
+    height: 48px;
+    gap: 12px;
+    box-sizing: border-box;
+}
+
+/* Logo left; hide back on d-web */
+body.desktop-layout .chat-back-btn {
+    display: none !important;
+}
+
+body.desktop-layout .chat-title-btn {
+    justify-self: start;
+    grid-column: 1;
+}
+
+body.desktop-layout .chat-header-menu-btn {
+    justify-self: end;
+    grid-column: 3;
+}
+
+body.desktop-layout .chat-messages {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
+}
+
+body.desktop-layout .chat-screen:not(.chat-started) .chat-messages,
+body.desktop-layout .chat-screen:not(.chat-started):not(.composer-docked) .chat-messages {
+    align-items: stretch !important;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/*
+ * Content track (50%): apply ONLY on .chat-stack / input.
+ * Intro lives inside .chat-stack (JS wrap), so do NOT also set 50% on
+ * .chat-intro — that was halving the pills (25%) vs Ask Houzy (50%).
+ */
+body.desktop-layout .chat-stack {
+    width: var(--houzy-content-width) !important;
+    max-width: var(--houzy-grid-max);
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+    align-self: center;
+}
+
+body.desktop-layout .chat-intro {
+    width: 100% !important;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+    align-self: stretch;
+}
+
+body.desktop-layout .chat-input-bar {
+    padding: 12px 0 calc(16px + env(safe-area-inset-bottom));
+}
+
+body.desktop-layout .chat-input-wrapper {
+    max-width: var(--houzy-grid-max) !important;
+    width: var(--houzy-content-width) !important;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body.desktop-layout .chat-disclaimer {
+    width: var(--houzy-content-width);
+    max-width: var(--houzy-grid-max);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body.desktop-layout.desktop-split .chat-header-row {
+    width: 100%;
+    max-width: none;
+    padding: 0 var(--houzy-grid-gutter);
+}
+
+body.desktop-layout.desktop-split .chat-stack,
+body.desktop-layout.desktop-split .chat-input-wrapper,
+body.desktop-layout.desktop-split .chat-disclaimer {
+    width: var(--houzy-content-width);
+    max-width: none;
+}
+
+body.desktop-layout.desktop-split .chat-intro {
+    width: 100% !important;
+    max-width: none;
+}
+
+/* Hero: one line on desktop */
+.chat-hero-title__desktop {
+    display: none;
+}
+
+body.desktop-layout .chat-hero-title__mobile {
+    display: none;
+}
+
+body.desktop-layout .chat-hero-title__desktop {
+    display: inline;
+}
+
+body.desktop-layout .chat-intro {
+    gap: 28px;
+    padding: 0;
+    max-height: none;
+    overflow: visible;
+    align-items: stretch !important;
+    text-align: center;
+}
+
+body.desktop-layout .chat-pills-wrapper {
+    width: 100% !important;
+    max-width: none !important;
+    gap: 28px;
+    align-items: stretch !important;
+    align-self: stretch;
+    box-sizing: border-box;
+}
+
+body.desktop-layout .chat-hero-title {
+    font-size: 32px;
+    line-height: 40px;
+    font-weight: 500;
+    max-width: none !important;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    padding: 0;
+    color: #434343;
+}
+
+/* Floating pills: match Ask Houzy input width (same content track) */
+body.desktop-layout .chips-marquee,
+body.desktop-layout .chips-tracks-wrapper,
+body.desktop-layout .chips-row-viewport {
+    display: flex;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+    align-self: stretch;
+}
+
+body.desktop-layout .chips-tracks-wrapper {
+    flex-direction: column;
+}
+
+body.desktop-layout .chips-marquee::before {
+    background: linear-gradient(to right, #fafafa, rgba(250, 250, 250, 0));
+    width: 48px;
+}
+
+body.desktop-layout .chips-marquee::after {
+    background: linear-gradient(to left, #fafafa, rgba(250, 250, 250, 0));
+    width: 48px;
+}
+
+/*
+ * Desktop stage: keep in layout while un-hidden so transform can ease.
+ * Closed = parked off-canvas to the right; open = slide in with chat width.
+ */
+body.desktop-layout .desktop-stage {
+    display: none;
+}
+
+body.desktop-layout .desktop-stage:not([hidden]) {
+    display: flex !important;
+    position: fixed !important;
+    left: 50%;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 50% !important;
+    max-width: 50%;
+    height: auto !important;
+    overflow: hidden !important;
+    z-index: 10;
+    flex-direction: column;
+    background:
+        radial-gradient(ellipse 80% 60% at 70% 20%, rgba(94, 35, 220, 0.07), transparent 55%),
+        linear-gradient(165deg, #f7f5fc 0%, #efeaf8 45%, #f4f1ea 100%);
+    border-left: 1px solid rgba(0, 0, 0, 0.06);
+    transform: translate3d(104%, 0, 0);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        transform var(--houzy-split-dur) var(--houzy-split-ease),
+        opacity calc(var(--houzy-split-dur) - 0.12s) var(--houzy-split-ease);
+}
+
+body.desktop-layout.desktop-split-willchange .desktop-stage:not([hidden]) {
+    will-change: transform, opacity;
+}
+
+body.desktop-layout.desktop-split .desktop-stage:not([hidden]).desktop-stage--entered,
+body.desktop-layout.desktop-split--open .desktop-stage:not([hidden]) {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.desktop-split-ghost {
+    display: block;
+    backface-visibility: hidden;
+}
+
+.desktop-housing.desktop-housing--enter:not(.desktop-housing--morphing) {
+    animation: houzyHousingPanelIn var(--houzy-split-dur, 0.56s) var(--houzy-split-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+.desktop-housing.desktop-housing--enter:not(.desktop-housing--morphing) .desktop-housing__hero {
+    animation: houzyHousingHeroIn var(--houzy-split-dur, 0.56s) var(--houzy-split-ease, cubic-bezier(0.22, 1, 0.36, 1)) 0.04s both;
+}
+
+.desktop-housing.desktop-housing--enter:not(.desktop-housing--morphing) .desktop-housing__body {
+    animation: houzyHousingBodyIn 0.48s var(--houzy-split-ease, cubic-bezier(0.22, 1, 0.36, 1)) 0.12s both;
+}
+
+/* Ghost owns the hero entrance — skip competing keyframes while morphing */
+.desktop-housing.desktop-housing--enter.desktop-housing--morphing,
+.desktop-housing.desktop-housing--enter.desktop-housing--morphing .desktop-housing__hero,
+.desktop-housing.desktop-housing--enter.desktop-housing--morphing .desktop-housing__body {
+    animation: none !important;
+}
+
+@keyframes houzyHousingPanelIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes houzyHousingHeroIn {
+    from {
+        opacity: 0;
+        transform: translate3d(18px, 0, 0) scale(1.02);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+@keyframes houzyHousingBodyIn {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 14px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.desktop-layout .chat-screen,
+    body.desktop-layout .desktop-stage:not([hidden]) {
+        transition: none !important;
+    }
+
+    .desktop-housing.desktop-housing--enter,
+    .desktop-housing.desktop-housing--enter:not(.desktop-housing--morphing),
+    .desktop-housing.desktop-housing--enter .desktop-housing__hero,
+    .desktop-housing.desktop-housing--enter:not(.desktop-housing--morphing) .desktop-housing__hero,
+    .desktop-housing.desktop-housing--enter .desktop-housing__body,
+    .desktop-housing.desktop-housing--enter:not(.desktop-housing--morphing) .desktop-housing__body {
+        animation: none !important;
+    }
+
+    .desktop-split-ghost {
+        display: none !important;
+    }
+}
+
+body.desktop-layout .chat-screen.active ~ .info-bottom-sheet {
+    left: 0;
+    width: 100%;
+}
+
+.desktop-stage[hidden] {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+body.desktop-layout .chat-stack,
+body.desktop-layout .chat-input-wrapper,
+body.desktop-layout .chat-disclaimer {
+    transition:
+        width var(--houzy-split-dur) var(--houzy-split-ease),
+        max-width var(--houzy-split-dur) var(--houzy-split-ease);
+}
+
+.desktop-stage__listings[hidden],
+.desktop-stage__photos[hidden],
+.desktop-stage__housing[hidden],
+.desktop-stage__pdp[hidden],
+.desktop-stage__empty[hidden] {
+    display: none !important;
+}
+
+.desktop-stage__housing {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+}
+
+.desktop-housing {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.desktop-housing__chrome {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.88);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.desktop-housing__cancel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 999px;
+    background: #ffffff;
+    color: #1a1a1a;
+    font-family: 'Rubik', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.desktop-housing__cancel img {
+    display: block;
+    width: 16px;
+    height: 16px;
+    opacity: 0.75;
+}
+
+.desktop-housing__cancel:hover {
+    background: #f5f5f5;
+    border-color: rgba(0, 0, 0, 0.16);
+}
+
+.desktop-housing__cancel:active {
+    background: #ededed;
+}
+
+.desktop-housing__brand {
+    justify-self: center;
+    font-family: 'Rubik', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #5e23dc;
+    letter-spacing: 0.02em;
+}
+
+.houzy-pdp--desktop .houzy-pdp__topnav-close {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    padding: 0;
+    border-radius: 8px;
+    background: transparent;
+    border: none;
+    margin-left: auto;
+}
+
+.houzy-pdp--desktop .houzy-pdp__topnav-close:hover {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.desktop-housing__open {
+    font-family: 'Rubik', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #434343;
+    text-decoration: none;
+}
+
+.desktop-housing__open:hover {
+    color: #5e23dc;
+}
+
+.desktop-housing__hero {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    background: #e8e4f0;
+    overflow: hidden;
+    transform-origin: center center;
+}
+
+.desktop-housing__hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.desktop-housing__body {
+    margin: 0;
+    max-width: none;
+    padding: 28px 32px 40px;
+}
+
+.desktop-housing__eyebrow {
+    margin: 0 0 10px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5e23dc;
+}
+
+.desktop-housing__title {
+    margin: 0 0 8px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #1a1a1a;
+}
+
+.desktop-housing__meta {
+    margin: 0 0 16px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 14px;
+    color: #6b6b6b;
+}
+
+.desktop-housing__copy {
+    margin: 0 0 28px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: #5c5c5c;
+}
+
+.desktop-housing__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 22px;
+    border-radius: 12px;
+    background: #5e23dc;
+    color: #fff;
+    font-family: 'Rubik', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.desktop-housing__cta:hover {
+    background: #4a1bb0;
+}
+
+.desktop-housing__cta:active {
+    transform: scale(0.98);
+}
+
+@media (min-width: 1400px) {
+    body.desktop-layout:not(.desktop-split) {
+        --houzy-grid-max: 1200px;
+    }
+}
+
+.desktop-stage__empty {
+    margin: auto;
+    max-width: 28rem;
+    padding: 48px 40px;
+    text-align: left;
+}
+
+.desktop-stage__eyebrow {
+    margin: 0 0 12px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5e23dc;
+}
+
+.desktop-stage__title {
+    margin: 0 0 12px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #1a1a1a;
+}
+
+.desktop-stage__copy {
+    margin: 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    color: #5c5c5c;
+}
+
+.desktop-stage__listings {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 32px 40px;
+    overflow: auto;
+}
+
+.desktop-stage__listings[hidden],
+.desktop-stage__photos[hidden],
+.desktop-stage__housing[hidden],
+.desktop-stage__pdp[hidden],
+.desktop-stage__empty[hidden] {
+    display: none !important;
+}
+
+/* Desktop photos stage — same 1/2/3/4+ mosaics, larger canvas */
+.desktop-stage__photos {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 36px 40px 48px;
+    overflow: auto;
+}
+
+.desktop-stage__photos-head {
+    margin-bottom: 24px;
+    max-width: 720px;
+}
+
+.desktop-stage__photos-eyebrow {
+    margin: 0 0 8px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #5e23dc;
+}
+
+.desktop-stage__photos-title {
+    margin: 0 0 6px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #1a1a1a;
+}
+
+.desktop-stage__photos-meta {
+    margin: 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 13px;
+    color: #6b6b6b;
+}
+
+.desktop-stage__photos-mosaic {
+    width: 100%;
+    max-width: 720px;
+}
+
+.property-pictures-preview--desktop {
+    margin-top: 0;
+}
+
+.property-pictures-preview--desktop .property-pictures-grid {
+    gap: 8px;
+}
+
+.property-pictures-preview--desktop .property-pictures-grid--1 {
+    justify-content: start;
+}
+
+.property-pictures-preview--desktop .property-pictures-grid--1 .property-pictures-item {
+    aspect-ratio: auto;
+    max-width: 240px;
+    max-height: 320px;
+    min-height: 120px;
+    border-radius: 16px;
+}
+
+.property-pictures-preview--desktop .property-pictures-grid--2 .property-pictures-item {
+    aspect-ratio: 4 / 5;
+    border-radius: 16px;
+}
+
+.property-pictures-preview--desktop .property-pictures-grid--3 {
+    aspect-ratio: 16 / 11;
+    max-height: min(52vh, 480px);
+}
+
+.property-pictures-preview--desktop .property-pictures-grid--3 .property-pictures-item {
+    border-radius: 14px;
+}
+
+.property-pictures-preview--desktop .property-pictures-grid--4 .property-pictures-item {
+    border-radius: 16px;
+}
+
+.property-pictures-preview--desktop .property-pictures-item__overlay {
+    font-size: 28px;
+}
+
+body.desktop-layout .property-pictures-followup--chat {
+    margin: 10px 0 0;
+    font-size: 14px;
+    line-height: 21px;
+    color: #0a0a0a;
+}
+
+.desktop-stage__listings-head {
+    margin-bottom: 20px;
+}
+
+.desktop-stage__listings-title {
+    margin: 0 0 4px;
+    font-family: 'Rubik', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.desktop-stage__listings-meta {
+    margin: 0;
+    font-family: 'Rubik', sans-serif;
+    font-size: 13px;
+    color: #6b6b6b;
+}
+
+.desktop-stage__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+    align-content: start;
+}
+
+.desktop-listing-card {
+    appearance: none;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 14px;
+    background: #fff;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    font-family: 'Rubik', sans-serif;
+    color: inherit;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.desktop-listing-card:hover {
+    border-color: rgba(94, 35, 220, 0.35);
+    box-shadow: 0 8px 28px rgba(40, 20, 80, 0.1);
+    transform: translateY(-2px);
+}
+
+.desktop-listing-card:focus-visible {
+    outline: 2px solid #5e23dc;
+    outline-offset: 2px;
+}
+
+.desktop-listing-card__media {
+    aspect-ratio: 16 / 10;
+    background: #e8e4f0;
+    overflow: hidden;
+}
+
+.desktop-listing-card__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.desktop-listing-card__body {
+    padding: 12px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.desktop-listing-card__name {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1a1a;
+    line-height: 1.3;
+}
+
+.desktop-listing-card__loc {
+    margin: 0;
+    font-size: 12px;
+    color: #6b6b6b;
+}
+
+.desktop-listing-card__price {
+    margin: 4px 0 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #5e23dc;
+}
+
+.desktop-listing-card__meta {
+    margin: 0;
+    font-size: 12px;
+    color: #8a8a8a;
+}
+
+.desktop-stage__pdp {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/*
+ * Desktop PDP = mobile property view, responsive to the right panel width.
+ * Top: white strip + close (right). Bottom: pills + Ask Houzy.
+ */
+.houzy-pdp.houzy-pdp--desktop {
+    position: absolute;
+    inset: 0;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #ffffff;
+    /* Stage already slides; PDP only soft-fades so motions don't fight */
+    transform: none;
+    opacity: 0;
+    transition: opacity calc(var(--houzy-split-dur) - 0.08s) var(--houzy-split-ease);
+    padding-bottom: 0;
+}
+
+.houzy-pdp.houzy-pdp--desktop.houzy-pdp--open,
+.houzy-pdp.houzy-pdp--desktop.houzy-pdp--expanded {
+    transform: none;
+    opacity: 1;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.houzy-pdp.houzy-pdp--desktop.houzy-pdp--closing {
+    transform: none !important;
+    opacity: 0;
+    transition: opacity 0.22s ease;
+}
+
+/* During card→hero morph: keep chrome quiet until the ghost lands */
+.houzy-pdp.houzy-pdp--desktop .houzy-pdp__topnav,
+.houzy-pdp.houzy-pdp--desktop .houzy-pdp__sticky,
+.houzy-pdp.houzy-pdp--desktop .houzy-pdp__scroll > :not(.houzy-pdp__hero) {
+    transition:
+        opacity 0.32s var(--houzy-split-ease),
+        transform 0.36s var(--houzy-split-ease);
+}
+
+.houzy-pdp.houzy-pdp--desktop.houzy-pdp--morphing .houzy-pdp__topnav,
+.houzy-pdp.houzy-pdp--desktop.houzy-pdp--morphing .houzy-pdp__sticky,
+.houzy-pdp.houzy-pdp--desktop.houzy-pdp--morphing .houzy-pdp__scroll > :not(.houzy-pdp__hero) {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0);
+}
+
+.houzy-pdp.houzy-pdp--desktop.houzy-pdp--open:not(.houzy-pdp--morphing) .houzy-pdp__topnav,
+.houzy-pdp.houzy-pdp--desktop.houzy-pdp--open:not(.houzy-pdp--morphing) .houzy-pdp__sticky,
+.houzy-pdp.houzy-pdp--desktop.houzy-pdp--open:not(.houzy-pdp--morphing) .houzy-pdp__scroll > :not(.houzy-pdp__hero) {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+}
+
+.houzy-pdp.houzy-pdp--desktop.houzy-pdp--morphing .houzy-pdp__hero {
+    background: #1a1a1a;
+}
+
+.houzy-pdp.houzy-pdp--desktop .houzy-pdp__hero-img {
+    will-change: opacity;
+}
+
+.houzy-pdp.houzy-pdp--desktop:not(.houzy-pdp--morphing) .houzy-pdp__hero-img {
+    will-change: auto;
+}
+
+.desktop-housing .desktop-housing__body,
+.desktop-housing .desktop-housing__chrome {
+    transition:
+        opacity 0.32s var(--houzy-split-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+        transform 0.36s var(--houzy-split-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.desktop-housing.desktop-housing--morphing .desktop-housing__body,
+.desktop-housing.desktop-housing--morphing .desktop-housing__chrome {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+}
+
+.houzy-pdp--desktop .houzy-pdp__grabber {
+    display: none !important;
+}
+
+/* Sticky white strip — only the close control, top right */
+.houzy-pdp--desktop .houzy-pdp__topnav,
+.houzy-pdp__topnav--desktop,
+.houzy-pdp__topnav--close-only {
+    position: relative;
+    flex-shrink: 0;
+    top: auto;
+    left: auto;
+    right: auto;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    opacity: 1;
+    pointer-events: auto !important;
+    visibility: visible !important;
+    background: #ffffff;
+    box-shadow: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    padding: 8px 12px;
+    gap: 0;
+    min-height: 48px;
+    box-sizing: border-box;
+}
+
+.houzy-pdp--desktop .houzy-pdp__topnav-info,
+.houzy-pdp--desktop .houzy-pdp__topnav-actions {
+    display: none !important;
+}
+
+.houzy-pdp--desktop .houzy-pdp__scroll {
+    background: #ffffff;
+}
+
+.houzy-pdp--desktop .houzy-pdp__sticky {
+    flex-shrink: 0;
+    background: #ffffff;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* Bottom sheet: pills + Ask Houzy (same as mobile expanded) */
+.houzy-pdp--desktop .houzy-pdp__sticky--suggest .houzy-pdp__pills:not(.is-suppressed) {
+    max-height: 56px;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.houzy-pdp--desktop .houzy-pdp__ask-input::placeholder {
+    color: #9d9e9f;
+}
+
+@media (min-width: 1400px) {
+    body.desktop-layout:not(.desktop-split) {
+        --houzy-grid-max: 1200px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .houzy-pdp.houzy-pdp--desktop,
+    .houzy-pdp.houzy-pdp--desktop.houzy-pdp--morphing .houzy-pdp__topnav,
+    .houzy-pdp.houzy-pdp--desktop.houzy-pdp--morphing .houzy-pdp__sticky,
+    .houzy-pdp.houzy-pdp--desktop.houzy-pdp--morphing .houzy-pdp__scroll > :not(.houzy-pdp__hero),
+    .houzy-pdp.houzy-pdp--desktop.houzy-pdp--open:not(.houzy-pdp--morphing) .houzy-pdp__topnav,
+    .houzy-pdp.houzy-pdp--desktop.houzy-pdp--open:not(.houzy-pdp--morphing) .houzy-pdp__sticky,
+    .houzy-pdp.houzy-pdp--desktop.houzy-pdp--open:not(.houzy-pdp--morphing) .houzy-pdp__scroll > :not(.houzy-pdp__hero),
+    .desktop-housing:not(.desktop-housing--morphing) .desktop-housing__body,
+    .desktop-housing:not(.desktop-housing--morphing) .desktop-housing__chrome,
+    .desktop-listing-card {
+        transition: none !important;
+        transform: none !important;
+        opacity: 1 !important;
+    }
 }
