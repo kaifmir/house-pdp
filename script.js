@@ -51,68 +51,808 @@ function isDesktopSplit() {
     return isDesktopLayout() && document.body.classList.contains('desktop-split');
 }
 
+/** 'chat' = Claude-style full chat until card open; 'map' = Redfin list+map split */
+var __houzyDesktopSplitMode = 'map';
+
+function getDesktopSplitMode() {
+    return __houzyDesktopSplitMode === 'chat' ? 'chat' : 'map';
+}
+
+function isDesktopMapMode() {
+    return isDesktopLayout() && getDesktopSplitMode() === 'map';
+}
+
+function syncDesktopSplitModeChrome() {
+    const mode = getDesktopSplitMode();
+    document.body.classList.toggle('desktop-split--map', isDesktopSplit() && mode === 'map');
+    const group = document.getElementById('desktop-split-mode');
+    if (group) {
+        group.hidden = !isDesktopLayout();
+        group.querySelectorAll('[data-split-mode]').forEach(function(btn) {
+            const active = btn.getAttribute('data-split-mode') === mode;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+    }
+    const minimizeBtn = document.getElementById('houzy-minimize-btn');
+    if (minimizeBtn) {
+        minimizeBtn.hidden = !isDesktopLayout() || document.body.classList.contains('houzy-overlay-collapsed');
+    }
+    const closeBtn = document.getElementById('houzy-close-btn');
+    if (closeBtn) {
+        closeBtn.hidden = !isDesktopLayout() || document.body.classList.contains('houzy-overlay-collapsed');
+    }
+}
+
+function truncateHouzyLabel(value, maxLen) {
+    const text = String(value == null ? '' : value).trim();
+    if (!text) return '';
+    if (text.length <= maxLen) return text;
+    return text.slice(0, Math.max(0, maxLen - 1)).trim() + '…';
+}
+
+/**
+ * Desktop launcher modes:
+ * - zero: "Ask Houzy" touchpoint (no dismiss X)
+ * - continue: "Continue with Houzy" after chat minimize / PDP handoff
+ */
+function setHouzyLauncherMode(mode, options) {
+    options = options || {};
+    const launcher = document.getElementById('houzy-launcher');
+    if (!launcher) return;
+    const isContinue = mode === 'continue';
+    launcher.dataset.mode = isContinue ? 'continue' : 'zero';
+    launcher.classList.toggle('houzy-launcher--continue', isContinue);
+    launcher.classList.toggle('houzy-launcher--zero', !isContinue);
+    launcher.classList.remove('houzy-launcher--compact');
+
+    const textEl = launcher.querySelector('.houzy-launcher__text');
+    const subEl = document.getElementById('houzy-launcher-sub');
+    const openBtn = document.getElementById('houzy-launcher-open');
+    const closeBtn = document.getElementById('houzy-launcher-close');
+    const propertyName = truncateHouzyLabel(options.propertyName, 28);
+
+    // Desktop touchpoint never shows the dismiss X
+    if (closeBtn) {
+        closeBtn.hidden = true;
+        closeBtn.setAttribute('aria-hidden', 'true');
+        closeBtn.tabIndex = -1;
+    }
+
+    if (isContinue) {
+        if (textEl) textEl.textContent = 'Continue with Houzy';
+        if (subEl) {
+            subEl.hidden = true;
+            subEl.textContent = '';
+        }
+        if (openBtn) {
+            openBtn.setAttribute(
+                'aria-label',
+                propertyName
+                    ? ('Continue chatting with Houzy about ' + propertyName)
+                    : 'Continue with Houzy'
+            );
+        }
+        launcher.setAttribute('aria-label', 'Continue with Houzy');
+    } else {
+        if (textEl) textEl.textContent = 'Ask Houzy';
+        if (subEl) {
+            subEl.hidden = true;
+            subEl.textContent = '';
+        }
+        if (openBtn) {
+            openBtn.setAttribute('aria-label', 'Ask Houzy');
+        }
+        launcher.setAttribute('aria-label', 'Ask Houzy');
+    }
+}
+
+function setHouzyOverlayCollapsed(collapsed, options) {
+    if (!isDesktopLayout()) return;
+    options = options || {};
+    const chat = document.getElementById('chat-screen');
+    const launcher = document.getElementById('houzy-launcher');
+    const minimizeBtn = document.getElementById('houzy-minimize-btn');
+    const closeBtn = document.getElementById('houzy-close-btn');
+    const chatStarted = !!(chat && chat.classList.contains('chat-started'));
+    const wantContinue = options.continueChat === true ||
+        (options.continueChat !== false && chatStarted && !!collapsed);
+
+    if (collapsed && wantContinue) {
+        setHouzyLauncherMode('continue', { propertyName: options.propertyName });
+    } else if (collapsed && options.mode === 'zero') {
+        setHouzyLauncherMode('zero');
+    } else if (collapsed && !chatStarted) {
+        setHouzyLauncherMode('zero');
+    }
+
+    function syncHeaderChromeHidden(hide) {
+        if (minimizeBtn) minimizeBtn.hidden = !!hide || !isDesktopLayout();
+        if (closeBtn) closeBtn.hidden = !!hide || !isDesktopLayout();
+    }
+
+    if (collapsed && options.tweaky === true) {
+        playHouzyMinimizeTweak(function() {
+            document.body.classList.add('houzy-overlay-collapsed');
+            if (chat) {
+                chat.setAttribute('aria-hidden', 'true');
+                chat.style.opacity = '';
+                chat.style.transform = '';
+                chat.style.pointerEvents = '';
+                chat.style.transition = '';
+            }
+            if (launcher) {
+                launcher.hidden = false;
+                launcher.classList.remove('houzy-launcher--compact');
+                if (options.soft !== false) {
+                    launcher.classList.add('houzy-launcher--enter');
+                    launcher.classList.remove('houzy-launcher--preparing');
+                    window.setTimeout(function() {
+                        launcher.classList.remove('houzy-launcher--enter');
+                    }, 520);
+                } else {
+                    launcher.classList.add('houzy-launcher--tweak');
+                    launcher.classList.remove('houzy-launcher--preparing');
+                    window.setTimeout(function() {
+                        launcher.classList.remove('houzy-launcher--tweak');
+                    }, 1100);
+                }
+            }
+            syncHeaderChromeHidden(true);
+        }, { soft: options.soft !== false });
+        return;
+    }
+
+    document.body.classList.toggle('houzy-overlay-collapsed', !!collapsed);
+    if (chat) {
+        if (collapsed) {
+            chat.setAttribute('aria-hidden', 'true');
+        } else {
+            chat.removeAttribute('aria-hidden');
+            chat.classList.add('active');
+            chat.style.opacity = '';
+            chat.style.transform = '';
+            chat.style.pointerEvents = '';
+        }
+    }
+    if (launcher) {
+        launcher.hidden = !collapsed;
+        launcher.classList.remove('houzy-launcher--tweak', 'houzy-launcher--preparing');
+        if (collapsed) {
+            launcher.classList.remove('houzy-launcher--compact');
+        }
+    }
+    syncHeaderChromeHidden(!!collapsed);
+}
+
+/**
+ * Collapse chat → launcher without jumping.
+ * Soft path: shrink chat toward shared bottom-right corner (no ghost travel).
+ * Legacy path: morph ghost when soft === false.
+ */
+function playHouzyMinimizeTweak(done, animOptions) {
+    animOptions = animOptions || {};
+    const soft = animOptions.soft !== false;
+    const chat = document.getElementById('chat-screen');
+    const launcher = document.getElementById('houzy-launcher');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!chat || !launcher || reduceMotion) {
+        if (typeof done === 'function') done();
+        return;
+    }
+
+    document.querySelectorAll('.houzy-minimize-ghost').forEach(function(g) { g.remove(); });
+
+    launcher.hidden = false;
+    launcher.classList.add('houzy-launcher--preparing');
+
+    if (soft) {
+        chat.style.transformOrigin = 'bottom right';
+        chat.style.transition =
+            'opacity 0.28s ease, transform 0.42s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.28s ease';
+        chat.style.pointerEvents = 'none';
+        // Force style application before transforming
+        void chat.offsetWidth;
+        chat.style.opacity = '0';
+        chat.style.transform = 'scale(0.18)';
+
+        var finishedSoft = false;
+        function finishSoft() {
+            if (finishedSoft) return;
+            finishedSoft = true;
+            if (typeof done === 'function') done();
+            else launcher.classList.remove('houzy-launcher--preparing');
+        }
+        window.setTimeout(finishSoft, 430);
+        return;
+    }
+
+    const from = chat.getBoundingClientRect();
+    const to = launcher.getBoundingClientRect();
+    const isContinue = launcher.classList.contains('houzy-launcher--continue');
+    const liveText = (launcher.querySelector('.houzy-launcher__text') || {}).textContent ||
+        (isContinue ? 'Continue with Houzy' : 'Ask Houzy');
+    const liveSubEl = document.getElementById('houzy-launcher-sub');
+    const liveSub = (liveSubEl && !liveSubEl.hidden) ? (liveSubEl.textContent || '') : '';
+    const fromRight = Math.max(0, window.innerWidth - from.right);
+    const fromBottom = Math.max(0, window.innerHeight - from.bottom);
+    const toRight = Math.max(0, window.innerWidth - to.right);
+    const toBottom = Math.max(0, window.innerHeight - to.bottom);
+    const duration = 0.55;
+    const ease = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+    const ghost = document.createElement('div');
+    ghost.className = 'houzy-minimize-ghost' + (isContinue ? ' houzy-launcher--continue' : '');
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.innerHTML =
+        '<button type="button" class="houzy-launcher__open" tabindex="-1" aria-hidden="true">' +
+            '<span class="houzy-launcher__mark" aria-hidden="true">' +
+                '<svg class="houzy-launcher__sparkle" width="18" height="18" viewBox="0 0 256 256" fill="none" aria-hidden="true">' +
+                    '<path fill="#c4b5fd" fill-rule="evenodd" d="M229.5,113,166.06,89.94,143,26.5a16,16,0,0,0-30,0L89.94,89.94,26.5,113a16,16,0,0,0,0,30l63.44,23.07L113,229.5a16,16,0,0,0,30,0l23.07-63.44L229.5,143a16,16,0,0,0,0-30ZM157.08,152.3a8,8,0,0,0-4.78,4.78L128,223.9l-24.3-66.82a8,8,0,0,0-4.78-4.78L32.1,128l66.82-24.3a8,8,0,0,0,4.78-4.78L128,32.1l24.3,66.82a8,8,0,0,0,4.78,4.78L223.9,128Z"/>' +
+                '</svg>' +
+            '</span>' +
+            '<span class="houzy-launcher__copy">' +
+                '<span class="houzy-launcher__text"></span>' +
+            '</span>' +
+        '</button>';
+    const ghostTextNode = ghost.querySelector('.houzy-launcher__text');
+    if (ghostTextNode) ghostTextNode.textContent = liveText;
+    ghost.style.cssText = [
+        'position:fixed',
+        'left:auto',
+        'top:auto',
+        'right:' + fromRight + 'px',
+        'bottom:' + fromBottom + 'px',
+        'width:' + from.width + 'px',
+        'height:' + from.height + 'px',
+        'z-index:120',
+        'display:inline-flex',
+        'align-items:flex-end',
+        'justify-content:flex-start',
+        'gap:10px',
+        'margin:0',
+        'padding:0 12px',
+        'box-sizing:border-box',
+        'border-radius:12px',
+        'border:1px solid #656565',
+        'background:#000',
+        'box-shadow:0 0 8px rgba(0,0,0,0.16), 0 2px 2px rgba(0,0,0,0.04)',
+        'pointer-events:none',
+        'overflow:hidden',
+        'opacity:1',
+        'transform:translateZ(0)',
+        'transform-origin:bottom right',
+        'will-change:width,height,border-radius,right,bottom',
+        'transition:width ' + duration + 's ' + ease +
+            ', height ' + duration + 's ' + ease +
+            ', border-radius ' + duration + 's ' + ease +
+            ', right ' + duration + 's ' + ease +
+            ', bottom ' + duration + 's ' + ease
+    ].join(';');
+    const ghostOpen = ghost.querySelector('.houzy-launcher__open');
+    if (ghostOpen) {
+        ghostOpen.style.cssText =
+            'appearance:none;border:0;background:transparent;margin:0;padding:0;display:flex;align-items:center;gap:10px;min-width:0;color:#fff;';
+    }
+    const ghostCopy = ghost.querySelector('.houzy-launcher__copy');
+    if (ghostCopy) {
+        ghostCopy.style.cssText = 'display:flex;flex-direction:column;gap:2px;min-width:0;';
+    }
+    const ghostText = ghost.querySelector('.houzy-launcher__text');
+    if (ghostText) {
+        ghostText.style.cssText =
+            'margin:0;font-family:Inter,sans-serif;font-weight:600;font-size:14px;line-height:1.2;color:#fff;white-space:nowrap;';
+    }
+    const ghostSub = ghost.querySelector('.houzy-launcher__sub');
+    if (ghostSub) {
+        ghostSub.style.cssText =
+            'margin:0;font-family:Inter,sans-serif;font-weight:500;font-size:11px;line-height:1.2;color:rgba(255,255,255,0.72);white-space:nowrap;';
+    }
+    document.body.appendChild(ghost);
+
+    chat.style.transition = 'opacity 0.2s ease';
+    chat.style.opacity = '0';
+    chat.style.pointerEvents = 'none';
+    chat.style.transformOrigin = 'bottom right';
+
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            ghost.style.right = toRight + 'px';
+            ghost.style.bottom = toBottom + 'px';
+            ghost.style.width = Math.max(to.width, 48) + 'px';
+            ghost.style.height = Math.max(to.height, 48) + 'px';
+            ghost.style.borderRadius = '12px';
+            ghost.style.alignItems = 'center';
+            ghost.style.height = '44px';
+        });
+    });
+
+    var finished = false;
+    function finish() {
+        if (finished) return;
+        finished = true;
+        ghost.remove();
+        if (typeof done === 'function') done();
+        else launcher.classList.remove('houzy-launcher--preparing');
+    }
+    ghost.addEventListener('transitionend', function(e) {
+        if (e.propertyName === 'width' || e.propertyName === 'height') finish();
+    });
+    window.setTimeout(finish, 700);
+}
+
+var __houzyPropertyHandoffLock = false;
+var __houzyPropertyHandoffTimer = null;
+
+function formatHousingPdpPrice(card) {
+    if (!card) return 'Price on request';
+    if (card.priceLabel) return String(card.priceLabel).trim();
+    if (card.priceUnit === 'k') {
+        const n = parseFloat(card.price);
+        if (!isNaN(n) && n >= 100000) return '₹' + (n / 100000).toFixed(1) + ' L';
+        return '₹' + (card.price || '');
+    }
+    if (card.priceUnit === 'L') return '₹' + card.price + ' L';
+    if (card.price != null) return '₹' + card.price + ' ' + (card.priceUnit || 'Cr');
+    return 'Price on request';
+}
+
+function escapeHousingHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function showHousingDesktopSRP() {
+    const home = document.getElementById('housing-desktop-home');
+    const pdp = document.getElementById('housing-desktop-pdp');
+    if (home) {
+        home.hidden = false;
+        home.removeAttribute('hidden');
+        home.setAttribute('aria-hidden', 'false');
+    }
+    if (pdp) {
+        pdp.hidden = true;
+        pdp.setAttribute('hidden', '');
+        pdp.setAttribute('aria-hidden', 'true');
+        pdp.innerHTML = '';
+    }
+    document.body.classList.remove('housing-showing-pdp');
+}
+
+function showHousingDesktopPDP(card) {
+    const home = document.getElementById('housing-desktop-home');
+    const pdp = document.getElementById('housing-desktop-pdp');
+    const main = document.getElementById('housing-desktop-main');
+    if (!pdp) return;
+
+    const name = (card && card.name) || 'Property';
+    const locality = (card && (card.locality || card.location)) || 'Gurgaon';
+    const city = (card && card.city) || (/,/.test(locality) ? locality.split(',').pop().trim() : 'Gurgaon');
+    const developer = (card && (card.developer || card.sellerName)) || 'Housing Agent';
+    const price = formatHousingPdpPrice(card);
+    const image = (card && (card.image || (card.gallery && card.gallery[0]))) || 'HOUSE%201.jpg';
+    const gallery = (card && card.gallery && card.gallery.length)
+        ? card.gallery.slice(0, 6)
+        : [image, 'HOUSE%202.jpg', 'HOUSE%203.jpg', 'HOUSE%204.jpg'];
+    while (gallery.length < 3) gallery.push(gallery[gallery.length - 1] || image);
+    const galleryCss = gallery.map(function(src) {
+        return String(src || '')
+            .replace(/\\/g, '/')
+            .replace(/"/g, '%22')
+            .replace(/'/g, '%27')
+            .replace(/ /g, '%20');
+    });
+    const moreCount = Math.max(12, (card && card.gallery && card.gallery.length) || 44);
+    const bhk = (card && card.bhk) ? (String(card.bhk).indexOf('BHK') >= 0 ? card.bhk : card.bhk + ' BHK') : '2 BHK';
+    const status = (card && card.status) || 'Ready to move';
+    const area = (card && card.builtUpArea)
+        ? (String(card.builtUpArea).indexOf('sq') >= 0 ? card.builtUpArea : card.builtUpArea + ' sq.ft')
+        : '1350 sq.ft';
+    const furnishing = (card && card.furnishing) || 'Semi Furnished';
+    const bathrooms = (card && card.bathrooms) || '2';
+    const parking = (card && card.parking) || '1 Covered Parking';
+    const safeName = escapeHousingHtml(name);
+    const safeLocality = escapeHousingHtml(locality);
+    const safeCity = escapeHousingHtml(city);
+    const safeDev = escapeHousingHtml(developer);
+    const safePrice = escapeHousingHtml(price);
+    const safeBhk = escapeHousingHtml(bhk);
+    const safeArea = escapeHousingHtml(area);
+    const safeStatus = escapeHousingHtml(status);
+    const safeFurnishing = escapeHousingHtml(furnishing);
+    const externalUrl = escapeHousingHtml(buildHousingRedirectUrl(card));
+    const shortlistCount = 12 + (housingProjectIdFromCard(card) % 40);
+
+    if (home) {
+        home.hidden = true;
+        home.setAttribute('hidden', '');
+        home.setAttribute('aria-hidden', 'true');
+    }
+    pdp.hidden = false;
+    pdp.removeAttribute('hidden');
+    pdp.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('housing-showing-pdp');
+    pdp.dataset.propertyId = String((card && card.id) != null ? card.id : name);
+
+    pdp.innerHTML =
+        '<div class="housing-pdp__inner">' +
+            '<div class="housing-pdp__topmeta">' +
+                '<nav class="housing-pdp__crumb" aria-label="Breadcrumb">' +
+                    '<button type="button" class="housing-pdp__back" id="housing-pdp-back">← Back</button>' +
+                    '<ol class="housing-pdp__crumbs">' +
+                        '<li>Home</li><li>' + safeCity + '</li><li>' + safeLocality + '</li><li aria-current="page">' + safeName + '</li>' +
+                    '</ol>' +
+                '</nav>' +
+                '<p class="housing-pdp__updated">Last updated: Apr 6, 2026</p>' +
+            '</div>' +
+            '<div class="housing-pdp__titlebar">' +
+                '<div class="housing-pdp__title-block">' +
+                    '<div class="housing-pdp__title-row">' +
+                        '<h1 class="housing-pdp__title">' + safeName + '</h1>' +
+                        '<div class="housing-pdp__icon-actions">' +
+                            '<button type="button" class="housing-pdp__icon-btn" aria-label="Share">Share</button>' +
+                            '<button type="button" class="housing-pdp__icon-btn" aria-label="Save">Save</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<p class="housing-pdp__meta-line">' +
+                        '<span>' + escapeHousingHtml(furnishing) + '</span>' +
+                        '<span class="housing-pdp__meta-sep" aria-hidden="true"></span>' +
+                        '<span>' + safeArea + '</span>' +
+                        '<button type="button" class="housing-pdp__convert">convert unit</button>' +
+                    '</p>' +
+                    '<p class="housing-pdp__loc">' + safeLocality + (safeCity && safeLocality.indexOf(safeCity) < 0 ? ', ' + safeCity : '') + '</p>' +
+                    '<span class="housing-pdp__verified"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.5 6.2l2.2 2.2 4.8-4.8" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified</span>' +
+                '</div>' +
+                '<div class="housing-pdp__title-actions">' +
+                    '<p class="housing-pdp__price"><span class="housing-pdp__rupee">₹</span>' + safePrice.replace(/^₹\s?/, '') + '</p>' +
+                    '<p class="housing-pdp__added">Added 25 days ago</p>' +
+                    '<button type="button" class="housing-pdp__contact-owner">Contact Owner</button>' +
+                '</div>' +
+            '</div>' +
+            '<div class="housing-pdp__gallery" id="housing-pdp-gallery">' +
+                '<div class="housing-pdp__shot housing-pdp__shot--main" style="background-image:url(\'' + galleryCss[0] + '\')">' +
+                    '<span class="housing-pdp__cover-label">Cover Image</span>' +
+                    '<div class="housing-pdp__shot-actions">' +
+                        '<button type="button" class="housing-pdp__shot-btn">Share</button>' +
+                        '<button type="button" class="housing-pdp__shot-btn">Save</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="housing-pdp__shot housing-pdp__shot--side" style="background-image:url(\'' + galleryCss[1] + '\')">' +
+                    '<span class="housing-pdp__play" aria-hidden="true"><span></span></span>' +
+                '</div>' +
+                '<div class="housing-pdp__shot housing-pdp__shot--side housing-pdp__shot--more" style="background-image:url(\'' + galleryCss[2] + '\')">' +
+                    '<span class="housing-pdp__more"><strong>+</strong><span>' + moreCount + ' more</span></span>' +
+                '</div>' +
+            '</div>' +
+            '<div class="housing-pdp__tabs" role="tablist">' +
+                '<button type="button" class="housing-pdp__tab is-active" role="tab" aria-selected="true">Overview</button>' +
+                '<button type="button" class="housing-pdp__tab" role="tab">Furnishings</button>' +
+                '<button type="button" class="housing-pdp__tab" role="tab">Amenities</button>' +
+                '<button type="button" class="housing-pdp__tab" role="tab">Ratings &amp; Reviews</button>' +
+                '<button type="button" class="housing-pdp__tab" role="tab">Price Trends</button>' +
+                '<button type="button" class="housing-pdp__tab" role="tab">Explore Neighbourhood</button>' +
+            '</div>' +
+            '<div class="housing-pdp__layout">' +
+                '<div class="housing-pdp__main">' +
+                    '<section class="housing-pdp__panel">' +
+                        '<div class="housing-pdp__panel-head">' +
+                            '<h2>Property Location</h2>' +
+                            '<button type="button" class="housing-pdp__linkish">View more on Maps</button>' +
+                        '</div>' +
+                        '<p class="housing-pdp__address">' + safeLocality + (safeCity && safeLocality.indexOf(safeCity) < 0 ? ', ' + safeCity : '') + '</p>' +
+                        '<div class="housing-pdp__nearby">' +
+                            '<article class="housing-pdp__nearby-card"><span class="housing-pdp__nearby-icon" aria-hidden="true">Sch</span><div><strong>Sapphire International School</strong><p>6 mins · 3.5 km</p></div></article>' +
+                            '<article class="housing-pdp__nearby-card"><span class="housing-pdp__nearby-icon" aria-hidden="true">Bus</span><div><strong>Royal Tower Bus Stop</strong><p>6 mins · 3.3 km</p></div></article>' +
+                            '<article class="housing-pdp__nearby-card"><span class="housing-pdp__nearby-icon" aria-hidden="true">Mall</span><div><strong>Shopping Hub</strong><p>10 mins</p></div></article>' +
+                        '</div>' +
+                    '</section>' +
+                    '<section class="housing-pdp__panel">' +
+                        '<div class="housing-pdp__panel-head"><h2>Overview</h2></div>' +
+                        '<dl class="housing-pdp__overview">' +
+                            '<div><dt>Configuration</dt><dd>' + safeBhk + '</dd></div>' +
+                            '<div><dt>Built up area</dt><dd>' + safeArea + '</dd></div>' +
+                            '<div><dt>Furnishing</dt><dd>' + safeFurnishing + '</dd></div>' +
+                            '<div><dt>Bathrooms</dt><dd>' + escapeHousingHtml(bathrooms) + '</dd></div>' +
+                            '<div><dt>Balcony</dt><dd>1</dd></div>' +
+                            '<div><dt>Floor number</dt><dd>5 of 18 floors</dd></div>' +
+                            '<div><dt>Facing</dt><dd>East</dd></div>' +
+                            '<div><dt>Overlooking</dt><dd>Garden/Park, Main Road</dd></div>' +
+                            '<div><dt>Age of property</dt><dd>' + safeStatus + '</dd></div>' +
+                            '<div><dt>Water Availability</dt><dd>24 Hours Available</dd></div>' +
+                            '<div><dt>Parking</dt><dd>' + escapeHousingHtml(parking) + '</dd></div>' +
+                            '<div><dt>Lift(s)</dt><dd>2</dd></div>' +
+                        '</dl>' +
+                    '</section>' +
+                    '<section class="housing-pdp__panel">' +
+                        '<div class="housing-pdp__panel-head"><h2>About this property</h2></div>' +
+                        '<p class="housing-pdp__about">' +
+                            safeName + ' in ' + safeLocality + ' is a comfortable and well-connected home for your family. ' +
+                            'Ask Houzy about pricing, amenities, neighbourhood, or comparable projects while you browse this Housing.com page.' +
+                            ' <button type="button" class="housing-pdp__readmore">Read more</button>' +
+                        '</p>' +
+                    '</section>' +
+                '</div>' +
+                '<aside class="housing-pdp__aside">' +
+                    '<div class="housing-pdp__seller">' +
+                        '<div class="housing-pdp__nudge">Nice choice. Let\'s connect with the Seller</div>' +
+                        '<p class="housing-pdp__seller-title">Contact Seller</p>' +
+                        '<div class="housing-pdp__seller-head">' +
+                            '<div class="housing-pdp__seller-avatar" aria-hidden="true">' + safeDev.charAt(0).toUpperCase() + '</div>' +
+                            '<div>' +
+                                '<p class="housing-pdp__seller-name">' + safeDev + '</p>' +
+                                '<p class="housing-pdp__seller-label">Seller</p>' +
+                                '<p class="housing-pdp__seller-phone">+9193557.....</p>' +
+                            '</div>' +
+                        '</div>' +
+                        '<p class="housing-pdp__share-prompt">Please share your contact</p>' +
+                        '<label class="housing-pdp__field"><span>Name</span><input type="text" placeholder=" " autocomplete="name"></label>' +
+                        '<label class="housing-pdp__field housing-pdp__field--phone"><span>Phone</span>' +
+                            '<span class="housing-pdp__phone">' +
+                                '<span class="housing-pdp__cc">+91</span>' +
+                                '<input type="tel" placeholder=" " autocomplete="tel">' +
+                            '</span>' +
+                        '</label>' +
+                        '<label class="housing-pdp__field"><span>Email</span><input type="email" placeholder=" " autocomplete="email"></label>' +
+                        '<label class="housing-pdp__agree">' +
+                            '<input type="checkbox" checked>' +
+                            '<span>I agree to be contacted by Housing and agents via WhatsApp, SMS, phone, email etc</span>' +
+                        '</label>' +
+                        '<div class="housing-pdp__social-proof">' +
+                            '<div class="housing-pdp__avatars" aria-hidden="true"><span></span><span></span></div>' +
+                            '<p>' + shortlistCount + ' people have shortlisted this property</p>' +
+                        '</div>' +
+                        '<button type="button" class="housing-pdp__lead-btn">Get Contact Details</button>' +
+                    '</div>' +
+                    '<div class="housing-pdp__still">' +
+                        '<div>' +
+                            '<p class="housing-pdp__still-title">Still deciding?</p>' +
+                            '<p class="housing-pdp__still-copy">Shortlist this property for now &amp; easily come back to it later.</p>' +
+                        '</div>' +
+                        '<button type="button" class="housing-pdp__still-heart" aria-label="Shortlist">♡</button>' +
+                    '</div>' +
+                    '<button type="button" class="housing-pdp__share-bar">Share</button>' +
+                    '<a class="housing-pdp__external" href="' + externalUrl + '" target="_blank" rel="noopener">Open on Housing.com ↗</a>' +
+                '</aside>' +
+            '</div>' +
+        '</div>';
+
+    const back = document.getElementById('housing-pdp-back');
+    if (back) {
+        back.onclick = function() {
+            showHousingDesktopSRP();
+            if (main) main.scrollTop = 0;
+        };
+    }
+    if (main) {
+        main.scrollTop = 0;
+        requestAnimationFrame(function() { main.scrollTop = 0; });
+    }
+}
+
+function openHousingPropertyPage(card) {
+    if (!isDesktopLayout()) {
+        window.open(buildHousingRedirectUrl(card), '_blank', 'noopener');
+        return;
+    }
+
+    // Prevent double-fires (mousedown+click / capture+bubble) from restarting the morph.
+    if (__houzyPropertyHandoffLock) {
+        showHousingDesktopPDP(card);
+        return;
+    }
+    __houzyPropertyHandoffLock = true;
+    if (__houzyPropertyHandoffTimer) {
+        window.clearTimeout(__houzyPropertyHandoffTimer);
+        __houzyPropertyHandoffTimer = null;
+    }
+
+    const main = document.getElementById('housing-desktop-main');
+    const chat = document.getElementById('chat-screen');
+    const alreadyCollapsed = document.body.classList.contains('houzy-overlay-collapsed');
+    const chatOpen = !!(chat && chat.classList.contains('active') && !alreadyCollapsed);
+
+    document.body.classList.add('housing-pdp-handoff');
+    if (main) main.classList.add('housing-main--handoff-out');
+
+    function revealPdp() {
+        showHousingDesktopPDP(card);
+        if (main) {
+            main.classList.remove('housing-main--handoff-out');
+            main.classList.add('housing-main--handoff-in');
+            window.setTimeout(function() {
+                main.classList.remove('housing-main--handoff-in');
+            }, 380);
+        }
+        document.body.classList.remove('housing-pdp-handoff');
+    }
+
+    // Run chat minimize + page swap together for one continuous handoff.
+    if (chatOpen) {
+        setHouzyOverlayCollapsed(true, {
+            tweaky: true,
+            soft: true,
+            continueChat: true,
+            propertyName: (card && card.name) || ''
+        });
+        window.setTimeout(revealPdp, 120);
+    } else {
+        setHouzyOverlayCollapsed(true, {
+            continueChat: true,
+            propertyName: (card && card.name) || ''
+        });
+        revealPdp();
+    }
+
+    __houzyPropertyHandoffTimer = window.setTimeout(function() {
+        __houzyPropertyHandoffLock = false;
+        __houzyPropertyHandoffTimer = null;
+        document.body.classList.remove('housing-pdp-handoff');
+        if (main) {
+            main.classList.remove('housing-main--handoff-out', 'housing-main--handoff-in');
+        }
+    }, 750);
+}
+
+function syncHouzyOverlayScrollExpand() {
+    /* Desktop uses one fixed viewport-based size; no grow-on-scroll */
+    if (!isDesktopLayout()) return;
+    const chat = document.getElementById('chat-screen');
+    if (chat) chat.classList.remove('houzy-overlay-tall');
+}
+
+function initHouzyOverlayScrollExpand() {
+    /* no-op: single default overlay height */
+}
+
+function syncHousingDesktopShell() {
+    const shell = document.getElementById('housing-desktop');
+    if (!shell) return;
+    if (isDesktopLayout()) {
+        shell.hidden = false;
+        shell.setAttribute('aria-hidden', 'false');
+        const minimizeBtn = document.getElementById('houzy-minimize-btn');
+        const closeBtn = document.getElementById('houzy-close-btn');
+        const overlayOpen = !document.body.classList.contains('houzy-overlay-collapsed');
+        if (minimizeBtn) minimizeBtn.hidden = !overlayOpen;
+        if (closeBtn) closeBtn.hidden = !overlayOpen;
+        // State zero: Ask Houzy launcher until user opens chat
+        ensureDesktopHouzyStateZero();
+    } else {
+        shell.hidden = true;
+        shell.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('houzy-overlay-collapsed');
+        document.body.removeAttribute('data-houzy-desktop-booted');
+        const launcher = document.getElementById('houzy-launcher');
+        if (launcher) launcher.hidden = true;
+        const minimizeBtn = document.getElementById('houzy-minimize-btn');
+        if (minimizeBtn) minimizeBtn.hidden = true;
+        const closeBtn = document.getElementById('houzy-close-btn');
+        if (closeBtn) closeBtn.hidden = true;
+        const chat = document.getElementById('chat-screen');
+        if (chat) chat.classList.remove('houzy-overlay-tall');
+    }
+}
+
+/** First paint on desktop: collapsed Ask Houzy nudge (mobile pop-up style). */
+function ensureDesktopHouzyStateZero() {
+    if (!isDesktopLayout()) return;
+    if (document.body.getAttribute('data-houzy-desktop-booted') === '1') return;
+    document.body.setAttribute('data-houzy-desktop-booted', '1');
+    setHouzyLauncherMode('zero');
+    setHouzyOverlayCollapsed(true, { mode: 'zero', continueChat: false });
+    // Match mobile tooltip: slide-up enter, then continuous float
+    const launcher = document.getElementById('houzy-launcher');
+    if (launcher && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        launcher.classList.add('houzy-launcher--enter');
+        window.setTimeout(function() {
+            launcher.classList.remove('houzy-launcher--enter');
+        }, 520);
+    }
+}
+
+function setDesktopSplitMode(mode, options) {
+    const next = mode === 'chat' ? 'chat' : 'map';
+    __houzyDesktopSplitMode = next;
+    try {
+        localStorage.setItem('houzy-desktop-split-mode', next);
+    } catch (e) { /* ignore */ }
+    syncDesktopSplitModeChrome();
+    if (options && options.skipSync) return;
+    if (typeof window.__houzyDesktop !== 'undefined' && window.__houzyDesktop.onSplitModeChange) {
+        window.__houzyDesktop.onSplitModeChange(next);
+    }
+}
+
+function initDesktopSplitMode() {
+    var fromQuery = null;
+    try {
+        fromQuery = new URLSearchParams(window.location.search).get('split');
+    } catch (e) { /* ignore */ }
+    var stored = null;
+    try {
+        stored = localStorage.getItem('houzy-desktop-split-mode');
+    } catch (e) { /* ignore */ }
+    if (fromQuery === 'chat' || fromQuery === 'map') {
+        __houzyDesktopSplitMode = fromQuery;
+    } else if (stored === 'chat' || stored === 'map') {
+        __houzyDesktopSplitMode = stored;
+    } else {
+        __houzyDesktopSplitMode = 'map';
+    }
+    syncDesktopSplitModeChrome();
+    syncHousingDesktopShell();
+
+    const group = document.getElementById('desktop-split-mode');
+    if (group && !group.dataset.bound) {
+        group.dataset.bound = '1';
+        group.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-split-mode]');
+            if (!btn) return;
+            setDesktopSplitMode(btn.getAttribute('data-split-mode'));
+        });
+    }
+
+    const minimizeBtn = document.getElementById('houzy-minimize-btn');
+    if (minimizeBtn && !minimizeBtn.dataset.bound) {
+        minimizeBtn.dataset.bound = '1';
+        minimizeBtn.addEventListener('click', function() {
+            setHouzyOverlayCollapsed(true, {
+                tweaky: true,
+                soft: true,
+                continueChat: true
+            });
+        });
+    }
+    const closeBtn = document.getElementById('houzy-close-btn');
+    if (closeBtn && !closeBtn.dataset.bound) {
+        closeBtn.dataset.bound = '1';
+        closeBtn.addEventListener('click', function() {
+            // Cancel → back to Ask Houzy touchpoint (Figma close)
+            if (typeof showHousingDesktopSRP === 'function') showHousingDesktopSRP();
+            setHouzyOverlayCollapsed(true, {
+                tweaky: true,
+                soft: true,
+                mode: 'zero',
+                continueChat: false
+            });
+        });
+    }
+    const launcher = document.getElementById('houzy-launcher');
+    const launcherOpen = document.getElementById('houzy-launcher-open');
+    const launcherClose = document.getElementById('houzy-launcher-close');
+    if (launcher && !launcher.dataset.bound) {
+        launcher.dataset.bound = '1';
+        if (launcherOpen) {
+            launcherOpen.addEventListener('click', function() {
+                setHouzyOverlayCollapsed(false);
+            });
+        }
+        if (launcherClose) {
+            launcherClose.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                launcher.classList.add('houzy-launcher--compact');
+            });
+        }
+    }
+}
+
 /** Split only for property / Housing.com handoff — Claude-style 50:50 from the side */
 var __houzySplitExitTimer = null;
 
 function enterDesktopSplit() {
-    if (!isDesktopLayout()) return;
-    ensureDesktopComposerDocked();
-
-    if (__houzySplitExitTimer) {
-        clearTimeout(__houzySplitExitTimer);
-        __houzySplitExitTimer = null;
-    }
-
-    const wasSplit = document.body.classList.contains('desktop-split');
-    const stage = document.getElementById('desktop-stage');
-    const chat = document.querySelector('.chat-screen');
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (stage) {
-        stage.hidden = false;
-        stage.removeAttribute('hidden');
-        stage.setAttribute('aria-hidden', 'false');
-    }
-
-    if (!wasSplit) {
-        document.body.classList.add('desktop-splitting');
-        if (!reduceMotion) {
-            document.body.classList.add('desktop-split-willchange');
-            if (stage) stage.style.willChange = 'transform, opacity';
-            if (chat) chat.style.willChange = 'width, max-width, min-width';
-        }
-        if (stage) stage.classList.remove('desktop-stage--entered');
-        // Park stage off-canvas, then open — lets width + slide share one easing curve
-        document.body.classList.add('desktop-split');
-        void (stage && stage.offsetWidth);
-        requestAnimationFrame(function() {
-            requestAnimationFrame(function() {
-                if (stage) stage.classList.add('desktop-stage--entered');
-                document.body.classList.add('desktop-split--open');
-                document.body.classList.remove('desktop-splitting');
-                if (!reduceMotion) {
-                    setTimeout(clearDesktopSplitWillChange, DESKTOP_SPLIT_MS + 40);
-                }
-            });
-        });
-    } else {
-        document.body.classList.add('desktop-split', 'desktop-split--open');
-        if (stage) stage.classList.add('desktop-stage--entered');
-    }
-
-    if (typeof setChatOffsets === 'function') setChatOffsets();
-    if (typeof window.__houzyRemeasureChips === 'function') {
-        requestAnimationFrame(function() {
-            window.__houzyRemeasureChips();
-        });
-    }
+    // Housing.com stays full-page; Houzy is overlay-only — never split the host layout
+    return;
 }
 
 function exitDesktopSplit() {
     const stage = document.getElementById('desktop-stage');
     const wasOpen = document.body.classList.contains('desktop-split');
 
-    document.body.classList.remove('desktop-split--open', 'desktop-splitting');
+    document.body.classList.remove('desktop-split--open', 'desktop-splitting', 'desktop-split--map');
     if (stage) stage.classList.remove('desktop-stage--entered');
     document.body.classList.remove('desktop-split');
 
@@ -123,7 +863,7 @@ function exitDesktopSplit() {
             stage.hidden = true;
             stage.setAttribute('aria-hidden', 'true');
         }
-        ['desktop-stage-listings', 'desktop-stage-photos', 'desktop-stage-pdp', 'desktop-stage-housing'].forEach(function(id) {
+        ['desktop-stage-listings', 'desktop-stage-redfin', 'desktop-stage-photos', 'desktop-stage-pdp', 'desktop-stage-housing'].forEach(function(id) {
             const el = document.getElementById(id);
             if (!el) return;
             el.hidden = true;
@@ -132,9 +872,16 @@ function exitDesktopSplit() {
                 const mosaic = document.getElementById('desktop-stage-photos-mosaic');
                 if (mosaic) mosaic.innerHTML = '';
             }
+            if (id === 'desktop-stage-redfin') {
+                const list = document.getElementById('redfin-rail-list');
+                const pins = document.getElementById('redfin-map-pins');
+                if (list) list.innerHTML = '';
+                if (pins) pins.innerHTML = '';
+            }
         });
         const empty = document.getElementById('desktop-stage-empty');
         if (empty) empty.hidden = false;
+        syncDesktopSplitModeChrome();
         if (typeof setChatOffsets === 'function') setChatOffsets();
         if (typeof window.__houzyRemeasureChips === 'function') {
             requestAnimationFrame(function() {
@@ -302,46 +1049,14 @@ function animateCardIntoDesktopSplit(sourceEl) {
 }
 
 /**
- * Desktop: soft-animate Ask Houzy from mid-screen → sticky bottom footer
- * (triggered when the user sends their first message).
+ * Desktop overlay: keep Ask Houzy pinned to the bottom (mobile pattern).
  */
 function ensureDesktopComposerDocked() {
     if (!isDesktopLayout()) return;
     const chat = document.getElementById('chat-screen');
-    if (!chat || chat.classList.contains('composer-docked')) return;
-
-    const bar = chat.querySelector('.chat-input-bar');
-    const first = bar ? bar.getBoundingClientRect() : null;
-
-    chat.classList.add('composer-docked', 'composer-docking');
-
-    if (bar && first && first.height > 0) {
-        const last = bar.getBoundingClientRect();
-        const dy = first.top - last.top;
-        if (Math.abs(dy) > 2) {
-            bar.style.transition = 'none';
-            bar.style.transform = 'translateY(' + dy + 'px)';
-            // Force reflow, then ease into place
-            void bar.offsetWidth;
-            requestAnimationFrame(function() {
-                bar.style.transition = 'transform 0.48s cubic-bezier(0.22, 1, 0.36, 1)';
-                bar.style.transform = 'translateY(0)';
-            });
-            const clearDockAnim = function() {
-                bar.style.transition = '';
-                bar.style.transform = '';
-                chat.classList.remove('composer-docking');
-                bar.removeEventListener('transitionend', clearDockAnim);
-            };
-            bar.addEventListener('transitionend', clearDockAnim);
-            setTimeout(clearDockAnim, 600);
-        } else {
-            chat.classList.remove('composer-docking');
-        }
-    } else {
-        chat.classList.remove('composer-docking');
-    }
-
+    if (!chat) return;
+    chat.classList.add('composer-docked');
+    chat.classList.remove('composer-docking');
     if (typeof setChatOffsets === 'function') {
         requestAnimationFrame(function() {
             setChatOffsets();
@@ -349,14 +1064,41 @@ function ensureDesktopComposerDocked() {
     }
 }
 
-function buildHousingRedirectUrl(card) {
-    const locality = encodeURIComponent((card && (card.locality || card.location)) || 'India');
-    const name = encodeURIComponent((card && card.name) || '');
-    if (name) {
-        return 'https://housing.com/in/buy/search/' + locality + '?q=' + name;
-    }
-    return 'https://housing.com/in/buy/search/' + locality;
+function slugifyHousingPath(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/&/g, ' and ')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 72) || 'property';
 }
+
+function housingProjectIdFromCard(card) {
+    const seed = String((card && (card.id || card.name)) || 'home') +
+        String((card && (card.locality || card.location)) || '');
+    var hash = 2166136261;
+    for (var i = 0; i < seed.length; i++) {
+        hash ^= seed.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return 100000 + (Math.abs(hash) % 800000);
+}
+
+/** Housing.com project PDP URL for a card (desktop handoff). */
+function buildHousingRedirectUrl(card) {
+    const name = (card && card.name) || 'Property';
+    const developer = (card && (card.developer || card.sellerName)) || 'builder';
+    const locality = (card && (card.locality || card.location)) || 'gurgaon';
+    const id = housingProjectIdFromCard(card);
+    return 'https://housing.com/in/buy/projects/page/' +
+        id + '-' +
+        slugifyHousingPath(name) +
+        '-by-' +
+        slugifyHousingPath(developer) +
+        '-in-' +
+        slugifyHousingPath(locality);
+}
+
 const SLIDER_WIDTH = 52;
 const SLIDER_HEIGHT = 36;
 const DRAG_CLOSE_THRESHOLD = 80;
@@ -542,6 +1284,7 @@ function checkMobileDevice() {
     const showBlocker = width > MOBILE_MAX_WIDTH && !forcePhone && !desktop;
 
     document.body.classList.toggle('desktop-layout', desktop);
+    if (typeof syncHousingDesktopShell === 'function') syncHousingDesktopShell();
 
     if (desktopBlocker) {
         desktopBlocker.style.display = showBlocker ? 'flex' : 'none';
@@ -555,12 +1298,13 @@ function checkMobileDevice() {
 
     if (desktop) {
         if (chat) {
-            chat.classList.add('active');
-            chat.classList.remove('slide-from-right');
+            chat.classList.add('active', 'composer-docked');
+            chat.classList.remove('slide-from-right', 'composer-docking', 'houzy-overlay-tall');
         }
         if (bottomNav) bottomNav.style.display = 'none';
         if (typeof setChatOffsets === 'function') setChatOffsets();
-        // Full-width conversation by default; stage only while split (property / Housing)
+        if (typeof ensureDesktopHouzyStateZero === 'function') ensureDesktopHouzyStateZero();
+        // Stage only while explore/PDP is open; Housing home shows otherwise
         if (stage) {
             stage.hidden = !document.body.classList.contains('desktop-split');
         }
@@ -579,10 +1323,12 @@ function checkMobileDevice() {
             window.__houzyDesktop && typeof window.__houzyDesktop.syncListings === 'function') {
             window.__houzyDesktop.syncListings();
         }
+        if (typeof syncDesktopSplitModeChrome === 'function') syncDesktopSplitModeChrome();
     } else {
-        document.body.classList.remove('desktop-split');
+        document.body.classList.remove('desktop-split', 'desktop-split--map', 'desktop-split--open', 'houzy-overlay-collapsed');
         if (stage) stage.hidden = true;
         if (bottomNav && !showBlocker) bottomNav.style.display = '';
+        if (typeof syncDesktopSplitModeChrome === 'function') syncDesktopSplitModeChrome();
     }
 }
 
@@ -623,6 +1369,39 @@ window.addEventListener('resize', debounce(checkMobileDevice, 150));
 // Property type selection
 document.addEventListener('DOMContentLoaded', function() {
     initDOMCache();
+    if (typeof initDesktopSplitMode === 'function') initDesktopSplitMode();
+
+    // SRP background cards → Housing.com PDP
+    document.querySelectorAll('.srp-card').forEach(function(cardEl) {
+        if (cardEl.dataset.boundHousing) return;
+        cardEl.dataset.boundHousing = '1';
+        cardEl.style.cursor = 'pointer';
+        cardEl.addEventListener('click', function(e) {
+            if (e.target.closest('.srp-card__fav')) {
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+            const nameEl = cardEl.querySelector('.srp-card__name');
+            const locEl = cardEl.querySelector('.srp-card__loc');
+            const devEl = cardEl.querySelector('.srp-card__dev');
+            const mediaEl = cardEl.querySelector('.srp-card__media');
+            const priceEl = cardEl.querySelector('.srp-card__price');
+            const name = nameEl
+                ? nameEl.childNodes[0].textContent.trim()
+                : (cardEl.getAttribute('data-name') || 'Property');
+            openHousingPropertyPage({
+                name: name,
+                locality: locEl ? locEl.textContent.trim() : 'Gurgaon',
+                developer: devEl ? devEl.textContent.trim() : 'builder',
+                id: cardEl.getAttribute('data-id') || name,
+                image: mediaEl
+                    ? (mediaEl.style.backgroundImage || '').replace(/^url\(["']?/, '').replace(/["']?\)$/, '')
+                    : 'HOUSE 1.jpg',
+                priceLabel: priceEl ? priceEl.textContent.trim() : ''
+            });
+        });
+    });
 
     // Allow continuing the mobile demo on desktop (property cards / Houzy flows)
     const desktopContinueBtn = document.getElementById('desktop-continue-btn');
@@ -639,9 +1418,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatIntroEl = document.getElementById('chat-intro');
     if (chatScreenEl) {
         if (typeof isDesktopLayout === 'function' && isDesktopLayout()) {
-            chatScreenEl.classList.add('active');
-            chatScreenEl.classList.remove('slide-from-right');
+            chatScreenEl.classList.add('active', 'composer-docked');
+            chatScreenEl.classList.remove('slide-from-right', 'composer-docking');
             document.body.classList.add('desktop-layout');
+            if (typeof ensureDesktopComposerDocked === 'function') ensureDesktopComposerDocked();
             if (chatIntroEl && chatIntroEl.classList.contains('initial-load')) {
                 requestAnimationFrame(function() {
                     chatIntroEl.classList.add('revealed');
@@ -1908,16 +2688,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const composerH = Math.ceil(composer.getBoundingClientRect().height);
             
             const isIntroState = chatScreen && !chatScreen.classList.contains('chat-started');
+            const desktop = typeof isDesktopLayout === 'function' && isDesktopLayout();
             
-            messages.style.paddingTop = (headerH + 16) + "px";
+            messages.style.paddingTop = (headerH + (desktop ? 12 : 16)) + "px";
             if (isIntroState) {
-                // Intro state: no 50% gap – keep hey + pills centered exactly between header and input
+                // Intro state: no pull-up gap – keep hey + pills centered
                 messages.style.paddingBottom = (composerH + 16) + "px";
             } else {
-                // After first message: 50% viewport gap above input (ChatGPT-style)
-                const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-                const gapPercent = 0.50;
-                const gapAboveInput = Math.max(96, Math.round(vh * gapPercent));
+                // After first message: ChatGPT-style pull-up — leave space under results
+                // so the turn scrolls to the top and cards sit in the viewport.
+                // Desktop: use the overlay message viewport (not full window).
+                const refH = desktop
+                    ? Math.max(messages.clientHeight || 0, chatScreen.getBoundingClientRect().height - headerH - composerH)
+                    : (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+                const gapPercent = desktop ? 0.48 : 0.50;
+                const minGap = desktop ? 220 : 96;
+                const gapAboveInput = Math.max(minGap, Math.round(refH * gapPercent));
                 messages.style.paddingBottom = (composerH + gapAboveInput) + "px";
             }
             
@@ -2000,28 +2786,40 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Scroll message to top of viewport (below header) - the key behavior!
+        // Scroll message to top of viewport (below header) — pull-up chat transition
         function scrollMessageIntoView(msgElement, options = {}) {
             if (!msgElement) return;
             
-            const messages = domCache.chatMessages;
+            const messages = domCache.chatMessages || document.getElementById('chat-messages');
             if (!messages) return;
             
-            const header = domCache.chatTopBar;
+            const header = domCache.chatTopBar || document.querySelector('.chat-top-bar');
             const headerH = header ? Math.ceil(header.getBoundingClientRect().height) : 68;
+            const desktop = typeof isDesktopLayout === 'function' && isDesktopLayout();
             
-            // Get message position relative to messages container
+            // Ensure pull-up bottom gap exists before measuring
+            if (typeof setChatOffsets === 'function') setChatOffsets();
+            
             const msgRect = msgElement.getBoundingClientRect();
             const messagesRect = messages.getBoundingClientRect();
-            
-            // Calculate where message should be (just below header with some padding)
-            const targetTop = headerH + 16; // 16px padding below header
+            const targetTop = headerH + (desktop ? 12 : 16);
             const currentTop = msgRect.top - messagesRect.top;
+            let scrollOffset = currentTop - targetTop;
             
-            // Calculate scroll offset needed
-            const scrollOffset = currentTop - targetTop;
+            // Desktop + property cards: keep the full card inside the chat viewport
+            if (desktop) {
+                const card = msgElement.querySelector('.property-card, .property-carousel-wrapper');
+                if (card) {
+                    const cardRect = card.getBoundingClientRect();
+                    const cardBottomInView = (cardRect.bottom - messagesRect.top) - scrollOffset;
+                    const visibleBottom = messages.clientHeight - 12;
+                    if (cardBottomInView > visibleBottom) {
+                        // Nudge up just enough so the card clears the composer edge
+                        scrollOffset += (cardBottomInView - visibleBottom);
+                    }
+                }
+            }
             
-            // Scroll to position message at top
             messages.scrollTop = messages.scrollTop + scrollOffset;
         }
         
@@ -2901,7 +3699,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function hideDesktopStagePanels(exceptId) {
-            ['desktop-stage-empty', 'desktop-stage-listings', 'desktop-stage-photos', 'desktop-stage-pdp', 'desktop-stage-housing'].forEach(function(id) {
+            ['desktop-stage-empty', 'desktop-stage-listings', 'desktop-stage-redfin', 'desktop-stage-photos', 'desktop-stage-pdp', 'desktop-stage-housing'].forEach(function(id) {
                 const el = document.getElementById(id);
                 if (!el) return;
                 if (id === exceptId) {
@@ -2914,6 +3712,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function openHousingRedirectPanel(card, sourceEl) {
+            // Never reflow Housing.com — hand off in a new tab from the overlay
+            window.open(buildHousingRedirectUrl(card), '_blank', 'noopener');
+            return;
             if (!isDesktopLayout()) {
                 window.open(buildHousingRedirectUrl(card), '_blank', 'noopener');
                 return;
@@ -6369,6 +7170,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const cardElement = document.createElement('div');
                 cardElement.className = 'property-card';
                 cardElement.setAttribute('data-property-id', card.id);
+                cardElement.__houzyCard = card;
                 cardElement.style.pointerEvents = 'auto';
                 
                 // ----- Image block (262×160) + Shortlist overlay -----
@@ -6543,7 +7345,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 image.setAttribute('data-gallery-images', JSON.stringify(card.gallery || [card.image]));
                 image.setAttribute('data-card-image', card.image);
                 
-                // Image click → Housing split on d-web, PDP on mobile
+                // Image click → Housing PDP on desktop, gallery/PDP on mobile
+                // Click only (no mousedown) so the handoff isn't started twice.
                 function handleImageClick(e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -6552,25 +7355,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     openPropertyDetailPage(card, imageWrapper || image);
                     return false;
                 }
-                
-                // ATTACH TO IMAGE
+
                 image.onclick = handleImageClick;
                 image.addEventListener('click', handleImageClick, true);
-                image.addEventListener('click', handleImageClick, false);
-                image.addEventListener('mousedown', handleImageClick);
-                image.addEventListener('touchend', function(e) {
-                    e.preventDefault();
-                    handleImageClick(e);
-                });
-                
-                // Also make wrapper clickable - MULTIPLE HANDLERS
+                if (!isDesktopLayout()) {
+                    image.addEventListener('touchend', function(e) {
+                        e.preventDefault();
+                        handleImageClick(e);
+                    }, { passive: false });
+                }
+
                 imageWrapper.style.cursor = 'pointer';
                 imageWrapper.style.pointerEvents = 'auto';
-                
+
                 function wrapperClickHandler(e) {
-                    if (e.target.closest('.property-card-favorite')) {
-                        return;
-                    }
+                    if (e.target.closest('.property-card-favorite')) return;
+                    if (e.target.closest('.property-card__img')) return;
                     e.preventDefault();
                     e.stopPropagation();
                     if (isDesktopLayout()) {
@@ -6578,14 +7378,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         openPropertyDetailPage(card, imageWrapper || cardElement);
                         return;
                     }
-                    if (window.__CHAT_DEBUG__) console.log('✅ WRAPPER CLICKED - Opening gallery');
                     createGallery();
                 }
-                
-                imageWrapper.onclick = wrapperClickHandler;
-                imageWrapper.addEventListener('click', wrapperClickHandler, true);
-                imageWrapper.addEventListener('click', wrapperClickHandler, false);
-                
+                imageWrapper.addEventListener('click', wrapperClickHandler);
+
                 imageWrapper.appendChild(image);
                 
                 // ----- Card body (Figma: badges, title, area, divider, location, price, CTA) -----
@@ -6809,6 +7605,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         function openPropertyDetailPage(card, sourceEl) {
+            // Desktop: send users to the Housing.com PDP for this property
+            if (isDesktopLayout()) {
+                lastMentionedProject = cardToProjectPictureData(card);
+                openHousingPropertyPage(card);
+                return;
+            }
             removeElementById('property-detail-bottom-sheet');
             removeElementById('property-detail-fullpage');
             removeElementById('houzy-pdp-backdrop');
@@ -6858,18 +7660,21 @@ document.addEventListener('DOMContentLoaded', function() {
             let lastAskQuery = '';
             let bottomStickyMode = desktopPDP ? 'suggest' : 'compact'; // compact | suggest
             function restoreDesktopStageAfterPDP() {
-                // Cancel on desktop closes the 50:50 split and returns to full-width chat
+                // Desktop overlay: Housing page never changes — just leave the chat panel
                 if (desktopPDP) {
-                    exitDesktopSplit();
+                    if (typeof exitDesktopSplit === 'function') exitDesktopSplit();
                     return;
                 }
                 const housing = document.getElementById('desktop-stage-housing');
                 const mosaic = document.getElementById('desktop-stage-photos-mosaic');
                 const listings = document.getElementById('desktop-stage-listings');
+                const redfin = document.getElementById('desktop-stage-redfin');
                 if (housing && housing.querySelector('.desktop-housing')) {
                     hideDesktopStagePanels('desktop-stage-housing');
                 } else if (mosaic && mosaic.children.length) {
                     hideDesktopStagePanels('desktop-stage-photos');
+                } else if (redfin && redfin.querySelector('.redfin-home-card, .redfin-pin')) {
+                    hideDesktopStagePanels('desktop-stage-redfin');
                 } else if (listings && listings.querySelector('.desktop-listing-card')) {
                     hideDesktopStagePanels('desktop-stage-listings');
                 } else {
@@ -7593,15 +8398,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (desktopPDP) {
+                // Keep Housing.com untouched — open PDP inside the Houzy overlay panel
                 const settleGhost = animateCardIntoDesktopSplit(sourceEl);
-                enterDesktopSplit();
                 const existing = document.getElementById('property-detail-fullpage');
                 if (existing && existing !== overlay) existing.remove();
-                const pdpHost = document.getElementById('desktop-stage-pdp');
-                hideDesktopStagePanels('desktop-stage-pdp');
-                if (pdpHost) {
-                    pdpHost.innerHTML = '';
-                    pdpHost.appendChild(overlay);
+                const chatHost = document.getElementById('chat-screen');
+                if (chatHost) {
+                    overlay.classList.add('houzy-pdp--in-overlay');
+                    chatHost.appendChild(overlay);
                 } else {
                     document.body.appendChild(overlay);
                 }
@@ -7610,7 +8414,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     overlay.classList.add('houzy-pdp--morphing');
                 }
                 // Parent-chat context is flushed only when user hits Cancel/Close
-                // Double rAF: layout in 50% stage, then open + ghost → settled hero rect.
+                // Double rAF: layout in overlay, then open + ghost → settled hero rect.
                 requestAnimationFrame(function() {
                     requestAnimationFrame(function() {
                         overlay.classList.add('houzy-pdp--open', 'houzy-pdp--expanded');
@@ -8196,71 +9000,71 @@ document.addEventListener('DOMContentLoaded', function() {
             return page;
         }
         
-        // Show property cards with loading indicator
-        function renderDesktopListings(cards) {
-            if (!isDesktopLayout()) return;
-            enterDesktopSplit();
-            const stage = document.getElementById('desktop-stage');
-            const listings = document.getElementById('desktop-stage-listings');
-            const grid = document.getElementById('desktop-stage-grid');
-            const meta = document.getElementById('desktop-stage-listings-meta');
-            if (!stage || !grid || !listings) return;
+        // Show property cards with loading indicator — also drives Redfin map split on d-web
+        function formatDesktopHomePrice(card) {
+            if (!card) return '';
+            if (card.priceUnit === 'k') return '₹' + card.price;
+            if (card.priceUnit === 'L') return '₹' + card.price + ' L';
+            return '₹' + card.price + ' ' + (card.priceUnit || 'Cr');
+        }
 
-            hideDesktopStagePanels('desktop-stage-listings');
-            const photosMosaic = document.getElementById('desktop-stage-photos-mosaic');
-            if (photosMosaic) photosMosaic.innerHTML = '';
-            grid.innerHTML = '';
-            if (meta) {
-                meta.textContent = cards.length
-                    ? cards.length + ' matches · open a card or continue on Housing.com'
-                    : '';
+        function formatDesktopPinPrice(card) {
+            if (!card) return '';
+            if (card.priceUnit === 'k') {
+                const n = parseFloat(card.price);
+                if (!isNaN(n) && n >= 100) return '₹' + Math.round(n / 100) / 10 + 'L';
+                return '₹' + card.price;
             }
+            if (card.priceUnit === 'L') return '₹' + card.price + 'L';
+            return '₹' + card.price + ' Cr';
+        }
 
-            cards.slice(0, 12).forEach(function(card) {
-                const tile = document.createElement('button');
-                tile.type = 'button';
-                tile.className = 'desktop-listing-card';
-                tile.setAttribute('aria-label', (card.name || 'Property') + ' details');
-                const priceLabel = card.priceUnit === 'k'
-                    ? ('₹' + card.price)
-                    : ('₹' + card.price + ' ' + (card.priceUnit || 'Cr'));
-                tile.innerHTML =
-                    '<div class="desktop-listing-card__media">' +
-                        '<img src="" alt="" loading="lazy">' +
-                    '</div>' +
-                    '<div class="desktop-listing-card__body">' +
-                        '<p class="desktop-listing-card__name"></p>' +
-                        '<p class="desktop-listing-card__loc"></p>' +
-                        '<p class="desktop-listing-card__price"></p>' +
-                        '<p class="desktop-listing-card__meta"></p>' +
-                    '</div>';
-                const img = tile.querySelector('img');
-                img.src = card.image || (typeof PROPERTY_IMAGE_POOL !== 'undefined' ? PROPERTY_IMAGE_POOL[0] : '');
-                img.alt = card.name || '';
-                img.onerror = function() {
-                    if (!this.dataset.failed && typeof PROPERTY_IMAGE_POOL !== 'undefined') {
-                        this.dataset.failed = '1';
-                        this.src = PROPERTY_IMAGE_POOL[0];
-                    }
-                };
-                tile.querySelector('.desktop-listing-card__name').textContent = card.name || 'Property';
-                tile.querySelector('.desktop-listing-card__loc').textContent = card.locality || '';
-                tile.querySelector('.desktop-listing-card__price').textContent = priceLabel;
-                tile.querySelector('.desktop-listing-card__meta').textContent =
-                    (card.bhk ? card.bhk + ' BHK' : '') +
-                    (card.status ? ' · ' + card.status : '');
-                tile.addEventListener('click', function() {
-                    lastMentionedProject = cardToProjectPictureData(card);
-                    openPropertyDetailPage(card, tile);
-                });
-                grid.appendChild(tile);
+        var REDFIN_PIN_LAYOUT = [
+            { top: '26%', left: '34%' },
+            { top: '38%', left: '58%' },
+            { top: '52%', left: '41%' },
+            { top: '33%', left: '72%' },
+            { top: '61%', left: '63%' },
+            { top: '47%', left: '22%' },
+            { top: '68%', left: '36%' },
+            { top: '24%', left: '51%' },
+            { top: '74%', left: '55%' },
+            { top: '44%', left: '78%' },
+            { top: '57%', left: '48%' },
+            { top: '31%', left: '18%' }
+        ];
+
+        function setRedfinSelection(cardId) {
+            document.querySelectorAll('.redfin-home-card, .redfin-pin').forEach(function(el) {
+                el.classList.toggle('is-active', el.getAttribute('data-card-id') === String(cardId));
             });
+        }
+
+        function openDesktopHomeFromBrowse(card, sourceEl) {
+            if (!card) return;
+            lastMentionedProject = cardToProjectPictureData(card);
+            setRedfinSelection(card.id != null ? card.id : card.name);
+            openPropertyDetailPage(card, sourceEl);
+        }
+
+        function renderRedfinBrowse(cards) {
+            // Houzy is an overlay on Housing.com — never take over / reflow the host page
+            return;
+        }
+
+        function renderDesktopListings(cards) {
+            // Listings stay inside the Houzy chat overlay; Housing.com layout is unchanged
+            return;
         }
 
         window.__houzyDesktop = {
             syncListings: function() {
-                if (lastShownPropertyCards && lastShownPropertyCards.length && isDesktopSplit()) {
-                    renderDesktopListings(lastShownPropertyCards);
+                // No-op: Housing.com page is never adjusted by Houzy
+            },
+            onSplitModeChange: function() {
+                // No-op: explore stays inside the chat overlay
+                if (typeof exitDesktopSplit === 'function' && isDesktopSplit()) {
+                    exitDesktopSplit();
                 }
             }
         };
@@ -8322,6 +9126,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (chatInputEl) {
                         chatInputEl.placeholder = 'Reply to Houzy';
                     }
+                    if (typeof setChatOffsets === 'function') setChatOffsets();
+                    requestAnimationFrame(function() {
+                        scrollMessageIntoView(msgDiv);
+                    });
                 });
                 
                 msgDiv.appendChild(botContent);
@@ -8331,14 +9139,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (stack) {
                     stack.appendChild(msgDiv);
                     
-                    // KEY BEHAVIOR: Scroll message to top of viewport (below header)
-                    // This keeps new messages visible at top instead of scrolling down
+                    // Mobile + desktop: pull results up into the chat viewport
+                    if (typeof setChatOffsets === 'function') setChatOffsets();
                     requestAnimationFrame(() => {
-                        scrollMessageIntoView(msgDiv);
+                        requestAnimationFrame(() => {
+                            scrollMessageIntoView(msgDiv);
+                            syncHouzyOverlayScrollExpand();
+                        });
                     });
                 }
 
-                // d-web stays full-width here; split opens only on Housing.com handoff
+                // Housing page stays as-is; property cards live in the Houzy overlay only
             }, delay);
             
             return 'loading';
@@ -9079,57 +9890,76 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // ============================================================================
         // GLOBAL CLICK HANDLER FOR PROPERTY IMAGES (FALLBACK)
+        // Desktop: open Housing.com PDP in the host page (never full-screen gallery).
+        // Mobile: gallery overlay fallback when per-card handlers miss.
         // ============================================================================
         document.addEventListener('click', function(e) {
             const img = e.target.closest('.property-card__img');
-            if (img && img.hasAttribute('data-card-image')) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const cardData = {
+            if (!img || !img.hasAttribute('data-card-image')) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            const cardEl = img.closest('.property-card');
+            const storedCard = cardEl && cardEl.__houzyCard;
+
+            if (isDesktopLayout()) {
+                const existing = document.getElementById('property-gallery-overlay');
+                if (existing) existing.remove();
+                const card = storedCard || {
                     id: img.getAttribute('data-property-id'),
+                    name: img.alt || 'Property',
                     image: img.getAttribute('data-card-image'),
                     gallery: JSON.parse(img.getAttribute('data-gallery-images') || '[]')
                 };
-                
-                const existing = document.getElementById('property-gallery-overlay');
-                if (existing) existing.remove();
-                
-                const overlay = document.createElement('div');
-                overlay.id = 'property-gallery-overlay';
-                overlay.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; background: #ffffff !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
-                
-                const closeBtn = document.createElement('button');
-                closeBtn.className = 'property-gallery-close';
-                closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-                closeBtn.style.cssText = 'position: absolute !important; top: 20px !important; right: 20px !important; width: 44px !important; height: 44px !important; background: transparent !important; border: none !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
-                closeBtn.onclick = function() {
+                lastMentionedProject = cardToProjectPictureData(card);
+                openPropertyDetailPage(card, cardEl || img);
+                return;
+            }
+
+            const cardData = {
+                id: img.getAttribute('data-property-id'),
+                image: img.getAttribute('data-card-image'),
+                gallery: JSON.parse(img.getAttribute('data-gallery-images') || '[]')
+            };
+
+            const existing = document.getElementById('property-gallery-overlay');
+            if (existing) existing.remove();
+
+            const overlay = document.createElement('div');
+            overlay.id = 'property-gallery-overlay';
+            overlay.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; background: #ffffff !important; z-index: 999999 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'property-gallery-close';
+            closeBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+            closeBtn.style.cssText = 'position: absolute !important; top: 20px !important; right: 20px !important; width: 44px !important; height: 44px !important; background: transparent !important; border: none !important; cursor: pointer !important; z-index: 1000000 !important; padding: 0 !important; display: flex !important; align-items: center !important; justify-content: center !important;';
+            closeBtn.onclick = function() {
+                overlay.remove();
+                document.body.style.overflow = '';
+            };
+
+            const galleryImg = document.createElement('img');
+            const images = cardData.gallery && cardData.gallery.length > 0 ? cardData.gallery : [cardData.image];
+            galleryImg.src = images[0];
+            galleryImg.style.cssText = 'max-width: 90% !important; max-height: 90% !important; object-fit: contain !important;';
+            galleryImg.loading = 'eager';
+            galleryImg.onerror = function() {
+                this.src = PROPERTY_IMAGE_POOL[0];
+                this.onerror = null;
+            };
+
+            overlay.appendChild(closeBtn);
+            overlay.appendChild(galleryImg);
+            overlay.onclick = function(ev) {
+                if (ev.target === overlay) {
                     overlay.remove();
                     document.body.style.overflow = '';
-                };
-                
-                const galleryImg = document.createElement('img');
-                const images = cardData.gallery && cardData.gallery.length > 0 ? cardData.gallery : [cardData.image];
-                galleryImg.src = images[0];
-                galleryImg.style.cssText = 'max-width: 90% !important; max-height: 90% !important; object-fit: contain !important;';
-                galleryImg.loading = 'eager';
-                galleryImg.onerror = function() {
-                    this.src = PROPERTY_IMAGE_POOL[0];
-                    this.onerror = null;
-                };
-                
-                overlay.appendChild(closeBtn);
-                overlay.appendChild(galleryImg);
-                overlay.onclick = function(e) {
-                    if (e.target === overlay) {
-                        overlay.remove();
-                        document.body.style.overflow = '';
-                    }
-                };
-                
-                document.body.appendChild(overlay);
-                document.body.style.overflow = 'hidden';
-            }
+                }
+            };
+
+            document.body.appendChild(overlay);
+            document.body.style.overflow = 'hidden';
         }, true); // Capture phase
         
         // ============================================================================
