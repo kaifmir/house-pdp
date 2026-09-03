@@ -9130,6 +9130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     requestAnimationFrame(function() {
                         scrollMessageIntoView(msgDiv);
                     });
+                    showFollowUpChipsPanel(['What amenities are there?', 'Is parking available'], 1400);
                 });
                 
                 msgDiv.appendChild(botContent);
@@ -9154,7 +9155,114 @@ document.addEventListener('DOMContentLoaded', function() {
             
             return 'loading';
         }
-        
+
+        // ============================================================================
+        // FOLLOW-UP SUGGESTION CHIPS — shown above composer after property cards render.
+        // Reuses the exact Ask-Houzy PDP sheet chrome (.houzy-pdp__sticky / __pills / __pill)
+        // so the composer becomes the same white rounded-top sheet with the accent top
+        // border, once wrapped around the existing chat-input-wrapper. Slides up a few
+        // seconds after Houzy responds; hides on scroll-up, reappears on scroll-down.
+        // ============================================================================
+        let followUpChipsActive = false;
+
+        function ensureComposerSheet() {
+            let sheet = document.getElementById('chat-composer-sheet');
+            if (sheet) return sheet;
+
+            const inputBar = document.querySelector('.chat-input-bar');
+            const inputWrapper = document.querySelector('.chat-input-wrapper');
+            if (!inputBar || !inputWrapper) return null;
+
+            sheet = document.createElement('div');
+            sheet.className = 'chat-composer-sheet';
+            sheet.id = 'chat-composer-sheet';
+
+            const panel = document.createElement('div');
+            panel.className = 'chat-followup-panel';
+            panel.id = 'chat-followup-panel';
+            panel.setAttribute('role', 'list');
+
+            inputBar.insertBefore(sheet, inputWrapper);
+            sheet.appendChild(panel);
+            sheet.appendChild(inputWrapper);
+            inputBar.classList.add('chat-input-bar--sheet');
+            return sheet;
+        }
+
+        function showFollowUpChipsPanel(questions, delayMs) {
+            const sheet = ensureComposerSheet();
+            const panel = sheet && sheet.querySelector('.chat-followup-panel');
+            if (!panel || !questions || !questions.length) return;
+
+            sheet.classList.remove('chat-composer-sheet--expanded');
+            panel.classList.remove('is-visible');
+            panel.innerHTML = '';
+            questions.forEach(function(question, index) {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'chat-followup-chip';
+                chip.setAttribute('role', 'listitem');
+                if (index === 0) {
+                    const icon = document.createElement('img');
+                    icon.className = 'chat-followup-chip-icon';
+                    icon.src = 'assets/figma/pdp/reply-arrow.svg';
+                    icon.alt = '';
+                    icon.width = 16;
+                    icon.height = 16;
+                    chip.appendChild(icon);
+                }
+                const label = document.createElement('span');
+                label.className = 'chat-followup-chip-text';
+                label.textContent = question;
+                chip.appendChild(label);
+                chip.addEventListener('click', function() {
+                    triggerHapticFeedback('subtle');
+                    chatInput.value = '';
+                    updateSendButtonState();
+                    ensureDesktopComposerDocked();
+                    handleUserMessage(question);
+                });
+                panel.appendChild(chip);
+            });
+
+            followUpChipsActive = true;
+            setTimeout(function() {
+                panel.classList.add('is-visible');
+                sheet.classList.add('chat-composer-sheet--expanded');
+            }, delayMs || 0);
+        }
+
+        function hideFollowUpChipsPanel(permanent) {
+            if (permanent) followUpChipsActive = false;
+            const sheet = document.getElementById('chat-composer-sheet');
+            const panel = document.getElementById('chat-followup-panel');
+            if (panel) panel.classList.remove('is-visible');
+            if (sheet) sheet.classList.remove('chat-composer-sheet--expanded');
+        }
+
+        // Hide chips while scrolling up, reveal again while scrolling down — only while a set is active
+        (function setupFollowUpChipsScrollBehavior() {
+            const scroller = document.getElementById('chat-messages');
+            if (!scroller) return;
+            let lastScrollTop = scroller.scrollTop;
+            scroller.addEventListener('scroll', function() {
+                const top = scroller.scrollTop;
+                const delta = top - lastScrollTop;
+                lastScrollTop = top;
+                if (!followUpChipsActive || Math.abs(delta) < 4) return;
+                const sheet = document.getElementById('chat-composer-sheet');
+                const panel = document.getElementById('chat-followup-panel');
+                if (!sheet || !panel || panel.childElementCount === 0) return;
+                if (delta > 0) {
+                    panel.classList.add('is-visible');
+                    sheet.classList.add('chat-composer-sheet--expanded');
+                } else {
+                    panel.classList.remove('is-visible');
+                    sheet.classList.remove('chat-composer-sheet--expanded');
+                }
+            }, { passive: true });
+        })();
+
         // Create feedback row: thumbs up, thumbs down, copy (assets/feedback/*.svg – active state = fill black)
         function createFeedbackButtons(messageId) {
             const feedbackContainer = document.createElement('div');
@@ -9644,6 +9752,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Handle user message with slot filling
         function handleUserMessage(text) {
+            // New turn — clear any stale follow-up suggestions from the previous response
+            hideFollowUpChipsPanel(true);
+
             // Add user message
             addUserMessage(text);
             

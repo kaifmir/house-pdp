@@ -1567,7 +1567,8 @@ button, .property-type-card {
         box-sizing: border-box;
     }
 
-    .chat-input-wrapper {
+    .chat-input-wrapper,
+    .chat-followup-panel {
         max-width: none !important;
         width: 100% !important;
     }
@@ -2226,6 +2227,7 @@ html, body {
 /* When chat is closed, ensure input bar and input never intercept bottom-nav clicks */
 .chat-screen:not(.active) .chat-input-bar,
 .chat-screen:not(.active) .chat-input-wrapper,
+.chat-screen:not(.active) .chat-followup-panel,
 .chat-screen:not(.active) .chat-input {
     pointer-events: none !important;
 }
@@ -4345,6 +4347,110 @@ body.desktop-layout .chat-project-context {
 
 .chat-send-btn:not(:disabled):active {
     opacity: 0.85;
+}
+
+/* Composer sheet — wraps follow-up chips + the existing chat-input-wrapper once property
+   cards have appeared. Mirrors .houzy-pdp__sticky (Ask-Houzy PDP sheet) so the composer
+   becomes the same full-width white rounded-top card with the accent top border. */
+.chat-input-bar.chat-input-bar--sheet {
+    padding: 0;
+    background: transparent;
+}
+
+body.desktop-layout .chat-input-bar.chat-input-bar--sheet {
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+.chat-composer-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+    background: #ffffff;
+    border-radius: 16px 16px 0 0;
+    border-top: 1px solid transparent;
+    box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.16);
+    pointer-events: all;
+    transition: gap 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                padding-top 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                border-top-color 0.28s ease;
+}
+
+/* Blue accent stroke only shows while the follow-up pills are visible (expanded) */
+.chat-composer-sheet.chat-composer-sheet--expanded {
+    gap: 12px;
+    padding-top: 16px;
+    border-top-color: #67a0ff;
+}
+
+.chat-composer-sheet .chat-input-wrapper {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+}
+
+/* Follow-up suggestion chips — matches the Ask-Houzy PDP suggestion pills (.houzy-pdp__pills / __pill) */
+.chat-followup-panel {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -16px;
+    padding: 0 16px;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: max-height 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.32s ease,
+                transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chat-followup-panel::-webkit-scrollbar {
+    display: none;
+}
+
+.chat-followup-panel.is-visible {
+    max-height: 56px;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.chat-followup-chip {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #e1e2e8;
+    background: #ffffff;
+    color: #767676;
+    font-family: 'Rubik', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.chat-followup-chip-icon {
+    display: block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.chat-followup-chip:active {
+    background: #f7f7f8;
 }
 
 /* Property Gallery Fullscreen */
@@ -11079,7 +11185,8 @@ body.desktop-layout .chat-input-bar {
     pointer-events: none;
 }
 
-body.desktop-layout .chat-input-wrapper {
+body.desktop-layout .chat-input-wrapper,
+body.desktop-layout .chat-followup-panel {
     max-width: none !important;
     width: 100% !important;
     margin-left: 0;
