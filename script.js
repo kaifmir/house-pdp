@@ -422,6 +422,104 @@ function showHousingDesktopSRP() {
     document.body.classList.remove('housing-showing-pdp');
 }
 
+/* ============================================================================
+   DESKTOP SRP — real search wiring for the "no results" + Houzy widen-search flow.
+   Previously this flow only existed as a hardcoded demo reachable via the
+   "all cases" debug menu (showSRPCase1Page / srpContext: 'no-results'). This
+   wires the same experience into the actual desktop search bar: typing a
+   locality Housing.com doesn't have inventory for now falls back to a real
+   "No properties match your current filters!" state with a working
+   "Ask Houzy anything" entry point into the live chat overlay.
+   ============================================================================ */
+const HOUZY_DESKTOP_KNOWN_LOCALITIES = [
+    'sector 89', 'gurgaon', 'golf course road', 'sohna road',
+    'dwarka expressway', 'sector 81', 'sector 84', 'sector 88'
+];
+
+function houzyNormalizeQuery(text) {
+    return String(text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function desktopSearchHasInventory(query) {
+    const q = houzyNormalizeQuery(query);
+    if (!q) return true; // empty search = default Sector 89 listing, always has results
+    return HOUZY_DESKTOP_KNOWN_LOCALITIES.some(function(loc) {
+        return q.indexOf(loc) !== -1 || loc.indexOf(q) !== -1;
+    });
+}
+
+function renderDesktopSearchState(rawQuery) {
+    const query = String(rawQuery || '').trim();
+    const displayLocality = query || 'Sector 89';
+    const hasResults = desktopSearchHasInventory(query);
+
+    const breadcrumb = document.getElementById('srp-breadcrumb');
+    const title = document.getElementById('srp-page-title');
+    const count = document.getElementById('srp-count');
+    const chipRow = document.getElementById('srp-chip-row');
+    const resultsEl = document.getElementById('srp-results');
+    const noResultsEl = document.getElementById('srp-no-results');
+    const nearbyHeading = document.getElementById('srp-nearby-heading');
+
+    if (breadcrumb) breadcrumb.innerHTML = 'Home&nbsp;/&nbsp;Gurgaon&nbsp;/&nbsp;Flats for Sale in ' + escapeHousingHtml(displayLocality);
+    if (title) title.textContent = 'Flats for Sale in ' + displayLocality + ', Gurgaon';
+
+    if (hasResults) {
+        if (count) count.textContent = 'Showing 1 - 20 of 25,692';
+        if (chipRow) chipRow.hidden = true;
+        if (resultsEl) resultsEl.hidden = false;
+        if (noResultsEl) noResultsEl.hidden = true;
+    } else {
+        if (count) count.textContent = 'Showing 0 results';
+        if (chipRow) chipRow.hidden = false;
+        if (resultsEl) resultsEl.hidden = true;
+        if (noResultsEl) noResultsEl.hidden = false;
+        if (nearbyHeading) nearbyHeading.textContent = 'Nearby Properties around ' + displayLocality;
+    }
+}
+
+function initDesktopSRPSearch() {
+    const searchInput = document.querySelector('#housing-desktop .srp-search__input');
+    const searchSubmitBtn = document.getElementById('srp-search-submit');
+    const resetBtn = document.getElementById('srp-reset-filters');
+    const widenBtn = document.getElementById('srp-widen-houzy-btn');
+
+    if (searchInput && !searchInput.dataset.bound) {
+        searchInput.dataset.bound = '1';
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter' && e.keyCode !== 13) return;
+            renderDesktopSearchState(searchInput.value);
+        });
+    }
+
+    if (searchSubmitBtn && !searchSubmitBtn.dataset.bound) {
+        searchSubmitBtn.dataset.bound = '1';
+        searchSubmitBtn.addEventListener('click', function() {
+            renderDesktopSearchState(searchInput ? searchInput.value : '');
+        });
+    }
+
+    if (resetBtn && !resetBtn.dataset.bound) {
+        resetBtn.dataset.bound = '1';
+        resetBtn.addEventListener('click', function() {
+            if (searchInput) searchInput.value = '';
+            renderDesktopSearchState('');
+        });
+    }
+
+    if (widenBtn && !widenBtn.dataset.bound) {
+        widenBtn.dataset.bound = '1';
+        widenBtn.addEventListener('click', function() {
+            if (typeof setHouzyOverlayCollapsed === 'function') setHouzyOverlayCollapsed(false);
+            setTimeout(function() {
+                if (typeof window.addBotMessage === 'function') {
+                    window.addBotMessage("Hmm, not many options here. Want me to suggest nearby areas or adjust filters to find more properties?", true);
+                }
+            }, 400);
+        });
+    }
+}
+
 function showHousingDesktopPDP(card) {
     const home = document.getElementById('housing-desktop-home');
     const pdp = document.getElementById('housing-desktop-pdp');
@@ -1402,6 +1500,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+    // Desktop SRP: real search -> results or "no results" + Houzy widen-search flow
+    if (typeof initDesktopSRPSearch === 'function') initDesktopSRPSearch();
 
     // Allow continuing the mobile demo on desktop (property cards / Houzy flows)
     const desktopContinueBtn = document.getElementById('desktop-continue-btn');
@@ -3076,7 +3177,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             return 'typing';
         }
-        
+        // Exposed so the desktop SRP no-results flow (top-level scope) can push a real
+        // Houzy bot message without duplicating the streaming/typing-indicator logic.
+        window.addBotMessage = addBotMessage;
+
         // Locality / "tell me about [place]" info cards (Figma Case 1 structure)
         const LOCALITY_INFO_CARDS = {
             'richmond park': {

@@ -49,7 +49,9 @@
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
                 </button>
                 <div class="srp-search">
-                    <svg class="srp-search__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5e23dc" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    <button type="button" class="srp-search__icon-btn" id="srp-search-submit" aria-label="Search">
+                        <svg class="srp-search__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5e23dc" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                    </button>
                     <input type="search" class="srp-search__input" placeholder="Enter Locality, Landmark, Project..." autocomplete="off" value="">
                 </div>
                 <div class="srp-header__actions">
@@ -79,20 +81,26 @@
         <main class="housing-desktop__main" id="housing-desktop-main">
             <section class="srp-page" id="housing-desktop-home">
                 <div class="srp-page__meta">
-                    <p class="srp-breadcrumb">Home&nbsp;/&nbsp;Gurgaon&nbsp;/&nbsp;Flats for Sale in Sector 89</p>
+                    <p class="srp-breadcrumb" id="srp-breadcrumb">Home&nbsp;/&nbsp;Gurgaon&nbsp;/&nbsp;Flats for Sale in Sector 89</p>
                     <p class="srp-updated">Last Updated: Sep 3, 2025</p>
                 </div>
-                <p class="srp-count">Showing 1 - 20 of 25,692</p>
+                <p class="srp-count" id="srp-count">Showing 1 - 20 of 25,692</p>
                 <div class="srp-page__title-row">
-                    <h1 class="srp-page__title">Flats for Sale in Sector 89, Gurgaon</h1>
+                    <h1 class="srp-page__title" id="srp-page-title">Flats for Sale in Sector 89, Gurgaon</h1>
                     <div class="srp-sort-wrap">
                         <span class="srp-sort-label">Sort by:</span>
                         <button type="button" class="srp-sort">Price (Low to High) <svg width="8" height="4" viewBox="0 0 8 4" fill="none" aria-hidden="true"><path d="M1 1l3 2 3-2" stroke="#434343" stroke-width="1.2" stroke-linecap="round"/></svg></button>
                     </div>
                 </div>
 
+                <div class="srp-chip-row" id="srp-chip-row" hidden>
+                    <span class="srp-chip">₹0 - ₹5 Cr<button type="button" class="srp-chip__x" aria-label="Remove budget filter">✕</button></span>
+                    <span class="srp-chip">3 BHK<button type="button" class="srp-chip__x" aria-label="Remove BHK filter">✕</button></span>
+                    <button type="button" class="srp-chip srp-chip--reset" id="srp-reset-filters">Reset Filter</button>
+                </div>
+
                 <div class="srp-layout">
-                    <div class="srp-results" aria-label="Search results">
+                    <div class="srp-results" id="srp-results" aria-label="Search results">
                         <article class="srp-card">
                             <div class="srp-card__media" style="background-image:url('HOUSE%201.jpg')">
                                 <div class="srp-card__dev"><span class="srp-card__dev-logo" aria-hidden="true"></span>M3M India Pvt. Ltd.</div>
@@ -193,6 +201,58 @@
                                 <p class="srp-card__amenities"><span>Amenities:</span> Park · Lift · Security</p>
                                 <div class="srp-card__footer">
                                     <p class="srp-card__updated">Updated<br><strong>5 d ago</strong></p>
+                                    <div class="srp-card__actions">
+                                        <button type="button" class="srp-card__fav" aria-label="Shortlist"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true"><path d="M8 12.6S1.5 8.8 1.5 4.8A3.3 3.3 0 0 1 8 3.2a3.3 3.3 0 0 1 6.5 1.6C14.5 8.8 8 12.6 8 12.6z" stroke="#5e23dc" stroke-width="1.3"/></svg></button>
+                                        <button type="button" class="srp-card__contact">Contact</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="srp-no-results" id="srp-no-results" hidden>
+                        <div class="srp-notice">
+                            <span class="srp-notice__icon" aria-hidden="true">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l10 18H2L12 3z" fill="#fff"/><path d="M12 9v5M12 17h.01" stroke="#bb281b" stroke-width="2" stroke-linecap="round"/></svg>
+                            </span>
+                            <div class="srp-notice__text">
+                                <strong>No properties match your current filters!</strong>
+                                <span>Try adjusting your filter or let Houzy do the searching for you</span>
+                            </div>
+                        </div>
+
+                        <div class="srp-widen">
+                            <h2 class="srp-widen__heading">Widen your search with Houzy</h2>
+                            <button type="button" class="srp-widen__bar" id="srp-widen-houzy-btn">
+                                <span class="srp-widen__spark" aria-hidden="true">✦</span>
+                                <span class="srp-widen__placeholder">Ask Houzy anything</span>
+                                <span class="srp-widen__send" aria-hidden="true">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                                </span>
+                            </button>
+                        </div>
+
+                        <h2 class="srp-nearby-heading" id="srp-nearby-heading">Nearby Properties around Sector 89</h2>
+                        <p class="srp-nearby-sub">Housing.com offers 1145+ Flats &amp; 299+ Houses/Villas nearby. Search from 577+ 2 &amp; 3 BHK properties for sale close to your search.</p>
+                        <article class="srp-card srp-card--nearby">
+                            <div class="srp-card__media" style="background-image:url('HOUSE%201.jpg')">
+                                <div class="srp-card__dev"><span class="srp-card__dev-logo" aria-hidden="true"></span>M3M India Pvt. Ltd.</div>
+                                <div class="srp-card__tags">
+                                    <span class="srp-card__verified"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="6" fill="#2CC88D"/><path d="M3.2 6.1l1.8 1.8 3.8-3.8" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Verified</span>
+                                    <span class="srp-card__dist">1.7 km away</span>
+                                </div>
+                            </div>
+                            <div class="srp-card__body">
+                                <span class="srp-card__broker">Zero Brokergae</span>
+                                <h2 class="srp-card__name">M3M Soulitude <span class="srp-rera"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1.2l4.2 1.5v3.2c0 2.4-1.7 4.4-4.2 5.1C3.5 10.3 1.8 8.3 1.8 5.9V2.7L6 1.2z" fill="#2CC88D"/><path d="M4 6.1l1.4 1.4L8.2 4.7" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>RERA</span></h2>
+                                <div class="srp-card__metrics">
+                                    <div class="srp-card__metric"><strong>₹2.5 Cr</strong><span>Avg. price: ₹22 k/sq.ft</span></div>
+                                    <div class="srp-card__metric"><strong>13500 sq.ft</strong><span>Builtup area</span></div>
+                                    <div class="srp-card__metric"><strong>2nd March, 2026</strong><span>Possession status</span></div>
+                                </div>
+                                <p class="srp-card__amenities"><span>Amenities:</span> Lift · Parking · Power backup</p>
+                                <div class="srp-card__footer">
+                                    <p class="srp-card__updated">Updated<br><strong>6 d ago</strong></p>
                                     <div class="srp-card__actions">
                                         <button type="button" class="srp-card__fav" aria-label="Shortlist"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" aria-hidden="true"><path d="M8 12.6S1.5 8.8 1.5 4.8A3.3 3.3 0 0 1 8 3.2a3.3 3.3 0 0 1 6.5 1.6C14.5 8.8 8 12.6 8 12.6z" stroke="#5e23dc" stroke-width="1.3"/></svg></button>
                                         <button type="button" class="srp-card__contact">Contact</button>
